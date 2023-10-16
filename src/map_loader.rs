@@ -1,8 +1,9 @@
 use std::fs::File;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::buildings::common::BuildingType;
+use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::main_base::create_main_base;
+use crate::buildings::tower_blaster::create_tower_blaster;
 use crate::grid::{ObstacleGrid, GridCoords};
 use crate::map_objects::walls::create_wall;
 
@@ -35,6 +36,13 @@ pub fn apply_map(
         match building.building_type {
             BuildingType::MainBase => {
                 create_main_base(&mut commands, &mut grid, building.coords);
+            }
+            BuildingType::Tower(tower_type) => {
+                match tower_type {
+                    TowerType::Blaster => {
+                        create_tower_blaster(&mut commands, &mut grid, building.coords);
+                    }
+                }
             }
         }
     });

@@ -5,15 +5,11 @@ use crate::grid::{Field, ObstacleGrid, GridCoords};
 use crate::buildings::components::{Building};
 use crate::map_loader;
 use crate::map_loader::MapBuilding;
-use crate::map_objects::walls::{create_wall, remove_wall};
-use crate::mouse::MouseInfo;
-use crate::ui::grid_object_placer::{GridObjectPlacer};
 
 pub struct MapEditorPlugin;
 impl Plugin for MapEditorPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(MapInfo::default());
-        app.add_systems(Update, editor_onclick_wall_spawn_system);
         app.add_systems(Update, save_map_system);
 
     }
@@ -28,29 +24,6 @@ pub struct MapInfo {
 impl MapInfo {
     pub fn bounds(&self) -> (i32, i32) {
         (self.width, self.height)
-    }
-}
-
-pub fn editor_onclick_wall_spawn_system(
-    mut commands: Commands,
-    mut grid: ResMut<ObstacleGrid>,
-    mouse: Res<Input<MouseButton>>,
-    mouse_info: Res<MouseInfo>,
-    grid_object_placer: Query<&GridObjectPlacer>,
-) {
-    if *grid_object_placer.single() != GridObjectPlacer::Wall { return; }
-    let mouse_coords = mouse_info.grid_coords;
-    if !mouse_coords.is_in_bounds(grid.bounds()) { return; }
-    if mouse.pressed(MouseButton::Left) {
-        // Place a wall
-        if grid[mouse_coords].is_empty() {
-            create_wall(&mut commands, &mut grid, mouse_coords);
-        }
-    } else if mouse.pressed(MouseButton::Right) {
-        // Remove a wall
-        if grid[mouse_coords].is_wall() {
-            remove_wall(&mut commands, &mut grid, mouse_coords);
-        }
     }
 }
 

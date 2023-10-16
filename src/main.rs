@@ -29,6 +29,8 @@ fn main() {
             ui::UiPlugin,
             map_editor::MapEditorPlugin,
             mouse::MousePlugin,
+            map_objects::MapObjectsPlugin,
+            buildings::BuildingsPlugin,
         ))
         .insert_resource(GameConfig{
             mode: GameMode::Editor,

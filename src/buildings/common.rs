@@ -6,4 +6,10 @@ pub type BuildingId = Id<BuildingType, Entity>;
 #[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum BuildingType {
     MainBase,
+    Tower(TowerType),
+}
+
+#[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub enum TowerType {
+    Blaster,
 }

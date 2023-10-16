@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use crate::grid::{CELL_SIZE, Field, ObstacleGrid, GridCoords};
+use crate::mouse::MouseInfo;
+use crate::ui::grid_object_placer::GridObjectPlacer;
 
 #[derive(Component)]
 pub struct Wall;
@@ -38,4 +40,28 @@ pub fn remove_wall(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, gri
     };
     commands.entity(entity).despawn();
     grid.remove_wall(grid_position);
+}
+
+
+pub fn onclick_wall_spawn_system(
+    mut commands: Commands,
+    mut grid: ResMut<ObstacleGrid>,
+    mouse: Res<Input<MouseButton>>,
+    mouse_info: Res<MouseInfo>,
+    grid_object_placer: Query<&GridObjectPlacer>,
+) {
+    if !matches!(*grid_object_placer.single(), GridObjectPlacer::Wall) { return; }
+    let mouse_coords = mouse_info.grid_coords;
+    if !mouse_coords.is_in_bounds(grid.bounds()) { return; }
+    if mouse.pressed(MouseButton::Left) {
+        // Place a wall
+        if grid[mouse_coords].is_empty() {
+            create_wall(&mut commands, &mut grid, mouse_coords);
+        }
+    } else if mouse.pressed(MouseButton::Right) {
+        // Remove a wall
+        if grid[mouse_coords].is_wall() {
+            remove_wall(&mut commands, &mut grid, mouse_coords);
+        }
+    }
 }

@@ -11,3 +11,6 @@ pub struct Building {
 // Building type markers
 #[derive(Component)]
 pub struct MarkerMainBase;
+
+#[derive(Component)]
+pub struct MarkerTower;

@@ -4,8 +4,10 @@ use crate::buildings::components::{Building, MarkerMainBase};
 use crate::common_components::Health;
 use crate::grid::{CELL_SIZE, ObstacleGrid, GridCoords, GridImprint};
 
-const MAIN_BASE_WIDTH: f32 = CELL_SIZE * 6.;
-const MAIN_BASE_HEIGHT: f32 = CELL_SIZE * 4.;
+const MAIN_BASE_GRID_WIDTH: i32 = 6;
+const MAIN_BASE_GRID_HEIGHT: i32 = 4;
+const MAIN_BASE_WORLD_WIDTH: f32 = CELL_SIZE * MAIN_BASE_GRID_WIDTH as f32;
+const MAIN_BASE_WORLD_HEIGHT: f32 = CELL_SIZE * MAIN_BASE_GRID_HEIGHT as f32;
 
 pub fn create_main_base(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, grid_position: GridCoords) -> Entity {
     let imprint = get_main_base_grid_imprint();
@@ -32,14 +34,14 @@ pub fn get_main_base_sprite_bundle(coords: GridCoords) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(1.0, 1.0, 1.0),
-            custom_size: Some(Vec2::new(MAIN_BASE_WIDTH, MAIN_BASE_HEIGHT)),
+            custom_size: Some(Vec2::new(MAIN_BASE_WORLD_WIDTH, MAIN_BASE_WORLD_HEIGHT)),
             ..Default::default()
         },
-        transform: Transform::from_translation(world_position + Vec3::new(MAIN_BASE_WIDTH/2., MAIN_BASE_HEIGHT/2., 0.0)),
+        transform: Transform::from_translation(world_position + Vec3::new(MAIN_BASE_WORLD_WIDTH/2., MAIN_BASE_WORLD_HEIGHT/2., 0.0)),
         ..Default::default()
     }
 }
 
 pub fn get_main_base_grid_imprint() -> GridImprint {
-    GridImprint::Rectangle { width: 6, height: 4 }
+    GridImprint::Rectangle { width: MAIN_BASE_GRID_WIDTH, height: MAIN_BASE_GRID_HEIGHT }
 }

@@ -1,15 +1,17 @@
 use bevy::prelude::*;
+use crate::buildings::common::{BuildingType, TowerType};
+use crate::buildings::components::Building;
 use crate::grid::GridImprint;
-use crate::buildings::main_base::get_main_base_grid_imprint;
+use crate::buildings::tower_blaster::get_tower_blaster_grid_imprint;
 use crate::grid::{CELL_SIZE, ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::interaction_state::UiInteractionState;
 
-#[derive(Component, Default, PartialEq)]
+#[derive(Component, Default)]
 pub enum GridObjectPlacer {
     #[default]
     None,
-    Building(GridImprint),
+    Building(Building),
     Wall,
 }
 
@@ -37,19 +39,19 @@ pub fn update_grid_object_placer_system(
         }
     };
     transform.translation = mouse_info.grid_coords.to_world_coords().extend(10.);
-    let is_imprint_placable = match *grid_object_placer {
+    let is_imprint_placable = match &*grid_object_placer {
         GridObjectPlacer::Wall => {
             transform.translation += Vec3::new(8., 8., 0.);
             mouse_info.grid_coords.is_in_bounds(grid.bounds()) && grid[mouse_info.grid_coords].is_empty()
         },
-        GridObjectPlacer::Building(imprint) => {
-            match imprint {
+        GridObjectPlacer::Building(building) => {
+            match building.grid_imprint {
                 GridImprint::Rectangle { width, height } => {
                     transform.translation.x += width as f32 * CELL_SIZE / 2.;
                     transform.translation.y += height as f32 * CELL_SIZE / 2.;
                 }
             }
-            grid.is_imprint_placable(mouse_info.grid_coords, imprint)
+            grid.is_imprint_placable(mouse_info.grid_coords, building.grid_imprint)
         }
         _ => false
     };
@@ -59,11 +61,6 @@ pub fn update_grid_object_placer_system(
     } else {
         sprite.color = Color::rgba(1.0, 0.0, 0.0, 0.2);
     }
-}
-
-pub fn placer_test() {
-    let placer = 3;
-
 }
 
 pub fn on_click_initiate_grid_object_placer_system(
@@ -82,14 +79,16 @@ pub fn on_click_initiate_grid_object_placer_system(
                 sprite.custom_size = Some(Vec2::new(CELL_SIZE, CELL_SIZE));
                 *visibility = Visibility::Visible;
             } else if keys.just_pressed(KeyCode::Key1) {
-                // Main Base
+                // Tower Blaster
                 *ui_interaction_state = UiInteractionState::PlaceGridObject;
                 let (mut sprite, mut visibility, mut grid_object_placer) = placer.single_mut();
-                let imprint = get_main_base_grid_imprint();
-                let (sprite_width, sprite_height) = match imprint {
+                let grid_imprint = get_tower_blaster_grid_imprint();
+                let (sprite_width, sprite_height) = match grid_imprint {
                     GridImprint::Rectangle { width, height } => (width as f32 * CELL_SIZE, height as f32 * CELL_SIZE),
                 };
-                *grid_object_placer = GridObjectPlacer::Building(imprint);
+                *grid_object_placer = GridObjectPlacer::Building(
+                    Building{grid_imprint, building_type: BuildingType::Tower(TowerType::Blaster)}
+                );
 
                 sprite.custom_size = Some(Vec2::new(sprite_width, sprite_height));
                 *visibility = Visibility::Visible;

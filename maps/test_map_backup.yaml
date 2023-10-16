@@ -1,0 +1,7 @@
+width: 100
+height: 100
+buildings:
+  - building_type: MainBase
+    coords: { x: 30, y: 30 }
+walls: []
+

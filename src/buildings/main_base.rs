@@ -1,0 +1,45 @@
+use bevy::prelude::*;
+use crate::buildings::common::BuildingType;
+use crate::buildings::components::{Building, MarkerMainBase};
+use crate::common_components::Health;
+use crate::grid::{CELL_SIZE, ObstacleGrid, GridCoords, GridImprint};
+
+const MAIN_BASE_WIDTH: f32 = CELL_SIZE * 6.;
+const MAIN_BASE_HEIGHT: f32 = CELL_SIZE * 4.;
+
+pub fn create_main_base(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, grid_position: GridCoords) -> Entity {
+    let imprint = get_main_base_grid_imprint();
+    let building_entity = commands.spawn(
+        get_main_base_sprite_bundle(grid_position)
+    ).insert(
+        MarkerMainBase
+    ).insert(
+        grid_position
+    ).insert(
+        Health(10000)
+    ).insert(
+      Building {
+          grid_imprint: imprint,
+          building_type: BuildingType::MainBase
+      }
+    ).id();
+    grid.imprint_building(imprint, grid_position, building_entity);
+    building_entity
+}
+
+pub fn get_main_base_sprite_bundle(coords: GridCoords) -> SpriteBundle {
+    let world_position = coords.to_world_coords().extend(0.);
+    SpriteBundle {
+        sprite: Sprite {
+            color: Color::rgb(1.0, 1.0, 1.0),
+            custom_size: Some(Vec2::new(MAIN_BASE_WIDTH, MAIN_BASE_HEIGHT)),
+            ..Default::default()
+        },
+        transform: Transform::from_translation(world_position + Vec3::new(MAIN_BASE_WIDTH/2., MAIN_BASE_HEIGHT/2., 0.0)),
+        ..Default::default()
+    }
+}
+
+pub fn get_main_base_grid_imprint() -> GridImprint {
+    GridImprint::Rectangle { width: 6, height: 4 }
+}

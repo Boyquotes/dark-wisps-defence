@@ -1,9 +1,10 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::components::Building;
-use crate::grid::GridImprint;
+use crate::grids::obstacles::GridImprint;
 use crate::buildings::tower_blaster::get_tower_blaster_grid_imprint;
-use crate::grid::{CELL_SIZE, ObstacleGrid};
+use crate::grids::common::CELL_SIZE;
+use crate::grids::obstacles::{ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::interaction_state::UiInteractionState;
 

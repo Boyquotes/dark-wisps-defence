@@ -3,7 +3,8 @@ use nanorand::Rng;
 use crate::buildings::components::Building;
 use crate::common::TargetType;
 use crate::common_components::Health;
-use crate::grid::{Field, ObstacleGrid, GridCoords, GridType};
+use crate::grids::common::GridType;
+use crate::grids::obstacles::{Field, ObstacleGrid, GridCoords};
 use crate::is_game_mode;
 use crate::pathfinding::path_find_closest_building;
 use crate::wisps::components::{Target, Wisp};
@@ -53,7 +54,7 @@ pub fn target_wisps(mut query: Query<(&mut Target, &GridCoords), With<Wisp>>, gr
             }
             TargetType::Unreachable{grid_type, grid_version} => {
                 match grid_type {
-                    GridType::Obstacle => {
+                    GridType::Obstacles => {
                         if grid_version != grid.version {
                             target.target_type = TargetType::None;
                         }
@@ -68,7 +69,7 @@ pub fn target_wisps(mut query: Query<(&mut Target, &GridCoords), With<Wisp>>, gr
             target.target_type = TargetType::Field{coords: *path.last().unwrap(), grid_version: grid.version};
             target.grid_path = Some(path);
         } else {
-            target.target_type = TargetType::Unreachable {grid_type: GridType::Obstacle, grid_version: grid.version};
+            target.target_type = TargetType::Unreachable {grid_type: GridType::Obstacles, grid_version: grid.version};
             target.grid_path = Some(Vec::new());
         }
     }

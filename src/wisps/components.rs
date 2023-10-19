@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::common::TargetType;
-use crate::grid::GridCoords;
+use crate::grids::obstacles::GridCoords;
 
 
 #[derive(Component, Default)]

@@ -1,6 +1,6 @@
 use std::collections::BinaryHeap;
 use bevy::prelude::*;
-use crate::grid::{Field, ObstacleGrid, GridCoords};
+use crate::grids::obstacles::{Field, ObstacleGrid, GridCoords};
 
 
 pub fn path_find_closest_building(grid: &Res<ObstacleGrid>, start_coords: GridCoords) -> Option<Vec<GridCoords>> {

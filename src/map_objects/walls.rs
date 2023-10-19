@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use crate::grid::{CELL_SIZE, Field, ObstacleGrid, GridCoords};
+use crate::grids::common::CELL_SIZE;
+use crate::grids::obstacles::{Field, ObstacleGrid, GridCoords};
 use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 

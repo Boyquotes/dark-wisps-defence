@@ -1,24 +1,8 @@
 use std::ops::{Index, IndexMut};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use crate::grids::common::CELL_SIZE;
 use crate::ui::UiConfig;
-
-pub const CELL_SIZE: f32 = 16.;
-
-pub struct GridPlugin;
-impl Plugin for GridPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Update, draw_grid_system);
-        let mut grid = ObstacleGrid::new_empty();
-        grid.resize_and_reset(100, 100);
-        app.insert_resource(grid);
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum GridType {
-    Obstacle,
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Field {

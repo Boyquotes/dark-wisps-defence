@@ -1,5 +1,4 @@
 mod camera;
-mod grid;
 mod common;
 mod buildings;
 mod wisps;
@@ -12,9 +11,11 @@ mod map_editor;
 mod mouse;
 mod utils;
 mod projectiles;
+mod grids;
 
 use bevy::prelude::*;
-use crate::grid::{CELL_SIZE, ObstacleGrid};
+use crate::grids::common::CELL_SIZE;
+use crate::grids::obstacles::{ObstacleGrid};
 use crate::map_editor::MapInfo;
 
 fn main() {
@@ -25,7 +26,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             camera::CameraPlugin,
-            grid::GridPlugin,
+            grids::GridsPlugin,
             wisps::systems::WispsPlugin,
             ui::UiPlugin,
             map_editor::MapEditorPlugin,

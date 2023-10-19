@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use crate::camera::MainCamera;
-use crate::grid::GridCoords;
+use crate::grids::obstacles::GridCoords;
 
 pub struct MousePlugin;
 impl Plugin for MousePlugin {

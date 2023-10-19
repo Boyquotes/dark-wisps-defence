@@ -5,14 +5,14 @@ use crate::grids::common::GridCoords;
 
 
 #[derive(Resource)]
-pub struct GridBase<FieldType> where FieldType: Default + Clone + Debug {
+pub struct BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
     pub width: i32,
     pub height: i32,
     pub grid: Vec<FieldType>,
     pub version: u32, // Used to determine whether the grid has changed
 }
 
-impl <FieldType>GridBase<FieldType> where FieldType: Default + Clone + Debug {
+impl <FieldType> BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
     pub fn new_empty() -> Self {
         Self {
             width: 0,
@@ -32,7 +32,7 @@ impl <FieldType>GridBase<FieldType> where FieldType: Default + Clone + Debug {
 }
 
 
-impl<FieldType> Index<GridCoords> for GridBase<FieldType> where FieldType: Default + Clone + Debug {
+impl<FieldType> Index<GridCoords> for BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
     type Output = FieldType;
 
     fn index(&self, coords: GridCoords) -> &Self::Output {
@@ -43,7 +43,7 @@ impl<FieldType> Index<GridCoords> for GridBase<FieldType> where FieldType: Defau
         &self.grid[index]
     }
 }
-impl<FieldType>  IndexMut<GridCoords> for GridBase<FieldType> where FieldType: Default + Clone + Debug {
+impl<FieldType>  IndexMut<GridCoords> for BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
     fn index_mut(&mut self, coords: GridCoords) -> &mut Self::Output {
         if !coords.is_in_bounds(self.bounds()) {
             panic!("Index out of bounds");

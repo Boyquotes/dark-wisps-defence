@@ -1,8 +1,6 @@
-use std::ops::{Index, IndexMut};
 use bevy::prelude::*;
 use crate::grids::base::BaseGrid;
-use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
-use crate::ui::UiConfig;
+use crate::grids::common::{ GridCoords, GridImprint};
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Field {

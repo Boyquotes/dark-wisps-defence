@@ -11,9 +11,10 @@ mod ui;
 mod map_editor;
 mod mouse;
 mod utils;
+mod projectiles;
 
 use bevy::prelude::*;
-use crate::grid::{ObstacleGrid};
+use crate::grid::{CELL_SIZE, ObstacleGrid};
 use crate::map_editor::MapInfo;
 
 fn main() {
@@ -31,6 +32,7 @@ fn main() {
             mouse::MousePlugin,
             map_objects::MapObjectsPlugin,
             buildings::BuildingsPlugin,
+            projectiles::ProjectilesPlugin,
         ))
         .insert_resource(GameConfig{
             mode: GameMode::Editor,
@@ -66,7 +68,9 @@ pub fn generate_default_map(
 ) {
     let map = map_loader::load_map("test_map");
     map_info.name = "test_map".to_string();
-    map_info.width = map.width;
-    map_info.height = map.height;
+    map_info.grid_width = map.width;
+    map_info.grid_height = map.height;
+    map_info.world_width = map.width as f32 * CELL_SIZE;
+    map_info.world_height = map.height as f32 * CELL_SIZE;
     map_loader::apply_map(map, &mut commands, &mut grid);
 }

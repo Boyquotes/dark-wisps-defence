@@ -17,13 +17,15 @@ impl Plugin for MapEditorPlugin {
 
 #[derive(Resource, Default)]
 pub struct MapInfo {
-    pub width: i32,
-    pub height: i32,
+    pub grid_width: i32,
+    pub grid_height: i32,
+    pub world_width: f32,
+    pub world_height: f32,
     pub name: String,
 }
 impl MapInfo {
     pub fn bounds(&self) -> (i32, i32) {
-        (self.width, self.height)
+        (self.grid_width, self.grid_height)
     }
 }
 
@@ -63,8 +65,8 @@ pub fn save_map_system(
     }
 
     let map = map_loader::Map {
-        width: map_info.width,
-        height: map_info.height,
+        width: map_info.grid_width,
+        height: map_info.grid_height,
         buildings,
         walls,
     };

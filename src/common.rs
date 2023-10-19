@@ -1,6 +1,5 @@
 use bevy::prelude::*;
-use crate::grids::common::GridType;
-use crate::grids::obstacles::{GridCoords};
+use crate::grids::common::{GridCoords, GridType};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum GridDynamicObject {

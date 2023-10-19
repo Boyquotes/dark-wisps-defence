@@ -1,9 +1,8 @@
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 use crate::common_components::Health;
+use crate::grids::common::GridCoords;
 use crate::wisps::components::{Target, Wisp};
-use crate::grids::obstacles::{GridCoords};
-
 
 #[derive(Bundle, Default)]
 struct WispBundle {

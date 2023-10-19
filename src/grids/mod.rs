@@ -11,5 +11,6 @@ impl Plugin for GridsPlugin {
         let mut grid = obstacles::ObstacleGrid::new_empty();
         grid.resize_and_reset(100, 100);
         app.insert_resource(grid);
+        app.insert_resource(base_grid::GridBase::<i32>::new_empty());
     }
 }

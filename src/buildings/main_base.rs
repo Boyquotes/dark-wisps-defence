@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::components::{Building, MarkerMainBase};
 use crate::common_components::Health;
-use crate::grids::common::CELL_SIZE;
-use crate::grids::obstacles::{ObstacleGrid, GridCoords, GridImprint};
+use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::obstacles::ObstacleGrid;
 
 const MAIN_BASE_GRID_WIDTH: i32 = 6;
 const MAIN_BASE_GRID_HEIGHT: i32 = 4;

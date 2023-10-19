@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::main_base::create_main_base;
 use crate::buildings::tower_blaster::create_tower_blaster;
-use crate::grids::obstacles::{ObstacleGrid, GridCoords};
+use crate::grids::common::GridCoords;
+use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::walls::create_wall;
 
 /// Represents yaml content for a map

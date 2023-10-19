@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::grids::obstacles::GridImprint;
+use crate::grids::common::GridImprint;
 
 #[derive(Component)]
 pub struct Building {

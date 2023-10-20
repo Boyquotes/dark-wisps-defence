@@ -1,7 +1,10 @@
+use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
-use crate::common_components::TargetVector;
-use crate::map_editor::MapInfo;
+use crate::common_components::{Health, TargetVector};
+use crate::grids::common::GridCoords;
+use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
+use crate::wisps::components::Wisp;
 
 #[derive(Component)]
 pub struct MarkerLaserDart;
@@ -38,15 +41,26 @@ pub fn laser_dart_move_system(
     }
 }
 
-pub fn laser_dart_extinguish_system(
+pub fn laser_dart_hit_system(
     mut commands: Commands,
     laser_darts: Query<(Entity, &Transform), With<MarkerLaserDart>>,
-    map_info: Res<MapInfo>,
+    wisps_grid: Res<WispsGrid>,
+    mut wisps: Query<(&mut Health, &Transform), With<Wisp>>,
 ) {
-    for (entity, transform) in laser_darts.iter() {
-        let (x, y) = (transform.translation.x, transform.translation.y);
-        if x < 0. || x > map_info.world_width || y < 0. || y > map_info.world_height {
+    for (entity, laser_dart_transform) in laser_darts.iter() {
+        let coords = GridCoords::from_transform(&laser_dart_transform);
+        if !coords.is_in_bounds(wisps_grid.bounds()) {
             commands.entity(entity).despawn();
+            continue;
+        }
+        let wisps_in_coords = &wisps_grid[coords];
+        for wisp in wisps_in_coords {
+            let Ok((mut health, wisp_transform)) = wisps.get_mut(*wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
+            if laser_dart_transform.translation.xy().distance(wisp_transform.translation.xy()) < 8. {
+                health.decrease(1);
+                commands.entity(entity).despawn();
+                break;
+            }
         }
     }
 }

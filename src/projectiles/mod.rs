@@ -10,7 +10,7 @@ impl Plugin for ProjectilesPlugin {
             Update,
             (
                 laser_dart::laser_dart_move_system,
-                laser_dart::laser_dart_extinguish_system,
+                laser_dart::laser_dart_hit_system,
             )
         );
 

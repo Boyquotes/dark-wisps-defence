@@ -5,6 +5,7 @@ use crate::common::TargetType;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridType};
 use crate::grids::obstacles::{Field, ObstacleGrid};
+use crate::grids::wisps::WispsGrid;
 use crate::is_game_mode;
 use crate::pathfinding::path_find_closest_building;
 use crate::wisps::components::{Target, Wisp};
@@ -20,8 +21,12 @@ impl Plugin for WispsPlugin {
     }
 }
 
-pub fn move_wisps(mut query: Query<(&mut Transform, &mut Target, &mut GridCoords), With<Wisp>>, time: Res<Time>) {
-    for (mut transform, mut target, mut grid_coords) in query.iter_mut() {
+pub fn move_wisps(
+    mut wisps: Query<(Entity, &mut Transform, &mut Target, &mut GridCoords), With<Wisp>>,
+    time: Res<Time>,
+    mut wisps_grid: ResMut<WispsGrid>,
+) {
+    for (entity, mut transform, mut target, mut grid_coords) in wisps.iter_mut() {
         if !target.is_on_its_path() { continue; }
         if let Some(grid_path) = &mut target.grid_path {
             let next_target = grid_path.first().unwrap();
@@ -37,7 +42,11 @@ pub fn move_wisps(mut query: Query<(&mut Transform, &mut Target, &mut GridCoords
                     target.grid_path = None;
                 }
             }
-            *grid_coords = GridCoords::from_transform(&transform);
+            let new_coords = GridCoords::from_transform(&transform);
+            if new_coords != *grid_coords {
+                wisps_grid.wisp_move(*grid_coords, new_coords, entity);
+                *grid_coords = new_coords;
+            }
         }
     }
 }
@@ -80,6 +89,7 @@ pub fn collide_wisps(
     wisps: Query<(&Target, Entity), With<Wisp>>,
     mut buildings: Query<&mut Health, With<Building>>,
     grid: Res<ObstacleGrid>,
+    mut wisps_grid: ResMut<WispsGrid>,
 ) {
     for (target, wisp_entity) in wisps.iter() {
         if !target.is_at_destination() { continue; }
@@ -90,7 +100,8 @@ pub fn collide_wisps(
                     _ => panic!("Expected a building"),
                 };
                 let mut health = buildings.get_mut(building_entity).unwrap();
-                health.0 -= 1;
+                health.decrease(1);
+                wisps_grid.wisp_remove(*coords, wisp_entity);
                 commands.entity(wisp_entity).despawn();
             }
             _ => panic!("Expected a field"),
@@ -103,22 +114,24 @@ pub fn spawn_wisps(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    grid: Res<ObstacleGrid>,
+    obstacle_grid: Res<ObstacleGrid>,
+    mut wisps_grid: ResMut<WispsGrid>,
 ) {
     let mut rng = nanorand::tls_rng();
     if rng.generate::<f32>() < 0.01 {
         let grid_coords = {
             let chance = rng.generate::<f32>();
             if chance < 0.25 {
-                GridCoords{x: rng.generate_range(1..=grid.width), y: 0} // Nano-rand is off by 1! this is (0..grid.width)
+                GridCoords{x: rng.generate_range(1..=obstacle_grid.width), y: 0} // Nano-rand is off by 1! this is (0..grid.width)
             } else if chance < 0.5 {
-                GridCoords{x: 0, y: rng.generate_range(1..=grid.height)}
+                GridCoords{x: 0, y: rng.generate_range(1..=obstacle_grid.height)}
             } else if chance < 0.75 {
-                GridCoords{x: rng.generate_range(1..=grid.width), y: grid.height - 1}
+                GridCoords{x: rng.generate_range(1..=obstacle_grid.width), y: obstacle_grid.height - 1}
             } else {
-                GridCoords{x: grid.width - 1, y: rng.generate_range(1..=grid.height)}
+                GridCoords{x: obstacle_grid.width - 1, y: rng.generate_range(1..=obstacle_grid.height)}
             }
         };
-        spawn_wisp(&mut commands, &mut meshes, &mut materials, grid_coords);
+        let new_wisp = spawn_wisp(&mut commands, &mut meshes, &mut materials, grid_coords);
+        wisps_grid.wisp_add(grid_coords, new_wisp);
     }
 }

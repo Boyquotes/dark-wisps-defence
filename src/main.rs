@@ -3,7 +3,6 @@ mod common;
 mod buildings;
 mod wisps;
 mod common_components;
-mod pathfinding;
 mod map_loader;
 mod map_objects;
 mod ui;
@@ -12,6 +11,7 @@ mod mouse;
 mod utils;
 mod projectiles;
 mod grids;
+mod search;
 
 use bevy::prelude::*;
 use crate::grids::common::CELL_SIZE;

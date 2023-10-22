@@ -2,6 +2,7 @@ pub mod obstacles;
 pub mod common;
 pub mod base;
 pub mod wisps;
+pub mod visited;
 
 use bevy::prelude::*;
 

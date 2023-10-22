@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 pub const CELL_SIZE: f32 = 16.;
 
+// TODO: remove alongside generic targets from common.rs
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum GridType {
     Obstacles,
@@ -13,7 +14,6 @@ pub struct GridCoords {
     pub x: i32,
     pub y: i32,
 }
-
 impl GridCoords {
     pub fn from_transform(transform: &Transform) -> Self {
         Self {
@@ -36,8 +36,13 @@ impl GridCoords {
     pub fn to_world_coords_centered(&self) -> Vec2 {
         Vec2::new(self.x as f32 * CELL_SIZE + CELL_SIZE / 2., self.y as f32 * CELL_SIZE + CELL_SIZE / 2.)
     }
+    pub fn shifted(&self, (dx, dy): (i32, i32)) -> Self {
+        Self {
+            x: self.x + dx,
+            y: self.y + dy,
+        }
+    }
 }
-
 impl From<(i32, i32)> for GridCoords {
     fn from(coords: (i32, i32)) -> Self {
         Self {
@@ -46,14 +51,25 @@ impl From<(i32, i32)> for GridCoords {
         }
     }
 }
-
 impl Into<(i32, i32)> for GridCoords {
     fn into(self) -> (i32, i32) {
         (self.x, self.y)
     }
 }
 
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum GridImprint {
     Rectangle{width: i32, height: i32},
+}
+impl GridImprint {
+    pub fn covered_coords(&self, coords: GridCoords) -> Vec<GridCoords> {
+        match self {
+            GridImprint::Rectangle{width, height} => {
+                 (0..*height)
+                     .flat_map(|y| (0..*width).map(move |x| coords.shifted((x, y))))
+                     .collect()
+            }
+        }
+    }
 }

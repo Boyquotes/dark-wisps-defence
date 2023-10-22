@@ -1,9 +1,12 @@
 use bevy::prelude::*;
 use crate::common::TargetType;
 use crate::grids::common::GridCoords;
+use crate::utils::id::Id;
+
+pub type WispEntity = Id<Wisp, Entity>;
 
 
-#[derive(Component, Default)]
+#[derive(Component, Debug, Default, PartialEq)]
 pub struct Wisp;
 
 #[derive(Component, Default, Debug)]

@@ -3,13 +3,14 @@ use std::ops::{Index, IndexMut};
 use bevy::prelude::*;
 use crate::grids::common::GridCoords;
 
+pub type GridVersion = u32;
 
 #[derive(Resource)]
 pub struct BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
     pub width: i32,
     pub height: i32,
     pub grid: Vec<FieldType>,
-    pub version: u32, // Used to determine whether the grid has changed
+    pub version: GridVersion, // Used to determine whether the grid has changed
 }
 
 impl <FieldType> BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
@@ -21,10 +22,22 @@ impl <FieldType> BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
             version: 0,
         }
     }
+    pub fn new_with_size(width: i32, height: i32) -> Self {
+        Self {
+            width,
+            height,
+            grid: vec![Default::default(); (width * height) as usize],
+            version: 0,
+        }
+    }
     pub fn resize_and_reset(&mut self, width: i32, height: i32) {
         self.width = width;
         self.height = height;
+        // TODO: reuse existing grid
         self.grid = vec![Default::default(); (width * height) as usize];
+    }
+    pub fn index(&self, coords: GridCoords) -> usize {
+        (coords.y * self.width + coords.x) as usize
     }
     pub fn bounds(&self) -> (i32, i32) {
         (self.width, self.height)
@@ -39,7 +52,7 @@ impl<FieldType> Index<GridCoords> for BaseGrid<FieldType> where FieldType: Defau
         if !coords.is_in_bounds(self.bounds()) {
             panic!("Index out of bounds");
         }
-        let index = (coords.y * self.width + coords.x) as usize;
+        let index = self.index(coords);
         &self.grid[index]
     }
 }
@@ -48,7 +61,7 @@ impl<FieldType>  IndexMut<GridCoords> for BaseGrid<FieldType> where FieldType: D
         if !coords.is_in_bounds(self.bounds()) {
             panic!("Index out of bounds");
         }
-        let index = (coords.y * self.width + coords.x) as usize;
+        let index = self.index(coords);
         &mut self.grid[index]
     }
 }

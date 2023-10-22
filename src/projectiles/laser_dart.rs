@@ -37,7 +37,7 @@ pub fn laser_dart_move_system(
     time: Res<Time>,
 ) {
     for (mut transform, target_vector) in laser_darts.iter_mut() {
-        transform.translation += target_vector.0.extend(0.) * time.delta_seconds() * 100.;
+        transform.translation += target_vector.0.extend(0.) * time.delta_seconds() * 300.;
     }
 }
 
@@ -55,7 +55,7 @@ pub fn laser_dart_hit_system(
         }
         let wisps_in_coords = &wisps_grid[coords];
         for wisp in wisps_in_coords {
-            let Ok((mut health, wisp_transform)) = wisps.get_mut(*wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
+            let Ok((mut health, wisp_transform)) = wisps.get_mut(**wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
             if laser_dart_transform.translation.xy().distance(wisp_transform.translation.xy()) < 8. {
                 health.decrease(1);
                 commands.entity(entity).despawn();

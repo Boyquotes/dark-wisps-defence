@@ -1,5 +1,3 @@
-use crate::buildings::tower_blaster::{onclick_tower_blaster_spawn_system, tower_blaster_shooting_system};
-
 pub mod components;
 pub mod main_base;
 pub mod common;
@@ -13,8 +11,9 @@ impl Plugin for BuildingsPlugin {
         app.add_systems(
             Update,
             (
-                onclick_tower_blaster_spawn_system,
-                tower_blaster_shooting_system,
+                tower_blaster::onclick_spawn_system,
+                tower_blaster::shooting_system,
+                tower_blaster::targeting_system
             )
         );
     }

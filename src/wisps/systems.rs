@@ -7,7 +7,7 @@ use crate::grids::common::{GridCoords, GridType};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::is_game_mode;
-use crate::pathfinding::path_find_closest_building;
+use crate::search::pathfinding::path_find_closest_building;
 use crate::wisps::components::{Target, Wisp};
 use crate::wisps::spawning::spawn_wisp;
 
@@ -44,7 +44,7 @@ pub fn move_wisps(
             }
             let new_coords = GridCoords::from_transform(&transform);
             if new_coords != *grid_coords {
-                wisps_grid.wisp_move(*grid_coords, new_coords, entity);
+                wisps_grid.wisp_move(*grid_coords, new_coords, entity.into());
                 *grid_coords = new_coords;
             }
         }
@@ -101,7 +101,7 @@ pub fn collide_wisps(
                 };
                 let mut health = buildings.get_mut(building_entity).unwrap();
                 health.decrease(1);
-                wisps_grid.wisp_remove(*coords, wisp_entity);
+                wisps_grid.wisp_remove(*coords, wisp_entity.into());
                 commands.entity(wisp_entity).despawn();
             }
             _ => panic!("Expected a field"),
@@ -132,6 +132,6 @@ pub fn spawn_wisps(
             }
         };
         let new_wisp = spawn_wisp(&mut commands, &mut meshes, &mut materials, grid_coords);
-        wisps_grid.wisp_add(grid_coords, new_wisp);
+        wisps_grid.wisp_add(grid_coords, new_wisp.into());
     }
 }

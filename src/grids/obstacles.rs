@@ -16,6 +16,13 @@ impl Field {
     pub fn is_wall(&self) -> bool {
         matches!(self, Field::Wall(_))
     }
+    pub fn is_obstacle(&self) -> bool {
+        match self {
+            Field::Wall(_) => true,
+            Field::Building(_) => true,
+            _ => false,
+        }
+    }
 }
 
 pub type ObstacleGrid = BaseGrid<Field>;
@@ -26,8 +33,7 @@ impl ObstacleGrid {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
                     for x in 0..width {
-                        let (x, y) = (coords.x + x, coords.y + y);
-                        let index = (y * self.width + x) as usize;
+                        let index = self.index(coords.shifted((x, y)));
                         self.grid[index] = Field::Building(building_entity);
                     }
                 }
@@ -36,12 +42,12 @@ impl ObstacleGrid {
         self.version = self.version.wrapping_add(1);
     }
     pub fn imprint_wall(&mut self, coords: GridCoords, entity: Entity) {
-        let index = (coords.y * self.width + coords.x) as usize;
+        let index = self.index(coords);
         self.grid[index] = Field::Wall(entity);
         self.version = self.version.wrapping_add(1);
     }
     pub fn remove_wall(&mut self, coords: GridCoords) {
-        let index = (coords.y * self.width + coords.x) as usize;
+        let index = self.index(coords);
         self.grid[index] = Field::Empty;
         self.version = self.version.wrapping_add(1);
     }
@@ -50,7 +56,7 @@ impl ObstacleGrid {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
                     for x in 0..width {
-                        let inner_coords = GridCoords { x: coords.x + x, y: coords.y + y };
+                        let inner_coords = coords.shifted((x, y));
                         if !inner_coords.is_in_bounds(self.bounds()) || !self[inner_coords].is_empty() {
                             return false;
                         }

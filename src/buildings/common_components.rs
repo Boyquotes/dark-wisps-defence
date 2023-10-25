@@ -14,3 +14,6 @@ pub struct MarkerMainBase;
 
 #[derive(Component)]
 pub struct MarkerTower;
+
+#[derive(Component)]
+pub struct TowerShootingTimer(pub Timer);

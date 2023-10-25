@@ -1,7 +1,9 @@
-pub mod components;
+pub mod common_components;
 pub mod main_base;
 pub mod common;
 pub mod tower_blaster;
+pub mod tower_cannon;
+pub mod common_systems;
 
 use bevy::prelude::*;
 
@@ -11,7 +13,7 @@ impl Plugin for BuildingsPlugin {
         app.add_systems(
             Update,
             (
-                tower_blaster::onclick_spawn_system,
+                common_systems::onclick_building_spawn_system,
                 tower_blaster::shooting_system,
                 tower_blaster::targeting_system
             )

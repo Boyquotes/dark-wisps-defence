@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::components::Building;
+use crate::buildings::common_components::Building;
 use crate::grids::common::GridImprint;
 use crate::buildings::tower_blaster::get_tower_blaster_grid_imprint;
 use crate::grids::common::CELL_SIZE;

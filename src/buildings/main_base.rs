@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::buildings::components::{Building, MarkerMainBase};
+use crate::buildings::common_components::{Building, MarkerMainBase};
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::obstacles::ObstacleGrid;

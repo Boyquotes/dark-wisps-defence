@@ -2,7 +2,7 @@ use std::fs::File;
 use bevy::prelude::*;
 use bevy::utils::HashSet;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::buildings::components::Building;
+use crate::buildings::common_components::Building;
 use crate::grids::common::GridCoords;
 use crate::map_loader;
 use crate::map_loader::MapBuilding;

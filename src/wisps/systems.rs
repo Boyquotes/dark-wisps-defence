@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use nanorand::Rng;
-use crate::buildings::components::Building;
+use crate::buildings::common_components::Building;
 use crate::common::TargetType;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridType};

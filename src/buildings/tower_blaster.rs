@@ -1,8 +1,8 @@
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::components::{Building, MarkerTower};
-use crate::common_components::{Health};
+use crate::buildings::common_components::{Building, MarkerTower, TowerShootingTimer};
+use crate::common_components::Health;
 use crate::grids::base::GridVersion;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::obstacles::ObstacleGrid;
@@ -20,9 +20,6 @@ const TOWER_BLASTER_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_BLASTER_GRID_HEIGHT as
 
 #[derive(Component)]
 pub struct MarkerTowerBlaster;
-
-#[derive(Component)]
-pub struct TowerBlasterShootingTimer(Timer);
 
 #[derive(Component, Default)]
 pub enum TowerBlasterTarget{
@@ -45,7 +42,7 @@ pub fn create_tower_blaster(commands: &mut Commands, grid: &mut ResMut<ObstacleG
           grid_imprint: imprint,
           building_type: BuildingType::Tower(TowerType::Blaster)
         },
-        TowerBlasterShootingTimer(Timer::from_seconds(0.2, TimerMode::Repeating)),
+        TowerShootingTimer(Timer::from_seconds(0.2, TimerMode::Repeating)),
         TowerBlasterTarget::default()
     )).id();
     grid.imprint_building(imprint, grid_position, building_entity);
@@ -69,31 +66,9 @@ pub const fn get_tower_blaster_grid_imprint() -> GridImprint {
     GridImprint::Rectangle { width: TOWER_BLASTER_GRID_WIDTH , height: TOWER_BLASTER_GRID_HEIGHT }
 }
 
-pub fn onclick_spawn_system(
-    mut commands: Commands,
-    mut grid: ResMut<ObstacleGrid>,
-    mouse: Res<Input<MouseButton>>,
-    mouse_info: Res<MouseInfo>,
-    grid_object_placer: Query<&GridObjectPlacer>,
-) {
-    let grid_imprint = match &*grid_object_placer.single() {
-        GridObjectPlacer::Building(building) => {
-            if !matches!(building.building_type, BuildingType::Tower(TowerType::Blaster)) { return; }
-            building.grid_imprint
-        }
-        _ => { return; }
-    };
-    let mouse_coords = mouse_info.grid_coords;
-    if !mouse_coords.is_in_bounds(grid.bounds()) { return; }
-    if mouse.pressed(MouseButton::Left) && grid.is_imprint_placable(mouse_coords, grid_imprint) {
-        // Place the tower blaster
-        create_tower_blaster(&mut commands, &mut grid, mouse_coords);
-    }
-}
-
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_blasters: Query<(&Transform, &mut TowerBlasterShootingTimer, &mut TowerBlasterTarget), With<MarkerTowerBlaster>>,
+    mut tower_blasters: Query<(&Transform, &mut TowerShootingTimer, &mut TowerBlasterTarget), With<MarkerTowerBlaster>>,
     time: Res<Time>,
     mut wisps: Query<&Transform, With<Wisp>>,
 ) {

@@ -10,6 +10,3 @@ impl Health {
         self.0 <= 0
     }
 }
-
-#[derive(Component, Default)]
-pub struct TargetVector(pub(crate) Vec2);

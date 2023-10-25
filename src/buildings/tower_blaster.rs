@@ -2,7 +2,7 @@ use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::components::{Building, MarkerTower};
-use crate::common_components::{Health, TargetVector};
+use crate::common_components::{Health};
 use crate::grids::base::GridVersion;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::obstacles::ObstacleGrid;
@@ -98,7 +98,7 @@ pub fn shooting_system(
     mut wisps: Query<&Transform, With<Wisp>>,
 ) {
     for (transform, mut timer, mut target) in tower_blasters.iter_mut() {
-        let TowerBlasterTarget::Wisp(target_entity) = *target else { continue; };
+        let TowerBlasterTarget::Wisp(target_wisp) = *target else { continue; };
         // If timer is paused, try to fire right away, if not - unpause it first.
         // This is necessary for turret to shot right away when spotting first target
         if !timer.0.paused() {
@@ -108,14 +108,14 @@ pub fn shooting_system(
             timer.0.reset();
             timer.0.unpause();
         }
-        let Ok(wisp_position) = wisps.get(*target_entity).map(|target| target.translation.xy()) else {
+        let Ok(wisp_position) = wisps.get(*target_wisp).map(|target| target.translation.xy()) else {
             // Target wisp does not exist anymore
             *target = TowerBlasterTarget::SearchForNewTarget;
             timer.0.pause();
             continue;
         };
 
-        create_laser_dart(&mut commands, transform.translation, TargetVector((wisp_position - transform.translation.xy()).normalize()));
+        create_laser_dart(&mut commands, transform.translation, target_wisp, (wisp_position - transform.translation.xy()).normalize());
     }
 }
 

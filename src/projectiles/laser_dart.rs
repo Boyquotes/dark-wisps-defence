@@ -1,15 +1,22 @@
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
-use crate::common_components::{Health, TargetVector};
+use crate::common_components::{Health};
 use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
-use crate::wisps::components::Wisp;
+use crate::wisps::components::{Wisp, WispEntity};
 
 #[derive(Component)]
 pub struct MarkerLaserDart;
 
-pub fn create_laser_dart(commands: &mut Commands, world_position: Vec3, target_vector: TargetVector) -> Entity {
+// LaserDart follows Wisp, and if the wisp no longer exists, follows the target vector
+#[derive(Component, Default)]
+pub struct LaserDartTarget {
+    pub target_wisp: Option<WispEntity>,
+    pub target_vector: Vec2,
+}
+
+pub fn create_laser_dart(commands: &mut Commands, world_position: Vec3, target_wisp: WispEntity, target_vector: Vec2) -> Entity {
     let entity = commands.spawn(
         SpriteBundle {
             sprite: Sprite {
@@ -19,7 +26,7 @@ pub fn create_laser_dart(commands: &mut Commands, world_position: Vec3, target_v
             },
             transform: Transform {
                 translation: world_position,
-                rotation: Quat::from_rotation_z(target_vector.0.y.atan2(target_vector.0.x)),
+                rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
                 ..Default::default()
             },
             ..Default::default()
@@ -27,17 +34,26 @@ pub fn create_laser_dart(commands: &mut Commands, world_position: Vec3, target_v
     ).insert(
         (MarkerProjectile, MarkerLaserDart)
     ).insert(
-        target_vector
+        LaserDartTarget{ target_wisp: Some(target_wisp), target_vector }
     ).id();
     entity
 }
 
 pub fn laser_dart_move_system(
-    mut laser_darts: Query<(&mut Transform, &TargetVector), With<MarkerLaserDart>>,
+    mut laser_darts: Query<(&mut Transform, &mut LaserDartTarget), With<MarkerLaserDart>>,
+    wisps: Query<&Transform, (With<Wisp>, Without<MarkerLaserDart>)>,
     time: Res<Time>,
 ) {
-    for (mut transform, target_vector) in laser_darts.iter_mut() {
-        transform.translation += target_vector.0.extend(0.) * time.delta_seconds() * 300.;
+    for (mut transform, mut target) in laser_darts.iter_mut() {
+        // If the target wisp still exists - follow it by updating the target vector
+        if let Some(target_wisp) = target.target_wisp {
+            if let Ok(wisp_transform) = wisps.get(*target_wisp) {
+                target.target_vector = (wisp_transform.translation.xy() - transform.translation.xy()).normalize();
+            } else {
+                target.target_wisp = None;
+            }
+        }
+        transform.translation += target.target_vector.extend(0.) * time.delta_seconds() * 300.;
     }
 }
 

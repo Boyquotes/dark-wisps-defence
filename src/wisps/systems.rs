@@ -94,9 +94,7 @@ pub fn remove_dead_wisps(
 ) {
     for (wisp_entity, health, coords) in wisps.iter() {
         if health.is_dead() {
-            print!("Removing dead wisp {:?} at {:?}", wisp_entity, coords);
             wisps_grid.wisp_remove(*coords, wisp_entity.into());
-            println!("  ... done!");
             commands.entity(wisp_entity).despawn();
         }
     }
@@ -119,7 +117,6 @@ pub fn collide_wisps(
                 };
                 let mut health = buildings.get_mut(building_entity).unwrap();
                 health.decrease(1);
-                println!("Removing collided wisp {:?} at {:?}", wisp_entity, coords);
                 wisps_grid.wisp_remove(*coords, wisp_entity.into());
                 commands.entity(wisp_entity).despawn();
             }

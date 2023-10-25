@@ -32,7 +32,7 @@ pub fn target_find_closest_wisp(
             if cost > range
                 || !new_coords.is_in_bounds(obstacle_grid.bounds())
                 || visited_grid.is_visited(new_coords)
-                || (ignore_obstacles && obstacle_grid[new_coords].is_obstacle())
+                || (!ignore_obstacles && obstacle_grid[new_coords].is_obstacle())
             {
                 continue;
             }

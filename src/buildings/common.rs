@@ -12,4 +12,5 @@ pub enum BuildingType {
 #[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum TowerType {
     Blaster,
+    Cannon,
 }

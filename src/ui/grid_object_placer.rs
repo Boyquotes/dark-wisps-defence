@@ -3,6 +3,7 @@ use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::Building;
 use crate::grids::common::GridImprint;
 use crate::buildings::tower_blaster::get_tower_blaster_grid_imprint;
+use crate::buildings::tower_cannon::get_tower_cannon_grid_imprint;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::obstacles::{ObstacleGrid};
 use crate::mouse::MouseInfo;
@@ -89,6 +90,20 @@ pub fn on_click_initiate_grid_object_placer_system(
                 };
                 *grid_object_placer = GridObjectPlacer::Building(
                     Building{grid_imprint, building_type: BuildingType::Tower(TowerType::Blaster)}
+                );
+
+                sprite.custom_size = Some(Vec2::new(sprite_width, sprite_height));
+                *visibility = Visibility::Visible;
+            } else if keys.just_pressed(KeyCode::Key2) {
+                // Tower Cannon
+                *ui_interaction_state = UiInteractionState::PlaceGridObject;
+                let (mut sprite, mut visibility, mut grid_object_placer) = placer.single_mut();
+                let grid_imprint = get_tower_cannon_grid_imprint();
+                let (sprite_width, sprite_height) = match grid_imprint {
+                    GridImprint::Rectangle { width, height } => (width as f32 * CELL_SIZE, height as f32 * CELL_SIZE),
+                };
+                *grid_object_placer = GridObjectPlacer::Building(
+                    Building{grid_imprint, building_type: BuildingType::Tower(TowerType::Cannon)}
                 );
 
                 sprite.custom_size = Some(Vec2::new(sprite_width, sprite_height));

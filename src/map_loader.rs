@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::main_base::create_main_base;
 use crate::buildings::tower_blaster::create_tower_blaster;
+use crate::buildings::tower_cannon::create_tower_cannon;
 use crate::grids::common::GridCoords;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::walls::create_wall;
@@ -42,6 +43,9 @@ pub fn apply_map(
                 match tower_type {
                     TowerType::Blaster => {
                         create_tower_blaster(&mut commands, &mut grid, building.coords);
+                    },
+                    TowerType::Cannon => {
+                        create_tower_cannon(&mut commands, &mut grid, building.coords);
                     }
                 }
             }

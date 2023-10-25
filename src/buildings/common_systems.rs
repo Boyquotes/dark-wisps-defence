@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
+use crate::buildings::common_components::TowerShootingTimer;
 use crate::buildings::tower_blaster::create_tower_blaster;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::mouse::MouseInfo;
@@ -21,10 +22,18 @@ pub fn onclick_building_spawn_system(
                 BuildingType::Tower(TowerType::Blaster) => {
                     create_tower_blaster(&mut commands, &mut grid, mouse_coords);
                 },
-                _ => { return; }
-            }
+                BuildingType::Tower(TowerType::Cannon) => {
+                    super::tower_cannon::create_tower_cannon(&mut commands, &mut grid, mouse_coords);
+                },
+                _ => panic!("Trying to place a non-supported building")            }
         }
         _ => { return; }
     };
 }
 
+pub fn tick_shooting_timers_system(
+    mut shooting_timers: Query<&mut TowerShootingTimer>,
+    time: Res<Time>,
+) {
+    shooting_timers.iter_mut().for_each(|mut timer| { timer.0.tick(time.delta()); });
+}

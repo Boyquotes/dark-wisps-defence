@@ -65,7 +65,7 @@ pub fn get_tower_blaster_sprite_bundle(coords: GridCoords) -> SpriteBundle {
     }
 }
 
-pub fn get_tower_blaster_grid_imprint() -> GridImprint {
+pub const fn get_tower_blaster_grid_imprint() -> GridImprint {
     GridImprint::Rectangle { width: TOWER_BLASTER_GRID_WIDTH , height: TOWER_BLASTER_GRID_HEIGHT }
 }
 
@@ -141,7 +141,6 @@ pub fn targeting_system(
         15,
         false
         ) {
-            println!("found target wisp at {:?}, my location: {:?}", _a, coords);
             *target = TowerBlasterTarget::Wisp(target_wisp);
         } else {
             *target = TowerBlasterTarget::NoValidTargets(wisps_grid.version);

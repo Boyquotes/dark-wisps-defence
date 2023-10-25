@@ -14,20 +14,23 @@ use crate::wisps::spawning::spawn_wisp;
 pub struct WispsPlugin;
 impl Plugin for WispsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, move_wisps);
-        app.add_systems(Update, target_wisps);
-        app.add_systems(Update, collide_wisps);
+        app.add_systems(Update, (
+            move_wisps,
+            target_wisps,
+            collide_wisps,
+            remove_dead_wisps,
+        ));
         app.add_systems(Update, spawn_wisps.run_if(is_game_mode));
     }
 }
 
 pub fn move_wisps(
-    mut wisps: Query<(Entity, &mut Transform, &mut Target, &mut GridCoords), With<Wisp>>,
+    mut wisps: Query<(Entity, &Health, &mut Transform, &mut Target, &mut GridCoords), With<Wisp>>,
     time: Res<Time>,
     mut wisps_grid: ResMut<WispsGrid>,
 ) {
-    for (entity, mut transform, mut target, mut grid_coords) in wisps.iter_mut() {
-        if !target.is_on_its_path() { continue; }
+    for (entity, health, mut transform, mut target, mut grid_coords) in wisps.iter_mut() {
+        if !target.is_on_its_path() || health.is_dead() { continue; }
         if let Some(grid_path) = &mut target.grid_path {
             let next_target = grid_path.first().unwrap();
             let curr_world_coords = transform.translation.truncate();
@@ -84,15 +87,30 @@ pub fn target_wisps(mut query: Query<(&mut Target, &GridCoords), With<Wisp>>, gr
     }
 }
 
+pub fn remove_dead_wisps(
+    mut commands: Commands,
+    wisps: Query<(Entity, &Health, &GridCoords), With<Wisp>>,
+    mut wisps_grid: ResMut<WispsGrid>,
+) {
+    for (wisp_entity, health, coords) in wisps.iter() {
+        if health.is_dead() {
+            print!("Removing dead wisp {:?} at {:?}", wisp_entity, coords);
+            wisps_grid.wisp_remove(*coords, wisp_entity.into());
+            println!("  ... done!");
+            commands.entity(wisp_entity).despawn();
+        }
+    }
+}
+
 pub fn collide_wisps(
     mut commands: Commands,
-    wisps: Query<(&Target, Entity), With<Wisp>>,
+    wisps: Query<(Entity, &Target, &Health), (With<Wisp>, Without<Building>)>,
     mut buildings: Query<&mut Health, With<Building>>,
     grid: Res<ObstacleGrid>,
     mut wisps_grid: ResMut<WispsGrid>,
 ) {
-    for (target, wisp_entity) in wisps.iter() {
-        if !target.is_at_destination() { continue; }
+    for (wisp_entity, target, health) in wisps.iter() {
+        if !target.is_at_destination() || health.is_dead() { continue; }
         match &target.target_type {
             TargetType::Field{coords, ..} => {
                 let building_entity = match &grid[*coords] {
@@ -101,6 +119,7 @@ pub fn collide_wisps(
                 };
                 let mut health = buildings.get_mut(building_entity).unwrap();
                 health.decrease(1);
+                println!("Removing collided wisp {:?} at {:?}", wisp_entity, coords);
                 wisps_grid.wisp_remove(*coords, wisp_entity.into());
                 commands.entity(wisp_entity).despawn();
             }

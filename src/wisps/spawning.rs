@@ -22,7 +22,7 @@ pub fn spawn_wisp(
     commands.spawn(
         WispBundle {
             grid_coords,
-            health: Health(100),
+            health: Health(10),
             display: MaterialMesh2dBundle {
                 mesh: meshes.add(shape::Circle::new(6.).into()).into(),
                 material: materials.add(ColorMaterial::from(Color::PURPLE)),

@@ -30,10 +30,10 @@ impl GridCoords {
     pub fn is_in_bounds(&self, (width, height): (i32, i32)) -> bool {
         self.x >= 0 && self.x < width && self.y >= 0 && self.y < height
     }
-    pub fn to_world_coords(&self) -> Vec2 {
+    pub fn to_world_position(&self) -> Vec2 {
         Vec2::new(self.x as f32 * CELL_SIZE, self.y as f32 * CELL_SIZE)
     }
-    pub fn to_world_coords_centered(&self) -> Vec2 {
+    pub fn to_world_position_centered(&self) -> Vec2 {
         Vec2::new(self.x as f32 * CELL_SIZE + CELL_SIZE / 2., self.y as f32 * CELL_SIZE + CELL_SIZE / 2.)
     }
     pub fn shifted(&self, (dx, dy): (i32, i32)) -> Self {

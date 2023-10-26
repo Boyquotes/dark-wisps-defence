@@ -1,4 +1,3 @@
-use std::time::Duration;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
@@ -40,7 +39,7 @@ pub fn create_tower_blaster(commands: &mut Commands, grid: &mut ResMut<ObstacleG
 }
 
 pub fn get_tower_blaster_sprite_bundle(coords: GridCoords) -> SpriteBundle {
-    let world_position = coords.to_world_coords().extend(0.);
+    let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(0.8, 0.6, 0.4),

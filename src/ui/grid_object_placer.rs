@@ -40,7 +40,7 @@ pub fn update_grid_object_placer_system(
             return;
         }
     };
-    transform.translation = mouse_info.grid_coords.to_world_coords().extend(10.);
+    transform.translation = mouse_info.grid_coords.to_world_position().extend(10.);
     let is_imprint_placable = match &*grid_object_placer {
         GridObjectPlacer::Wall => {
             transform.translation += Vec3::new(8., 8., 0.);

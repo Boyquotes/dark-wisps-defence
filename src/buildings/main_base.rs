@@ -31,7 +31,7 @@ pub fn create_main_base(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>
 }
 
 pub fn get_main_base_sprite_bundle(coords: GridCoords) -> SpriteBundle {
-    let world_position = coords.to_world_coords().extend(0.);
+    let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(1.0, 1.0, 1.0),

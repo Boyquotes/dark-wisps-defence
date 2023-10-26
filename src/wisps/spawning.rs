@@ -26,7 +26,7 @@ pub fn spawn_wisp(
             display: MaterialMesh2dBundle {
                 mesh: meshes.add(shape::Circle::new(6.).into()).into(),
                 material: materials.add(ColorMaterial::from(Color::PURPLE)),
-                transform: Transform::from_translation(grid_coords.to_world_coords_centered().extend(0.)),
+                transform: Transform::from_translation(grid_coords.to_world_position_centered().extend(0.)),
                 ..default()
             },
             ..Default::default()

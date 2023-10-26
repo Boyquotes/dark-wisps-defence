@@ -1,5 +1,6 @@
 pub mod laser_dart;
 pub mod components;
+pub mod cannonball;
 
 use bevy::prelude::*;
 
@@ -11,6 +12,8 @@ impl Plugin for ProjectilesPlugin {
             (
                 laser_dart::laser_dart_move_system,
                 laser_dart::laser_dart_hit_system,
+                cannonball::cannonball_move_system,
+                cannonball::cannonball_hit_system,
             )
         );
 

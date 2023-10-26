@@ -1,18 +1,13 @@
-use std::time::Duration;
-use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TowerShootingTimer, TowerWispTarget};
 use crate::common_components::{Health};
-use crate::grids::base::GridVersion;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::grids::wisps::WispsGrid;
-use crate::mouse::MouseInfo;
-use crate::projectiles::laser_dart::create_laser_dart;
+use crate::projectiles::cannonball::create_cannonball;
 use crate::search::targetfinding::target_find_closest_wisp;
-use crate::ui::grid_object_placer::GridObjectPlacer;
-use crate::wisps::components::{Wisp, WispEntity};
+use crate::wisps::components::{Target, Wisp};
 
 const TOWER_CANNON_GRID_WIDTH: i32 = 3;
 const TOWER_CANNON_GRID_HEIGHT: i32 = 3;
@@ -43,7 +38,7 @@ pub fn create_tower_cannon(commands: &mut Commands, grid: &mut ResMut<ObstacleGr
 }
 
 pub fn get_tower_cannon_sprite_bundle(coords: GridCoords) -> SpriteBundle {
-    let world_position = coords.to_world_coords().extend(0.);
+    let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
             color: Color::rgb_u8(30, 135, 104),
@@ -62,19 +57,23 @@ pub const fn get_tower_cannon_grid_imprint() -> GridImprint {
 pub fn shooting_system(
     mut commands: Commands,
     mut tower_cannons: Query<(&Transform, &mut TowerShootingTimer, &mut TowerWispTarget), With<MarkerTowerCannon>>,
-    mut wisps: Query<&Transform, With<Wisp>>,
+    wisps: Query<(&Target, &GridCoords), With<Wisp>>,
 ) {
     for (transform, mut timer, mut target) in tower_cannons.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
 
-        let Ok(wisp_position) = wisps.get(*target_wisp).map(|target| target.translation.xy()) else {
+        let Ok((wisp_target, wisp_coords)) = wisps.get(*target_wisp) else {
             // Target wisp does not exist anymore
             *target = TowerWispTarget::SearchForNewTarget;
             continue;
         };
 
-        create_laser_dart(&mut commands, transform.translation, target_wisp, (wisp_position - transform.translation.xy()).normalize());
+        let target_world_position = wisp_target.grid_path.as_ref().map_or(wisp_coords.to_world_position_centered(), |path| {
+            path.first().map_or(wisp_coords.to_world_position_centered(), |coords| coords.to_world_position_centered())
+        });
+
+        create_cannonball(&mut commands, transform.translation, target_world_position);
         timer.0.reset();
     }
 }

@@ -34,7 +34,7 @@ pub fn move_wisps(
         if let Some(grid_path) = &mut target.grid_path {
             let next_target = grid_path.first().unwrap();
             let curr_world_coords = transform.translation.truncate();
-            let interim_target_world_coords = next_target.to_world_coords_centered();
+            let interim_target_world_coords = next_target.to_world_position_centered();
             let direction = interim_target_world_coords - curr_world_coords;
             let (sx, sy) = (direction.x.signum(), direction.y.signum());
             transform.translation += Vec3::new(sx * time.delta_seconds() * 30., sy * time.delta_seconds() * 30., 0.);

@@ -112,7 +112,7 @@ pub fn collide_wisps(
         match &target.target_type {
             TargetType::Field{coords, ..} => {
                 let building_entity = match &grid[*coords] {
-                    Field::Building(entity) => *entity,
+                    Field::Building(entity, _) => *entity,
                     _ => panic!("Expected a building"),
                 };
                 let mut health = buildings.get_mut(building_entity).unwrap();

@@ -19,7 +19,10 @@ const TOWER_BLASTER_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_BLASTER_GRID_HEIGHT as
 pub struct MarkerTowerBlaster;
 
 pub fn create_tower_blaster(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, grid_position: GridCoords) -> Entity {
-    let imprint = get_tower_blaster_grid_imprint();
+    let building = Building {
+        grid_imprint: get_tower_blaster_grid_imprint(),
+        building_type: BuildingType::Tower(TowerType::Blaster)
+    };
     let building_entity = commands.spawn(
         get_tower_blaster_sprite_bundle(grid_position)
     ).insert((
@@ -27,14 +30,11 @@ pub fn create_tower_blaster(commands: &mut Commands, grid: &mut ResMut<ObstacleG
         MarkerTowerBlaster,
         grid_position,
         Health(10000),
-        Building {
-          grid_imprint: imprint,
-          building_type: BuildingType::Tower(TowerType::Blaster)
-        },
+        building.clone(),
         TowerShootingTimer::from_seconds(0.2),
         TowerWispTarget::default()
     )).id();
-    grid.imprint_building(imprint, grid_position, building_entity);
+    grid.imprint_building(building, grid_position, building_entity);
     building_entity
 }
 

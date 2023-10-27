@@ -8,7 +8,7 @@ use crate::search::common::{State, ALL_DIRECTIONS};
 
 pub fn path_find_closest_building(grid: &Res<ObstacleGrid>, start_coords: GridCoords) -> Option<Vec<GridCoords>> {
     // BFS to find closest building field
-    // TODO: Grids could probably be thread-local
+    // TODO: TrackingGrids could probably be thread-local
     let mut tracking = TrackingGrid::new_with_size(grid.width, grid.height);
     let mut queue = BinaryHeap::new();
     queue.push(State{ cost: 0, coords: start_coords });
@@ -33,14 +33,20 @@ pub fn path_find_closest_building(grid: &Res<ObstacleGrid>, start_coords: GridCo
             }
 
             tracking.set_tracked(new_coords, coords);
-            match grid[new_coords] {
-                Field::Building(_) => {
-                    // Compile the path by backtracking
-                    return Some(tracking.compile_path(new_coords, start_coords));
+            let new_cost = match grid[new_coords] {
+                Field::Building(_, building_type) => {
+                    if building_type.is_energy_source() {
+                        // Compile the path by backtracking
+                        return Some(tracking.compile_path(new_coords, start_coords));
+                    } else {
+                        cost + 10
+                    }
                 }
-                _ => {},
-            }
-            queue.push(State { cost: cost + 1, coords: new_coords });
+                _ => {
+                    cost + 1
+                },
+            };
+            queue.push(State { cost: new_cost, coords: new_coords });
         }
     }
     None

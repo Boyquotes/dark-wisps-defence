@@ -8,6 +8,11 @@ pub enum BuildingType {
     MainBase,
     Tower(TowerType),
 }
+impl BuildingType {
+    pub fn is_energy_source(&self) -> bool {
+        matches!(self, BuildingType::MainBase)
+    }
+}
 
 #[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum TowerType {

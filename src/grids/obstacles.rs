@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use crate::buildings::common::BuildingType;
+use crate::buildings::common_components::Building;
 use crate::grids::base::BaseGrid;
 use crate::grids::common::{ GridCoords, GridImprint};
 
@@ -6,7 +8,7 @@ use crate::grids::common::{ GridCoords, GridImprint};
 pub enum Field {
     #[default]
     Empty,
-    Building(Entity),
+    Building(Entity, BuildingType),
     Wall(Entity),
 }
 impl Field {
@@ -19,7 +21,7 @@ impl Field {
     pub fn is_obstacle(&self) -> bool {
         match self {
             Field::Wall(_) => true,
-            Field::Building(_) => true,
+            Field::Building(..) => true,
             _ => false,
         }
     }
@@ -28,13 +30,14 @@ impl Field {
 pub type ObstacleGrid = BaseGrid<Field>;
 
 impl ObstacleGrid {
-    pub fn imprint_building(&mut self, imprint: GridImprint, coords: GridCoords, building_entity: Entity) {
-        match imprint {
+    pub fn imprint_building(&mut self, building: Building, coords: GridCoords, building_entity: Entity) {
+        let Building { grid_imprint, building_type } = building;
+        match grid_imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
                     for x in 0..width {
                         let index = self.index(coords.shifted((x, y)));
-                        self.grid[index] = Field::Building(building_entity);
+                        self.grid[index] = Field::Building(building_entity, building_type);
                     }
                 }
             }

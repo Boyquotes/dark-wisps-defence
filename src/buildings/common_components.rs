@@ -5,7 +5,7 @@ use crate::grids::base::GridVersion;
 use crate::grids::common::GridImprint;
 use crate::wisps::components::WispEntity;
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Building {
     pub grid_imprint: GridImprint,
     pub building_type: BuildingType,

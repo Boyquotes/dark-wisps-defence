@@ -11,7 +11,10 @@ const MAIN_BASE_WORLD_WIDTH: f32 = CELL_SIZE * MAIN_BASE_GRID_WIDTH as f32;
 const MAIN_BASE_WORLD_HEIGHT: f32 = CELL_SIZE * MAIN_BASE_GRID_HEIGHT as f32;
 
 pub fn create_main_base(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, grid_position: GridCoords) -> Entity {
-    let imprint = get_main_base_grid_imprint();
+    let building = Building {
+        grid_imprint: get_main_base_grid_imprint(),
+        building_type: BuildingType::MainBase
+    };
     let building_entity = commands.spawn(
         get_main_base_sprite_bundle(grid_position)
     ).insert(
@@ -21,12 +24,9 @@ pub fn create_main_base(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>
     ).insert(
         Health(10000)
     ).insert(
-      Building {
-          grid_imprint: imprint,
-          building_type: BuildingType::MainBase
-      }
+        building.clone()
     ).id();
-    grid.imprint_building(imprint, grid_position, building_entity);
+    grid.imprint_building(building, grid_position, building_entity);
     building_entity
 }
 

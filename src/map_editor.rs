@@ -49,7 +49,7 @@ pub fn save_map_system(
                 Field::Wall(_) => {
                     walls.push(coords);
                 },
-                Field::Building(entity) => {
+                Field::Building(entity, _) => {
                     if processed_entities.insert(entity) {
                         let (building, building_coords) = buildings_query.get(entity).unwrap();
                         buildings.push(

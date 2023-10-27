@@ -7,7 +7,7 @@ use crate::grids::common::{GridCoords, GridType};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::is_game_mode;
-use crate::search::pathfinding::path_find_closest_building;
+use crate::search::pathfinding::path_find_energy_beckon;
 use crate::wisps::components::{Target, Wisp};
 use crate::wisps::spawning::spawn_wisp;
 
@@ -77,7 +77,7 @@ pub fn target_wisps(mut query: Query<(&mut Target, &GridCoords), With<Wisp>>, gr
         // Then check if the wisp is eligible for new targeting.
         if target.is_on_its_path() || target.is_at_destination() || target.is_unreachable() { continue; }
 
-        if let Some(path) = path_find_closest_building(&grid, *grid_coords) {
+        if let Some(path) = path_find_energy_beckon(&grid, *grid_coords) {
             target.target_type = TargetType::Field{coords: *path.last().unwrap(), grid_version: grid.version};
             target.grid_path = Some(path);
         } else {

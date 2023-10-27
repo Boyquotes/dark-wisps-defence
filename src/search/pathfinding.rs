@@ -6,7 +6,7 @@ use crate::grids::visited::{TrackingGrid};
 use crate::search::common::{State, ALL_DIRECTIONS};
 
 
-pub fn path_find_closest_building(grid: &Res<ObstacleGrid>, start_coords: GridCoords) -> Option<Vec<GridCoords>> {
+pub fn path_find_energy_beckon(grid: &Res<ObstacleGrid>, start_coords: GridCoords) -> Option<Vec<GridCoords>> {
     // BFS to find closest building field
     // TODO: TrackingGrids could probably be thread-local
     let mut tracking = TrackingGrid::new_with_size(grid.width, grid.height);
@@ -35,7 +35,7 @@ pub fn path_find_closest_building(grid: &Res<ObstacleGrid>, start_coords: GridCo
             tracking.set_tracked(new_coords, coords);
             let new_cost = match grid[new_coords] {
                 Field::Building(_, building_type) => {
-                    if building_type.is_energy_source() {
+                    if building_type.is_energy_rich() {
                         // Compile the path by backtracking
                         return Some(tracking.compile_path(new_coords, start_coords));
                     } else {

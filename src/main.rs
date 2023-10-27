@@ -23,6 +23,7 @@ fn main() {
     let mut grid = ObstacleGrid::new_empty();
     grid.resize_and_reset(10, 10);
     App::new()
+        .insert_resource(ClearColor(Color::BLACK))
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             camera::CameraPlugin,

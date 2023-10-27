@@ -9,7 +9,7 @@ pub enum BuildingType {
     Tower(TowerType),
 }
 impl BuildingType {
-    pub fn is_energy_source(&self) -> bool {
+    pub fn is_energy_rich(&self) -> bool {
         matches!(self, BuildingType::MainBase)
     }
 }

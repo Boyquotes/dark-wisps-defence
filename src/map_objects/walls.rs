@@ -14,10 +14,13 @@ pub fn create_wall(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, gri
     }
 
     let world_position = Vec3::new(grid_position.x as f32 * CELL_SIZE, grid_position.y as f32 * CELL_SIZE, 0.);
+    let mut color = Color::hsla(300., 0.5, 10.5, 0.1);
+    let color = Color::rgba(0.6, 2.0, 2.2, 0.8);
+
     let entity = commands.spawn(
         SpriteBundle {
             sprite: Sprite {
-                color: Color::rgb(0.0, 0.0, 0.0),
+                color,
                 custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
                 ..Default::default()
             },

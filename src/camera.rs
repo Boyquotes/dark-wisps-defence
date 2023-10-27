@@ -1,3 +1,4 @@
+use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 
@@ -18,12 +19,17 @@ impl Plugin for CameraPlugin {
 pub struct MainCamera;
 
 fn startup(mut commands: Commands) {
-    commands.spawn(
+    commands.spawn((
         Camera2dBundle {
+            camera: Camera {
+                hdr: true,
+                ..default()
+            },
             transform: Transform::from_xyz(500., 500., 0.),
             ..Default::default()
-        }
-    ).insert(MainCamera);
+        },
+        BloomSettings::default(),
+    )).insert(MainCamera);
 }
 
 fn camera_zoom(

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::Building;
-use crate::grids::base::BaseGrid;
+use crate::grids::base::{BaseGrid, GridVersion};
 use crate::grids::common::{ GridCoords, GridImprint};
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -27,7 +27,7 @@ impl Field {
     }
 }
 
-pub type ObstacleGrid = BaseGrid<Field>;
+pub type ObstacleGrid = BaseGrid<Field, GridVersion>;
 
 impl ObstacleGrid {
     pub fn imprint_building(&mut self, building: Building, coords: GridCoords, building_entity: Entity) {

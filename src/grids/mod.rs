@@ -3,6 +3,7 @@ pub mod common;
 pub mod base;
 pub mod wisps;
 pub mod visited;
+pub mod emissions;
 
 use bevy::prelude::*;
 
@@ -15,5 +16,8 @@ impl Plugin for GridsPlugin {
         let mut wisps_grid = wisps::WispsGrid::new_empty();
         wisps_grid.resize_and_reset(100, 100);
         app.insert_resource(wisps_grid);
+        let mut emissions_grid = emissions::EmissionsGrid::new_empty();
+        emissions_grid.resize_and_reset(100, 100);
+        app.insert_resource(emissions_grid);
     }
 }

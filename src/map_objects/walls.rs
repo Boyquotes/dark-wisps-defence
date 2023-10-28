@@ -14,8 +14,8 @@ pub fn create_wall(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, gri
     }
 
     let world_position = Vec3::new(grid_position.x as f32 * CELL_SIZE, grid_position.y as f32 * CELL_SIZE, 0.);
-    let mut color = Color::hsla(300., 0.5, 10.5, 0.1);
-    let color = Color::rgba(0.6, 2.0, 2.2, 0.8);
+    let color = Color::hsla(0., 0.5, 1.3, 0.8);
+    let color = Color::GRAY;
 
     let entity = commands.spawn(
         SpriteBundle {
@@ -47,7 +47,7 @@ pub fn remove_wall(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, gri
 }
 
 
-pub fn onclick_wall_spawn_system(
+pub fn onclick_spawn_system(
     mut commands: Commands,
     mut grid: ResMut<ObstacleGrid>,
     mouse: Res<Input<MouseButton>>,
@@ -66,6 +66,21 @@ pub fn onclick_wall_spawn_system(
         // Remove a wall
         if grid[mouse_coords].is_wall() {
             remove_wall(&mut commands, &mut grid, mouse_coords);
+        }
+    }
+}
+
+// TODO: decide whether to keep it
+pub fn color_rotation_system(
+    mut query: Query<&mut Sprite, With<Wall>>,
+    time: Res<Time>,
+) {
+    for mut sprite in query.iter_mut() {
+        if let Color::Hsla{hue, ..} = &mut sprite.color {
+            *hue += time.delta_seconds() * 100.;
+            if *hue > 360. {
+                *hue = 0.;
+            }
         }
     }
 }

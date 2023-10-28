@@ -19,11 +19,10 @@ use crate::grids::obstacles::{ObstacleGrid};
 use crate::map_editor::MapInfo;
 
 fn main() {
-    println!("Hello, world!");
     let mut grid = ObstacleGrid::new_empty();
     grid.resize_and_reset(10, 10);
     App::new()
-        .insert_resource(ClearColor(Color::BLACK))
+        .insert_resource(ClearColor(Color::rgb_u8(30, 31, 34)))
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             camera::CameraPlugin,

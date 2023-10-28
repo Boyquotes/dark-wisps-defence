@@ -5,21 +5,27 @@ use crate::grids::common::GridCoords;
 
 pub type GridVersion = u32;
 
+pub trait FieldTrait: Default + Clone + Debug {}
+impl <T: Default + Clone + Debug> FieldTrait for T {}
+
+pub trait GridVersionTrait: Default {}
+impl <T: Default> GridVersionTrait for T {}
+
 #[derive(Resource)]
-pub struct BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
+pub struct BaseGrid<FieldType, GridVersionType> where FieldType: FieldTrait, GridVersionType: GridVersionTrait {
     pub width: i32,
     pub height: i32,
     pub grid: Vec<FieldType>,
-    pub version: GridVersion, // Used to determine whether the grid has changed
+    pub version: GridVersionType, // Used to determine whether the grid has changed
 }
 
-impl <FieldType> BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
+impl<FieldType, GridVersionType> BaseGrid<FieldType, GridVersionType> where FieldType: FieldTrait, GridVersionType: GridVersionTrait {
     pub fn new_empty() -> Self {
         Self {
             width: 0,
             height: 0,
             grid: vec![],
-            version: 0,
+            version: GridVersionType::default(),
         }
     }
     pub fn new_with_size(width: i32, height: i32) -> Self {
@@ -27,7 +33,7 @@ impl <FieldType> BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
             width,
             height,
             grid: vec![Default::default(); (width * height) as usize],
-            version: 0,
+            version: GridVersionType::default(),
         }
     }
     pub fn resize_and_reset(&mut self, width: i32, height: i32) {
@@ -45,7 +51,7 @@ impl <FieldType> BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
 }
 
 
-impl<FieldType> Index<GridCoords> for BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
+impl<FieldType, GridVersionType> Index<GridCoords> for BaseGrid<FieldType, GridVersionType> where FieldType: FieldTrait, GridVersionType: GridVersionTrait {
     type Output = FieldType;
 
     fn index(&self, coords: GridCoords) -> &Self::Output {
@@ -56,7 +62,7 @@ impl<FieldType> Index<GridCoords> for BaseGrid<FieldType> where FieldType: Defau
         &self.grid[index]
     }
 }
-impl<FieldType>  IndexMut<GridCoords> for BaseGrid<FieldType> where FieldType: Default + Clone + Debug {
+impl<FieldType, GridVersionType>  IndexMut<GridCoords> for BaseGrid<FieldType, GridVersionType> where FieldType: FieldTrait, GridVersionType: GridVersionTrait {
     fn index_mut(&mut self, coords: GridCoords) -> &mut Self::Output {
         if !coords.is_in_bounds(self.bounds()) {
             panic!("Index out of bounds");

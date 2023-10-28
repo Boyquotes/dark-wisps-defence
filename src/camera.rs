@@ -1,4 +1,5 @@
 use bevy::core_pipeline::bloom::BloomSettings;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 
@@ -26,9 +27,13 @@ fn startup(mut commands: Commands) {
                 ..default()
             },
             transform: Transform::from_xyz(500., 500., 0.),
+            //tonemapping: Tonemapping::TonyMcMapface,
             ..Default::default()
         },
-        BloomSettings::default(),
+        BloomSettings {
+            high_pass_frequency: 0.5,
+            ..Default::default()
+        },
     )).insert(MainCamera);
 }
 

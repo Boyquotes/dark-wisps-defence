@@ -1,7 +1,7 @@
-use crate::grids::base::BaseGrid;
+use crate::grids::base::{BaseGrid, GridVersion};
 use crate::grids::common::GridCoords;
 
-pub type VisitedGrid = BaseGrid<bool>;
+pub type VisitedGrid = BaseGrid<bool, GridVersion>;
 impl VisitedGrid {
     pub fn set_visited(&mut self, coords: GridCoords) {
         let index = self.index(coords);
@@ -23,7 +23,7 @@ pub enum Tracking {
 }
 
 
-pub type TrackingGrid = BaseGrid<Tracking>;
+pub type TrackingGrid = BaseGrid<Tracking, GridVersion>;
 impl TrackingGrid {
     pub fn set_tracked(&mut self, coords: GridCoords, from: GridCoords) {
         let index = self.index(coords);

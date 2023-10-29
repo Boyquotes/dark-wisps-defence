@@ -20,7 +20,7 @@ impl Field {
     }
     pub fn is_obstacle(&self) -> bool {
         match self {
-            Field::Wall(_) => true,
+            Field::Wall(..) => true,
             Field::Building(..) => true,
             _ => false,
         }

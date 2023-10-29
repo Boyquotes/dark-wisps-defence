@@ -12,9 +12,11 @@ mod utils;
 mod projectiles;
 mod grids;
 mod search;
+mod overlays;
 
 use bevy::prelude::*;
 use crate::grids::common::CELL_SIZE;
+use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{ObstacleGrid};
 use crate::map_editor::MapInfo;
 
@@ -34,6 +36,7 @@ fn main() {
             map_objects::MapObjectsPlugin,
             buildings::BuildingsPlugin,
             projectiles::ProjectilesPlugin,
+            overlays::OverlaysPlugin,
         ))
         .insert_resource(GameConfig{
             mode: GameMode::Editor,
@@ -64,7 +67,8 @@ pub fn is_game_mode(config: Res<GameConfig>) -> bool {
 
 pub fn generate_default_map(
     mut commands: Commands,
-    mut grid: ResMut<ObstacleGrid>,
+    mut obstacles_grid: ResMut<ObstacleGrid>,
+    mut emissions_grid: ResMut<EmissionsGrid>,
     mut map_info: ResMut<MapInfo>,
 ) {
     let map = map_loader::load_map("test_map");
@@ -73,5 +77,5 @@ pub fn generate_default_map(
     map_info.grid_height = map.height;
     map_info.world_width = map.width as f32 * CELL_SIZE;
     map_info.world_height = map.height as f32 * CELL_SIZE;
-    map_loader::apply_map(map, &mut commands, &mut grid);
+    map_loader::apply_map(map, &mut commands, &mut obstacles_grid, &mut emissions_grid);
 }

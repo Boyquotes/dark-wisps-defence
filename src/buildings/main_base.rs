@@ -3,14 +3,21 @@ use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, MarkerMainBase};
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::emissions::{EmissionsGrid, EmissionsType};
 use crate::grids::obstacles::ObstacleGrid;
+use crate::search::flooding::{flood_emissions, FloodEmissionsDetails, FloodEmissionsEvaluator};
 
 const MAIN_BASE_GRID_WIDTH: i32 = 6;
 const MAIN_BASE_GRID_HEIGHT: i32 = 4;
 const MAIN_BASE_WORLD_WIDTH: f32 = CELL_SIZE * MAIN_BASE_GRID_WIDTH as f32;
 const MAIN_BASE_WORLD_HEIGHT: f32 = CELL_SIZE * MAIN_BASE_GRID_HEIGHT as f32;
 
-pub fn create_main_base(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, grid_position: GridCoords) -> Entity {
+pub fn create_main_base(
+    commands: &mut Commands,
+    obstacles_grid: &mut ResMut<ObstacleGrid>,
+    emissions_grid: &mut ResMut<EmissionsGrid>,
+    grid_position: GridCoords,
+) -> Entity {
     let building = Building {
         grid_imprint: get_main_base_grid_imprint(),
         building_type: BuildingType::MainBase
@@ -26,7 +33,20 @@ pub fn create_main_base(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>
     ).insert(
         building.clone()
     ).id();
-    grid.imprint_building(building, grid_position, building_entity);
+    flood_emissions(
+        emissions_grid,
+        obstacles_grid,
+        building.grid_imprint.covered_coords(grid_position),
+        vec![
+            FloodEmissionsDetails {
+                emissions_type: EmissionsType::Energy,
+                range: usize::MAX,
+                evaluator: FloodEmissionsEvaluator::Linear{growth: 1.},
+            }
+        ],
+        false
+    );
+    obstacles_grid.imprint_building(building, grid_position, building_entity);
     building_entity
 }
 

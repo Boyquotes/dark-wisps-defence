@@ -6,7 +6,7 @@ use crate::buildings::main_base::create_main_base;
 use crate::buildings::tower_blaster::create_tower_blaster;
 use crate::buildings::tower_cannon::create_tower_cannon;
 use crate::grids::common::GridCoords;
-use crate::grids::emissions::EmissionsGrid;
+use crate::grids::emissions::{EmissionsGrid, EmitterCreatedEvent};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::walls::create_wall;
 
@@ -33,8 +33,8 @@ pub fn load_map(map_name: &str) -> Map {
 pub fn apply_map(
     map: Map,
     mut commands: &mut Commands,
+    mut emitter_created_event_writer: &mut EventWriter<EmitterCreatedEvent>,
     mut obstacles_grid: &mut ResMut<ObstacleGrid>,
-    mut emissions_grid: &mut ResMut<EmissionsGrid>,
 ) {
     map.walls.iter().for_each(|wall_coords| {
         create_wall(&mut commands, &mut obstacles_grid, *wall_coords);
@@ -42,7 +42,7 @@ pub fn apply_map(
     map.buildings.iter().for_each(|building| {
         match building.building_type {
             BuildingType::MainBase => {
-                create_main_base(&mut commands, &mut obstacles_grid, &mut emissions_grid, building.coords);
+                create_main_base(&mut commands, &mut emitter_created_event_writer, &mut obstacles_grid, building.coords);
             }
             BuildingType::Tower(tower_type) => {
                 match tower_type {

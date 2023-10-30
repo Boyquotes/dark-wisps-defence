@@ -1,6 +1,17 @@
 use bevy::prelude::*;
 use crate::grids::base::{BaseGrid, GridVersion};
 use crate::grids::common::{GridCoords};
+use crate::grids::obstacles::ObstacleGrid;
+use crate::search::flooding::{flood_emissions, FloodEmissionsDetails};
+
+#[derive(Component)]
+pub struct EmitterEnergy(pub FloodEmissionsDetails);
+
+#[derive(Event)]
+pub struct EmitterCreatedEvent {
+    pub coords: Vec<GridCoords>,
+    pub emissions_details: Vec<FloodEmissionsDetails>,
+}
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum EmissionsType {
@@ -46,5 +57,21 @@ impl EmissionsGrid {
             }
             idx += 1;
         });
+    }
+}
+
+pub fn on_emitter_created_system(
+    mut events: EventReader<EmitterCreatedEvent>,
+    mut emissions_grid: ResMut<EmissionsGrid>,
+    obstacle_grid: Res<ObstacleGrid>,
+) {
+    for event in events.iter() {
+        flood_emissions(
+            &mut emissions_grid,
+            &obstacle_grid,
+            &event.coords,
+            &event.emissions_details,
+            false
+        );
     }
 }

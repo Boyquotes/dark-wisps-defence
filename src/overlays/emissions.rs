@@ -30,14 +30,14 @@ pub fn create_emissions_overlay_startup_system(
     mut materials: ResMut<Assets<EmissionHeatmapMaterial>>,
 ) {
     let image = images.add(
-        Image::new(
+        Image::new_fill(
             Extent3d{
                 width: 100,
                 height: 100,
                 depth_or_array_layers: 1,
             },
             TextureDimension::D2,
-            std::iter::repeat([255, 0, 0, 127].iter()).take(100 * 100).flatten().copied().collect(),
+            &[255, 0, 0, 127],
             TextureFormat::Rgba8Unorm,
         )
     );
@@ -65,7 +65,7 @@ pub enum EmissionsOverlayMode {
 
 pub fn update_emissions_overlay_system(
     mut images: ResMut<Assets<Image>>,
-    materials: Res<Assets<EmissionHeatmapMaterial>>,
+    mut materials: ResMut<Assets<EmissionHeatmapMaterial>>,
     emissions_grid: Res<EmissionsGrid>,
     mut emissions_overlay_mode: ResMut<EmissionsOverlayMode>,
     mut emissions_overlay: Query<&Handle<EmissionHeatmapMaterial>, With<EmissionsOverlayEnergy>>
@@ -76,10 +76,10 @@ pub fn update_emissions_overlay_system(
             if *version != emissions_grid.version.energy {
                 *version = emissions_grid.version.energy;
                 let heatmap_material_handle = emissions_overlay.single();
-                let heatmap_material = materials.get(heatmap_material_handle).unwrap();
+                let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
                 let heatmap_image = images.get_mut(&heatmap_material.heatmap).unwrap();
                 emissions_grid.imprint_into_heatmap(&mut heatmap_image.data, EmissionsType::Energy);
-                println!("Updated heatmap");
+                println!("Updated heatmap")
             }
         }
     }

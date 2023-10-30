@@ -16,7 +16,7 @@ mod overlays;
 
 use bevy::prelude::*;
 use crate::grids::common::CELL_SIZE;
-use crate::grids::emissions::EmissionsGrid;
+use crate::grids::emissions::{EmissionsGrid, EmitterCreatedEvent};
 use crate::grids::obstacles::{ObstacleGrid};
 use crate::map_editor::MapInfo;
 
@@ -67,8 +67,8 @@ pub fn is_game_mode(config: Res<GameConfig>) -> bool {
 
 pub fn generate_default_map(
     mut commands: Commands,
+    mut emitter_created_event_writer: EventWriter<EmitterCreatedEvent>,
     mut obstacles_grid: ResMut<ObstacleGrid>,
-    mut emissions_grid: ResMut<EmissionsGrid>,
     mut map_info: ResMut<MapInfo>,
 ) {
     let map = map_loader::load_map("test_map");
@@ -77,5 +77,5 @@ pub fn generate_default_map(
     map_info.grid_height = map.height;
     map_info.world_width = map.width as f32 * CELL_SIZE;
     map_info.world_height = map.height as f32 * CELL_SIZE;
-    map_loader::apply_map(map, &mut commands, &mut obstacles_grid, &mut emissions_grid);
+    map_loader::apply_map(map, &mut commands, &mut emitter_created_event_writer, &mut obstacles_grid);
 }

@@ -9,6 +9,7 @@ use crate::search::common::CARDINAL_DIRECTIONS;
 /// Defines how to calculate the emissions as a function of distance
 /// `Constant` - value is constant regardless of distance
 /// `Linear` - value decreasing linearly with distance
+#[derive(Clone)]
 pub enum FloodEmissionsEvaluator {
     Constant(f32),
     Linear{growth: f32},
@@ -16,6 +17,7 @@ pub enum FloodEmissionsEvaluator {
 
 /// Describes what type of emissions, and how far to spread it.
 /// The evaluator determines how to calculate the emissions value as the flood spreads
+#[derive(Clone)]
 pub struct FloodEmissionsDetails {
     pub emissions_type: EmissionsType,
     pub range: usize,
@@ -25,18 +27,18 @@ pub struct FloodEmissionsDetails {
 pub fn flood_emissions(
     emissions_grid: &mut EmissionsGrid,
     obstacles_grid: &ObstacleGrid,
-    start_coords: Vec<GridCoords>,
-    emissions_details: Vec<FloodEmissionsDetails>,
+    start_coords: &Vec<GridCoords>,
+    emissions_details: &Vec<FloodEmissionsDetails>,
     ignore_obstacles: bool
 ) {
     let mut visited_grid = VisitedGrid::new_with_size(obstacles_grid.width, obstacles_grid.height);
     let mut queue = VecDeque::new();
     let max_range = emissions_details.iter().map(|details| details.range).max().unwrap();
-    start_coords.into_iter().for_each(|coords| {
-        queue.push_back((0, coords));
-        visited_grid.set_visited(coords);
-        for details in &emissions_details {
-            apply_emissions_details(emissions_grid, coords, details, 0);
+    start_coords.iter().for_each(|coords| {
+        queue.push_back((0, *coords));
+        visited_grid.set_visited(*coords);
+        for details in emissions_details {
+            apply_emissions_details(emissions_grid, *coords, details, 0);
         }
     });
     while let Some((distance, coords)) = queue.pop_front() {
@@ -51,7 +53,7 @@ pub fn flood_emissions(
 
             visited_grid.set_visited(new_coords);
             let new_distance = distance + 1;
-            for details in &emissions_details {
+            for details in emissions_details {
                 if new_distance <= details.range {
                     apply_emissions_details(emissions_grid, new_coords, details, new_distance);
                 }

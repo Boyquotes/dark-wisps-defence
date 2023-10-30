@@ -3,7 +3,7 @@ use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, MarkerMainBase};
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
-use crate::grids::emissions::{EmissionsGrid, EmissionsType};
+use crate::grids::emissions::{EmissionsGrid, EmissionsType, EmitterCreatedEvent, EmitterEnergy};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::search::flooding::{flood_emissions, FloodEmissionsDetails, FloodEmissionsEvaluator};
 
@@ -14,38 +14,31 @@ const MAIN_BASE_WORLD_HEIGHT: f32 = CELL_SIZE * MAIN_BASE_GRID_HEIGHT as f32;
 
 pub fn create_main_base(
     commands: &mut Commands,
+    emitter_created_event_writer: &mut EventWriter<EmitterCreatedEvent>,
     obstacles_grid: &mut ResMut<ObstacleGrid>,
-    emissions_grid: &mut ResMut<EmissionsGrid>,
     grid_position: GridCoords,
 ) -> Entity {
     let building = Building {
         grid_imprint: get_main_base_grid_imprint(),
         building_type: BuildingType::MainBase
     };
-    let building_entity = commands.spawn(
-        get_main_base_sprite_bundle(grid_position)
-    ).insert(
-        MarkerMainBase
-    ).insert(
-        grid_position
-    ).insert(
-        Health(10000)
-    ).insert(
-        building.clone()
-    ).id();
-    flood_emissions(
-        emissions_grid,
-        obstacles_grid,
-        building.grid_imprint.covered_coords(grid_position),
-        vec![
-            FloodEmissionsDetails {
-                emissions_type: EmissionsType::Energy,
-                range: usize::MAX,
-                evaluator: FloodEmissionsEvaluator::Linear{growth: 1.},
-            }
-        ],
-        false
-    );
+    let energy_emissions_details = FloodEmissionsDetails {
+        emissions_type: EmissionsType::Energy,
+        range: usize::MAX,
+        evaluator: FloodEmissionsEvaluator::Linear{growth: 1.},
+    };
+    let building_entity = commands.spawn((
+        get_main_base_sprite_bundle(grid_position),
+        MarkerMainBase,
+        grid_position,
+        Health(10000),
+        building.clone(),
+        EmitterEnergy(energy_emissions_details.clone()),
+    )).id();
+    emitter_created_event_writer.send(EmitterCreatedEvent {
+        coords: building.grid_imprint.covered_coords(grid_position),
+        emissions_details: vec![energy_emissions_details],
+    });
     obstacles_grid.imprint_building(building, grid_position, building_entity);
     building_entity
 }

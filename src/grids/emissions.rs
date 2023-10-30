@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crate::buildings::common_components::Building;
 use crate::grids::base::{BaseGrid, GridVersion};
 use crate::grids::common::{GridCoords};
 use crate::grids::obstacles::ObstacleGrid;
@@ -12,6 +13,9 @@ pub struct EmitterCreatedEvent {
     pub coords: Vec<GridCoords>,
     pub emissions_details: Vec<FloodEmissionsDetails>,
 }
+
+#[derive(Resource)]
+pub struct EmissionsEnergyRecalculateAll(pub bool);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum EmissionsType {
@@ -34,6 +38,11 @@ impl EmissionsGrid {
         self[coords].energy += energy;
         self.version.energy = self.version.energy.wrapping_add(1);
     }
+    pub fn reset_energy_emissions(&mut self) {
+        self.grid.iter_mut().for_each(|emissions| {
+            emissions.energy = 0.;
+        })
+    }
     pub fn imprint_into_heatmap(&self, heatmap: &mut Vec<u8>, emissions_type: EmissionsType) {
         let max_emission = match emissions_type {
             EmissionsType::Energy => self.grid.iter().map(|emissions| emissions.energy).max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap(),
@@ -44,11 +53,11 @@ impl EmissionsGrid {
             match emissions_type {
                 EmissionsType::Energy => {
                     let value = {
-                        if max_emission == 0. {
+                        if max_emission == 0. || emissions.energy == 0. {
                             0
-                        } else if emissions.energy == 0. {
-                            255 // The lower the value the higher the emission
-                        } else { 255 - (emissions.energy / max_emission * 255.) as u8 }
+                        } else {
+                            255 - (emissions.energy / max_emission * 255.) as u8
+                        }
                     };
                     chunk[0] = value;
                     chunk[1] = value;
@@ -75,3 +84,25 @@ pub fn on_emitter_created_system(
         );
     }
 }
+
+pub fn emissions_energy_recalculate_all_system(
+    mut recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    mut emissions_grid: ResMut<EmissionsGrid>,
+    obstacle_grid: Res<ObstacleGrid>,
+    emitters_buildings: Query<(&EmitterEnergy, &Building, &GridCoords)>,
+) {
+    if !recalculate_all.0 { return; }
+    recalculate_all.0 = false;
+
+    emissions_grid.reset_energy_emissions();
+    for (emitter, building, coords) in emitters_buildings.iter() {
+        flood_emissions(
+            &mut emissions_grid,
+            &obstacle_grid,
+            &building.grid_imprint.covered_coords(*coords),
+            &vec![emitter.0.clone()],
+            false,
+        );
+    }
+}
+

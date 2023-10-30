@@ -19,8 +19,12 @@ impl Plugin for GridsPlugin {
         let mut emissions_grid = emissions::EmissionsGrid::new_empty();
         emissions_grid.resize_and_reset(100, 100);
         app.insert_resource(emissions_grid);
+        app.insert_resource(emissions::EmissionsEnergyRecalculateAll(false));
         app.add_event::<emissions::EmitterCreatedEvent>();
 
-        app.add_systems(PostUpdate, emissions::on_emitter_created_system);
+        app.add_systems(PostUpdate, (
+            emissions::on_emitter_created_system,
+            emissions::emissions_energy_recalculate_all_system)
+        );
     }
 }

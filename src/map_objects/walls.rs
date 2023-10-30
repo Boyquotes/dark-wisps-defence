@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::grids::common::{CELL_SIZE, GridCoords};
+use crate::grids::emissions::EmissionsEnergyRecalculateAll;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -7,8 +8,13 @@ use crate::ui::grid_object_placer::GridObjectPlacer;
 #[derive(Component)]
 pub struct Wall;
 
-pub fn create_wall(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, grid_position: GridCoords) -> Entity {
-    match grid[grid_position] {
+pub fn create_wall(
+    commands: &mut Commands,
+    emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
+    obstacles_grid: &mut ResMut<ObstacleGrid>,
+    grid_position: GridCoords,
+) -> Entity {
+    match obstacles_grid[grid_position] {
         Field::Empty { .. } => {}
         _ => panic!("Cannot place a wall on a non-empty field"),
     }
@@ -33,7 +39,8 @@ pub fn create_wall(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, gri
         Wall
     ).id();
 
-    grid.imprint_wall(grid_position, entity);
+    obstacles_grid.imprint_wall(grid_position, entity);
+    emissions_energy_recalculate_all.0 = true;
     entity
 }
 
@@ -49,23 +56,24 @@ pub fn remove_wall(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, gri
 
 pub fn onclick_spawn_system(
     mut commands: Commands,
-    mut grid: ResMut<ObstacleGrid>,
+    mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    mut obstacle_grid: ResMut<ObstacleGrid>,
     mouse: Res<Input<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Query<&GridObjectPlacer>,
 ) {
     if !matches!(*grid_object_placer.single(), GridObjectPlacer::Wall) { return; }
     let mouse_coords = mouse_info.grid_coords;
-    if !mouse_coords.is_in_bounds(grid.bounds()) { return; }
+    if !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {
         // Place a wall
-        if grid[mouse_coords].is_empty() {
-            create_wall(&mut commands, &mut grid, mouse_coords);
+        if obstacle_grid[mouse_coords].is_empty() {
+            create_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a wall
-        if grid[mouse_coords].is_wall() {
-            remove_wall(&mut commands, &mut grid, mouse_coords);
+        if obstacle_grid[mouse_coords].is_wall() {
+            remove_wall(&mut commands, &mut obstacle_grid, mouse_coords);
         }
     }
 }

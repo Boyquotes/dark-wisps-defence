@@ -35,10 +35,10 @@ pub fn flood_emissions(
     let mut queue = VecDeque::new();
     let max_range = emissions_details.iter().map(|details| details.range).max().unwrap();
     start_coords.iter().for_each(|coords| {
-        queue.push_back((0, *coords));
+        queue.push_back((1, *coords));
         visited_grid.set_visited(*coords);
         for details in emissions_details {
-            apply_emissions_details(emissions_grid, *coords, details, 0);
+            apply_emissions_details(emissions_grid, *coords, details, 1);
         }
     });
     while let Some((distance, coords)) = queue.pop_front() {

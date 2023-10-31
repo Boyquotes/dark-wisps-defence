@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use crate::grids::common::GridCoords;
 
 pub const CARDINAL_DIRECTIONS: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
@@ -6,18 +7,19 @@ pub const ALL_DIRECTIONS: [(i32, i32); 8] = [
     (1, 1), (1, -1), (-1, 1), (-1, -1) // Diagonal directions
 ];
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct State {
-    pub cost: usize,
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct State<T> where T: PartialOrd {
+    pub cost: T,
     pub coords: GridCoords,
 }
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+impl<T> PartialOrd for State<T> where T: PartialOrd {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        other.cost.partial_cmp(&self.cost)
     }
 }
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other.cost.cmp(&self.cost)
+impl<T> Ord for State<T> where T: PartialOrd {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.partial_cmp(&self).unwrap()
     }
 }
+impl<T> Eq for State<T> where T: PartialOrd {}

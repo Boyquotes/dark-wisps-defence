@@ -79,7 +79,6 @@ pub fn update_emissions_overlay_system(
                 let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
                 let heatmap_image = images.get_mut(&heatmap_material.heatmap).unwrap();
                 emissions_grid.imprint_into_heatmap(&mut heatmap_image.data, EmissionsType::Energy);
-                println!("Updated heatmap")
             }
         }
     }

@@ -44,13 +44,19 @@ pub fn create_wall(
     entity
 }
 
-pub fn remove_wall(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, grid_position: GridCoords) {
-    let entity = match &grid[grid_position] {
+pub fn remove_wall(
+    commands: &mut Commands,
+    emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
+    obstacle_grid: &mut ResMut<ObstacleGrid>,
+    grid_position: GridCoords,
+) {
+    let entity = match &obstacle_grid[grid_position] {
         Field::Wall(entity) => *entity,
         _ => panic!("Cannot remove a wall on a non-wall"),
     };
     commands.entity(entity).despawn();
-    grid.remove_wall(grid_position);
+    obstacle_grid.remove_wall(grid_position);
+    emissions_energy_recalculate_all.0 = true;
 }
 
 
@@ -73,7 +79,7 @@ pub fn onclick_spawn_system(
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a wall
         if obstacle_grid[mouse_coords].is_wall() {
-            remove_wall(&mut commands, &mut obstacle_grid, mouse_coords);
+            remove_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
         }
     }
 }

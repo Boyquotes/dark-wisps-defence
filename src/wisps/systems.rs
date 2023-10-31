@@ -4,6 +4,7 @@ use crate::buildings::common_components::Building;
 use crate::common::TargetType;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridType};
+use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::is_game_mode;
@@ -54,20 +55,24 @@ pub fn move_wisps(
     }
 }
 
-pub fn target_wisps(mut query: Query<(&mut Target, &GridCoords), With<Wisp>>, grid: Res<ObstacleGrid>) {
-    for (mut target, grid_coords) in query.iter_mut() {
+pub fn target_wisps(
+    mut wisps_query: Query<(&mut Target, &GridCoords), With<Wisp>>,
+    obstacle_grid: Res<ObstacleGrid>,
+    emissions_grid: Res<EmissionsGrid>,
+) {
+    for (mut target, grid_coords) in wisps_query.iter_mut() {
         // First check if there was anything that would invalidate existing targeting.
         match target.target_type {
             TargetType::None | TargetType::DynamicObject(_) => {},
             TargetType::Field{grid_version, ..} => {
-                if grid_version != grid.version {
+                if grid_version != obstacle_grid.version {
                     target.target_type = TargetType::None;
                 }
             }
             TargetType::Unreachable{grid_type, grid_version} => {
                 match grid_type {
                     GridType::Obstacles => {
-                        if grid_version != grid.version {
+                        if grid_version != obstacle_grid.version {
                             target.target_type = TargetType::None;
                         }
                     }
@@ -77,11 +82,11 @@ pub fn target_wisps(mut query: Query<(&mut Target, &GridCoords), With<Wisp>>, gr
         // Then check if the wisp is eligible for new targeting.
         if target.is_on_its_path() || target.is_at_destination() || target.is_unreachable() { continue; }
 
-        if let Some(path) = path_find_energy_beckon(&grid, *grid_coords) {
-            target.target_type = TargetType::Field{coords: *path.last().unwrap(), grid_version: grid.version};
+        if let Some(path) = path_find_energy_beckon(&obstacle_grid, &emissions_grid, *grid_coords) {
+            target.target_type = TargetType::Field{coords: *path.last().unwrap(), grid_version: obstacle_grid.version};
             target.grid_path = Some(path);
         } else {
-            target.target_type = TargetType::Unreachable {grid_type: GridType::Obstacles, grid_version: grid.version};
+            target.target_type = TargetType::Unreachable {grid_type: GridType::Obstacles, grid_version: obstacle_grid.version};
             target.grid_path = Some(Vec::new());
         }
     }

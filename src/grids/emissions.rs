@@ -56,10 +56,10 @@ impl EmissionsGrid {
                         if max_emission == 0. || emissions.energy == 0. {
                             0
                         } else {
-                            255 - (emissions.energy / max_emission * 255.) as u8
+                            255 - ((emissions.energy / max_emission).powf(0.1) * 255.) as u8
                         }
                     };
-                    chunk[0] = value;
+                    chunk[0] = 0;
                     chunk[1] = value;
                     chunk[2] = value;
                 }

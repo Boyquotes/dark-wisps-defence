@@ -1,26 +1,26 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, EnergyProvider, MarkerMainBase};
+use crate::buildings::common_components::{Building, EnergyProvider, MarkerEnergyRelay};
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsGrid, EmissionsType, EmitterCreatedEvent, EmitterEnergy};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::search::flooding::{flood_emissions, FloodEmissionsDetails, FloodEmissionsEvaluator};
 
-const MAIN_BASE_GRID_WIDTH: i32 = 6;
-const MAIN_BASE_GRID_HEIGHT: i32 = 4;
-const MAIN_BASE_WORLD_WIDTH: f32 = CELL_SIZE * MAIN_BASE_GRID_WIDTH as f32;
-const MAIN_BASE_WORLD_HEIGHT: f32 = CELL_SIZE * MAIN_BASE_GRID_HEIGHT as f32;
+const ENERGY_RELAY_GRID_WIDTH: i32 = 1;
+const ENERGY_RELAY_GRID_HEIGHT: i32 = 1;
+const ENERGY_RELAY_WORLD_WIDTH: f32 = CELL_SIZE * ENERGY_RELAY_GRID_WIDTH as f32;
+const ENERGY_RELAY_WORLD_HEIGHT: f32 = CELL_SIZE * ENERGY_RELAY_GRID_HEIGHT as f32;
 
-pub fn create_main_base(
+pub fn create_energy_relay(
     commands: &mut Commands,
     emitter_created_event_writer: &mut EventWriter<EmitterCreatedEvent>,
     obstacles_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) -> Entity {
     let building = Building {
-        grid_imprint: get_main_base_grid_imprint(),
-        building_type: BuildingType::MainBase
+        grid_imprint: get_energy_relay_grid_imprint(),
+        building_type: BuildingType::EnergyRelay
     };
     let energy_emissions_details = FloodEmissionsDetails {
         emissions_type: EmissionsType::Energy,
@@ -28,8 +28,8 @@ pub fn create_main_base(
         evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
     };
     let building_entity = commands.spawn((
-        get_main_base_sprite_bundle(grid_position),
-        MarkerMainBase,
+        get_energy_relay_sprite_bundle(grid_position),
+        MarkerEnergyRelay,
         grid_position,
         Health(10000),
         building.clone(),
@@ -44,19 +44,19 @@ pub fn create_main_base(
     building_entity
 }
 
-pub fn get_main_base_sprite_bundle(coords: GridCoords) -> SpriteBundle {
+pub fn get_energy_relay_sprite_bundle(coords: GridCoords) -> SpriteBundle {
     let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
-            color: Color::rgb(1.0, 1.0, 1.0),
-            custom_size: Some(Vec2::new(MAIN_BASE_WORLD_WIDTH, MAIN_BASE_WORLD_HEIGHT)),
+            color: Color::rgb(1., 1., 1.),
+            custom_size: Some(Vec2::new(ENERGY_RELAY_WORLD_WIDTH, ENERGY_RELAY_WORLD_HEIGHT)),
             ..Default::default()
         },
-        transform: Transform::from_translation(world_position + Vec3::new(MAIN_BASE_WORLD_WIDTH/2., MAIN_BASE_WORLD_HEIGHT/2., 0.0)),
+        transform: Transform::from_translation(world_position + Vec3::new(ENERGY_RELAY_WORLD_WIDTH/2., ENERGY_RELAY_WORLD_HEIGHT/2., 0.0)),
         ..Default::default()
     }
 }
 
-pub fn get_main_base_grid_imprint() -> GridImprint {
-    GridImprint::Rectangle { width: MAIN_BASE_GRID_WIDTH, height: MAIN_BASE_GRID_HEIGHT }
+pub fn get_energy_relay_grid_imprint() -> GridImprint {
+    GridImprint::Rectangle { width: ENERGY_RELAY_GRID_WIDTH, height: ENERGY_RELAY_GRID_HEIGHT }
 }

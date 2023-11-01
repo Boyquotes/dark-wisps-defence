@@ -14,9 +14,10 @@ pub struct Building {
 // Building type markers
 #[derive(Component)]
 pub struct MarkerMainBase;
-
 #[derive(Component)]
 pub struct MarkerTower;
+#[derive(Component)]
+pub struct MarkerEnergyRelay;
 
 #[derive(Component)]
 pub struct TowerShootingTimer(pub Timer);
@@ -35,4 +36,9 @@ pub enum TowerWispTarget {
     SearchForNewTarget,
     Wisp(WispEntity),
     NoValidTargets(GridVersion),
+}
+
+#[derive(Component)]
+pub struct EnergyProvider {
+    pub range: usize,
 }

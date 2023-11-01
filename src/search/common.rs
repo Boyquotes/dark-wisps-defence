@@ -10,6 +10,7 @@ pub const ALL_DIRECTIONS: [(i32, i32); 8] = [
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct State<T> where T: PartialOrd {
     pub cost: T,
+    pub distance: usize,
     pub coords: GridCoords,
 }
 impl<T> PartialOrd for State<T> where T: PartialOrd {

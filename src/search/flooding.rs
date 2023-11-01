@@ -13,6 +13,7 @@ use crate::search::common::CARDINAL_DIRECTIONS;
 pub enum FloodEmissionsEvaluator {
     Constant(f32),
     Linear{growth: f32},
+    ExponentialDecay{start_value: f32, decay: f32},
 }
 
 /// Describes what type of emissions, and how far to spread it.
@@ -29,7 +30,8 @@ pub fn flood_emissions(
     obstacles_grid: &ObstacleGrid,
     start_coords: &Vec<GridCoords>,
     emissions_details: &Vec<FloodEmissionsDetails>,
-    ignore_obstacles: bool
+    ignore_walls: bool,
+    ignore_buildings: bool
 ) {
     let mut visited_grid = VisitedGrid::new_with_size(obstacles_grid.width, obstacles_grid.height);
     let mut queue = VecDeque::new();
@@ -46,7 +48,8 @@ pub fn flood_emissions(
             let new_coords = coords.shifted((delta_x, delta_y));
             if !new_coords.is_in_bounds(obstacles_grid.bounds())
                 || visited_grid.is_visited(new_coords)
-                || (!ignore_obstacles && obstacles_grid[new_coords].is_obstacle())
+                || (!ignore_walls && obstacles_grid[new_coords].is_wall())
+                || (!ignore_buildings && obstacles_grid[new_coords].is_building())
             {
                 continue;
             }
@@ -75,7 +78,10 @@ fn apply_emissions_details(
         FloodEmissionsEvaluator::Constant(value) => value,
         FloodEmissionsEvaluator::Linear{growth} => {
             growth * distance as f32
-        }
+        },
+        FloodEmissionsEvaluator::ExponentialDecay{start_value, decay} => {
+            start_value * (-1. * decay * distance as f32).exp()
+        },
     };
     match details.emissions_type {
         EmissionsType::Energy => {

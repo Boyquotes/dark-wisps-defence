@@ -2,6 +2,7 @@ use std::fs::File;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use crate::buildings::common::{BuildingType, TowerType};
+use crate::buildings::energy_relay::create_energy_relay;
 use crate::buildings::main_base::create_main_base;
 use crate::buildings::tower_blaster::create_tower_blaster;
 use crate::buildings::tower_cannon::create_tower_cannon;
@@ -44,6 +45,9 @@ pub fn apply_map(
         match building.building_type {
             BuildingType::MainBase => {
                 create_main_base(&mut commands, &mut emitter_created_event_writer, &mut obstacles_grid, building.coords);
+            }
+            BuildingType::EnergyRelay => {
+                create_energy_relay(&mut commands, &mut emitter_created_event_writer, &mut obstacles_grid, building.coords);
             }
             BuildingType::Tower(tower_type) => {
                 match tower_type {

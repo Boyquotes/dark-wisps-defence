@@ -4,6 +4,7 @@ pub mod common;
 pub mod tower_blaster;
 pub mod tower_cannon;
 pub mod common_systems;
+pub mod energy_relay;
 
 use bevy::prelude::*;
 

@@ -22,14 +22,14 @@ pub fn target_find_closest_wisp(
     let mut queue = BinaryHeap::new();
     start_coords.into_iter().for_each(
         |coords| {
-            queue.push(State{cost: 0, coords });
+            queue.push(State{cost: usize::MIN, distance: 0, coords });
             visited_grid.set_visited(coords);
         }
     );
-    while let Some(State{ cost, coords }) = queue.pop() {
+    while let Some(State{ cost, distance, coords }) = queue.pop() {
         for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
             let new_coords = coords.shifted((delta_x, delta_y));
-            if cost > range
+            if distance > range
                 || !new_coords.is_in_bounds(obstacle_grid.bounds())
                 || visited_grid.is_visited(new_coords)
                 || (!ignore_obstacles && obstacle_grid[new_coords].is_obstacle())
@@ -42,7 +42,7 @@ pub fn target_find_closest_wisp(
             }
 
             visited_grid.set_visited(new_coords);
-            queue.push(State{ cost: cost + 1, coords: new_coords });
+            queue.push(State{ cost: cost + 1, distance: distance + 1, coords: new_coords });
         }
     }
     None

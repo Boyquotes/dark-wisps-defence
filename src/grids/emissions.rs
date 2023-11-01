@@ -44,19 +44,29 @@ impl EmissionsGrid {
         })
     }
     pub fn imprint_into_heatmap(&self, heatmap: &mut Vec<u8>, emissions_type: EmissionsType) {
-        let max_emission = match emissions_type {
-            EmissionsType::Energy => self.grid.iter().map(|emissions| emissions.energy).max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap(),
+        let (min_emission, max_emission) = match emissions_type {
+            EmissionsType::Energy => {
+                let (mut min, mut max) = (f32::MAX, f32::MIN);
+                for emissions in self.grid.iter() {
+                    if emissions.energy != 0. {
+                        min = min.min(emissions.energy);
+                    }
+                    max = max.max(emissions.energy);
+                }
+                (min, max)
+            },
         };
+        let emissions_range = max_emission - min_emission;
         let mut idx = 0;
         heatmap.chunks_mut(4).for_each(|chunk| {
             let emissions = &self.grid[idx];
             match emissions_type {
                 EmissionsType::Energy => {
                     let value = {
-                        if max_emission == 0. || emissions.energy == 0. {
+                        if emissions_range == 0. || emissions.energy == 0. {
                             0
                         } else {
-                            255 - ((emissions.energy / max_emission).powf(0.1) * 255.) as u8
+                            ((emissions.energy - min_emission) / emissions_range * 255.) as u8
                         }
                     };
                     chunk[0] = 0;
@@ -80,7 +90,8 @@ pub fn on_emitter_created_system(
             &obstacle_grid,
             &event.coords,
             &event.emissions_details,
-            false
+            false,
+            true,
         );
     }
 }
@@ -101,8 +112,9 @@ pub fn emissions_energy_recalculate_all_system(
             &obstacle_grid,
             &building.grid_imprint.covered_coords(*coords),
             &vec![emitter.0.clone()],
+
             false,
+            true,
         );
     }
 }
-

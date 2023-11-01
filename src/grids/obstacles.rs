@@ -18,12 +18,11 @@ impl Field {
     pub fn is_wall(&self) -> bool {
         matches!(self, Field::Wall(_))
     }
+    pub fn is_building(&self) -> bool {
+        matches!(self, Field::Building(_, _))
+    }
     pub fn is_obstacle(&self) -> bool {
-        match self {
-            Field::Wall(..) => true,
-            Field::Building(..) => true,
-            _ => false,
-        }
+        self.is_building() || self.is_wall()
     }
 }
 

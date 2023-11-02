@@ -10,5 +10,6 @@ impl Plugin for OverlaysPlugin {
         app.add_plugins(Material2dPlugin::<emissions::EmissionHeatmapMaterial>::default());
         app.add_systems(Startup, emissions::create_emissions_overlay_startup_system);
         app.add_systems(PreUpdate, emissions::update_emissions_overlay_system);
+        app.add_systems(Update, emissions::manage_emissions_overlay_mode_system);
     }
 }

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy::reflect::{TypePath, TypeUuid};
-use bevy::render::render_resource::{AsBindGroup, Extent3d, Sampler, ShaderRef, TextureDimension, TextureFormat};
+use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 use crate::grids::base::GridVersion;
 use crate::grids::common::CELL_SIZE;
@@ -21,7 +21,7 @@ impl Material2d for EmissionHeatmapMaterial {
 }
 
 #[derive(Component)]
-pub struct EmissionsOverlayEnergy;
+pub struct EmissionsOverlay;
 
 pub fn create_emissions_overlay_startup_system(
     mut commands: Commands,
@@ -53,7 +53,7 @@ pub fn create_emissions_overlay_startup_system(
             }),
             ..Default::default()
         }
-    ).insert(EmissionsOverlayEnergy);
+    ).insert(EmissionsOverlay);
 }
 
 /// Keep tracks of which version does the overlay use
@@ -63,12 +63,29 @@ pub enum EmissionsOverlayMode {
     Energy(GridVersion),
 }
 
+pub fn manage_emissions_overlay_mode_system(
+    mut emissions_overlay_mode: ResMut<EmissionsOverlayMode>,
+    keys: Res<Input<KeyCode>>,
+    mut emission_material_visibility: Query<&mut Visibility, With<EmissionsOverlay>>,
+) {
+    let mut visibility = emission_material_visibility.single_mut();
+    if keys.just_pressed(KeyCode::Key6) {
+        *emissions_overlay_mode = EmissionsOverlayMode::None;
+        *visibility = Visibility::Hidden;
+    } else if keys.just_pressed(KeyCode::Key7) {
+        if !matches!(*emissions_overlay_mode, EmissionsOverlayMode::Energy(_)) {
+            *emissions_overlay_mode = EmissionsOverlayMode::Energy(GridVersion::default());
+        }
+        *visibility = Visibility::Inherited;
+    }
+}
+
 pub fn update_emissions_overlay_system(
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<EmissionHeatmapMaterial>>,
     emissions_grid: Res<EmissionsGrid>,
     mut emissions_overlay_mode: ResMut<EmissionsOverlayMode>,
-    mut emissions_overlay: Query<&Handle<EmissionHeatmapMaterial>, With<EmissionsOverlayEnergy>>
+    mut emissions_overlay: Query<&Handle<EmissionHeatmapMaterial>, With<EmissionsOverlay>>,
 ) {
     match &mut *emissions_overlay_mode {
         EmissionsOverlayMode::None => { return; },

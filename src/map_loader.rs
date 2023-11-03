@@ -8,6 +8,7 @@ use crate::buildings::tower_blaster::create_tower_blaster;
 use crate::buildings::tower_cannon::create_tower_cannon;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmissionsGrid, EmitterCreatedEvent};
+use crate::grids::energy_supply::SupplierCreatedEvent;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::walls::create_wall;
 
@@ -36,6 +37,7 @@ pub fn apply_map(
     mut commands: &mut Commands,
     mut emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
     mut emitter_created_event_writer: &mut EventWriter<EmitterCreatedEvent>,
+    mut supplier_created_event_writer: &mut EventWriter<SupplierCreatedEvent>,
     mut obstacles_grid: &mut ResMut<ObstacleGrid>,
 ) {
     map.walls.iter().for_each(|wall_coords| {
@@ -44,10 +46,10 @@ pub fn apply_map(
     map.buildings.iter().for_each(|building| {
         match building.building_type {
             BuildingType::MainBase => {
-                create_main_base(&mut commands, &mut emitter_created_event_writer, &mut obstacles_grid, building.coords);
+                create_main_base(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacles_grid, building.coords);
             }
             BuildingType::EnergyRelay => {
-                create_energy_relay(&mut commands, &mut emitter_created_event_writer, &mut obstacles_grid, building.coords);
+                create_energy_relay(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacles_grid, building.coords);
             }
             BuildingType::Tower(tower_type) => {
                 match tower_type {

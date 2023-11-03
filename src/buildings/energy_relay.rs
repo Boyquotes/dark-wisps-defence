@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, EnergyProvider, MarkerEnergyRelay};
+use crate::buildings::common_components::{Building, MarkerEnergyRelay};
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
-use crate::grids::emissions::{EmissionsGrid, EmissionsType, EmitterCreatedEvent, EmitterEnergy};
+use crate::grids::emissions::{EmissionsType, EmitterCreatedEvent, EmitterEnergy};
+use crate::grids::energy_supply::{SupplierCreatedEvent, SupplierEnergy};
 use crate::grids::obstacles::ObstacleGrid;
-use crate::search::flooding::{flood_emissions, FloodEmissionsDetails, FloodEmissionsEvaluator};
+use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator};
 
 const ENERGY_RELAY_GRID_WIDTH: i32 = 1;
 const ENERGY_RELAY_GRID_HEIGHT: i32 = 1;
@@ -15,6 +16,7 @@ const ENERGY_RELAY_WORLD_HEIGHT: f32 = CELL_SIZE * ENERGY_RELAY_GRID_HEIGHT as f
 pub fn create_energy_relay(
     commands: &mut Commands,
     emitter_created_event_writer: &mut EventWriter<EmitterCreatedEvent>,
+    supplier_created_event_writer: &mut EventWriter<SupplierCreatedEvent>,
     obstacles_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) -> Entity {
@@ -27,6 +29,7 @@ pub fn create_energy_relay(
         range: usize::MAX,
         evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
     };
+    let supplier_energy = SupplierEnergy { range: 15 };
     let building_entity = commands.spawn((
         get_energy_relay_sprite_bundle(grid_position),
         MarkerEnergyRelay,
@@ -34,11 +37,15 @@ pub fn create_energy_relay(
         Health(10000),
         building.clone(),
         EmitterEnergy(energy_emissions_details.clone()),
-        EnergyProvider{ range: 15},
+        supplier_energy,
     )).id();
     emitter_created_event_writer.send(EmitterCreatedEvent {
         coords: building.grid_imprint.covered_coords(grid_position),
         emissions_details: vec![energy_emissions_details],
+    });
+    supplier_created_event_writer.send(SupplierCreatedEvent {
+        coords: building.grid_imprint.covered_coords(grid_position),
+        supplier: supplier_energy,
     });
     obstacles_grid.imprint_building(building, grid_position, building_entity);
     building_entity

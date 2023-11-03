@@ -6,6 +6,7 @@ use crate::grids::common::GridImprint;
 use crate::buildings::tower_blaster::get_tower_blaster_grid_imprint;
 use crate::buildings::tower_cannon::get_tower_cannon_grid_imprint;
 use crate::grids::common::CELL_SIZE;
+use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::interaction_state::UiInteractionState;
@@ -27,7 +28,8 @@ pub fn create_grid_object_placer_system(mut commands: Commands) {
 }
 
 pub fn update_grid_object_placer_system(
-    grid: Res<ObstacleGrid>,
+    obstacle_grid: Res<ObstacleGrid>,
+    energy_supply_grid: Res<EnergySupplyGrid>,
     ui_interaction_state: Res<UiInteractionState>,
     mouse_info: Res<MouseInfo>,
     mut placer: Query<(&mut Transform, &mut Sprite, &mut Visibility, &mut GridObjectPlacer)>,
@@ -45,7 +47,7 @@ pub fn update_grid_object_placer_system(
     let is_imprint_placable = match &*grid_object_placer {
         GridObjectPlacer::Wall => {
             transform.translation += Vec3::new(8., 8., 0.);
-            mouse_info.grid_coords.is_in_bounds(grid.bounds()) && grid[mouse_info.grid_coords].is_empty()
+            mouse_info.grid_coords.is_in_bounds(obstacle_grid.bounds()) && obstacle_grid[mouse_info.grid_coords].is_empty()
         },
         GridObjectPlacer::Building(building) => {
             match building.grid_imprint {
@@ -54,16 +56,29 @@ pub fn update_grid_object_placer_system(
                     transform.translation.y += height as f32 * CELL_SIZE / 2.;
                 }
             }
-            grid.is_imprint_placable(mouse_info.grid_coords, building.grid_imprint)
+            obstacle_grid.is_imprint_placable(mouse_info.grid_coords, building.grid_imprint)
         }
         _ => false
     };
+    let (needs_energy_supply, is_imprint_suppliable) = match &*grid_object_placer {
+        GridObjectPlacer::Building(building) => match building.building_type {
+            BuildingType::Tower(_) => {
+                (true, energy_supply_grid.is_imprint_suppliable(mouse_info.grid_coords, building.grid_imprint))
+            },
+            _ => (false, false)
+        }
+        _ => (false, false)
+    };
 
-    if is_imprint_placable {
-        sprite.color = Color::rgba(0.0, 1.0, 0.0, 0.2);
+    sprite.color = if is_imprint_placable {
+        if needs_energy_supply && !is_imprint_suppliable {
+            Color::rgba(1.0, 1.0, 0.0, 0.2)
+        } else {
+            Color::rgba(0.0, 1.0, 0.0, 0.2)
+        }
     } else {
-        sprite.color = Color::rgba(1.0, 0.0, 0.0, 0.2);
-    }
+        Color::rgba(1.0, 0.0, 0.0, 0.2)
+    };
 }
 
 pub fn on_click_initiate_grid_object_placer_system(

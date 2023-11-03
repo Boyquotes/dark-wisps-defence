@@ -1,0 +1,59 @@
+use bevy::prelude::*;
+use crate::grids::base::{BaseGrid, GridVersion};
+use crate::grids::common::{ GridCoords, GridImprint};
+use crate::search::flooding::{flood_energy_supply, FloodEnergySupplyMode};
+
+#[derive(Component, Copy, Clone, Debug)]
+pub struct SupplierEnergy{
+    pub range: usize,
+}
+
+#[derive(Event)]
+pub struct SupplierCreatedEvent {
+    pub coords: Vec<GridCoords>,
+    pub supplier: SupplierEnergy,
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct EnergySupplyField(u32);
+impl EnergySupplyField {
+    pub fn has_supply(&self) -> bool { self.0 > 0 }
+    pub fn increase_supply(&mut self) { self.0 += 1 }
+    pub fn decrease_supply(&mut self) { self.0 -= 1 }
+}
+
+pub type EnergySupplyGrid = BaseGrid<EnergySupplyField, GridVersion>;
+
+impl EnergySupplyGrid {
+    /// At least one of the imprint's cells mut have energy supply.
+    pub fn is_imprint_suppliable(&self, coords: GridCoords, imprint: GridImprint) -> bool {
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let inner_coords = coords.shifted((x, y));
+                        if inner_coords.is_in_bounds(self.bounds()) && self[inner_coords].has_supply() {
+                            return true;
+                        }
+
+                    }
+                }
+            }
+        }
+        false
+    }
+}
+
+pub fn on_supplier_created_system(
+    mut events: EventReader<SupplierCreatedEvent>,
+    mut energy_supply_grid: ResMut<EnergySupplyGrid>,
+) {
+    for event in events.iter() {
+        flood_energy_supply(
+            &mut energy_supply_grid,
+            &event.coords,
+            FloodEnergySupplyMode::Increase,
+            event.supplier.range
+        );
+    }
+}

@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use bevy::prelude::*;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::{Emissions, EmissionsGrid, EmissionsType};
+use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::visited::VisitedGrid;
 use crate::search::common::CARDINAL_DIRECTIONS;
@@ -86,6 +87,46 @@ fn apply_emissions_details(
     match details.emissions_type {
         EmissionsType::Energy => {
             emissions_grid.add_energy(grid_coords, value);
+        }
+    }
+}
+
+pub enum FloodEnergySupplyMode {
+    Increase,
+    Decrease,
+}
+
+pub fn flood_energy_supply(
+    energy_supply_grid: &mut EnergySupplyGrid,
+    start_coords: &Vec<GridCoords>,
+    mode: FloodEnergySupplyMode,
+    range: usize,
+) {
+    let mut visited_grid = VisitedGrid::new_with_size(energy_supply_grid.width, energy_supply_grid.height);
+    let mut queue = VecDeque::new();
+    start_coords.iter().for_each(|coords| {
+        energy_supply_grid[*coords].increase_supply();
+        queue.push_back((0, *coords));
+        visited_grid.set_visited(*coords);
+    });
+    while let Some((distance, coords)) = queue.pop_front() {
+        for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
+            let new_coords = coords.shifted((delta_x, delta_y));
+            if !new_coords.is_in_bounds(energy_supply_grid.bounds())
+                || visited_grid.is_visited(new_coords)
+            {
+                continue;
+            }
+
+            visited_grid.set_visited(new_coords);
+            match mode {
+                FloodEnergySupplyMode::Increase => energy_supply_grid[coords].increase_supply(),
+                FloodEnergySupplyMode::Decrease => energy_supply_grid[coords].decrease_supply(),
+            }
+            let new_distance = distance + 1;
+            if new_distance < range {
+                queue.push_back((new_distance, new_coords));
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
-use crate::buildings::common_components::{Building, EnergyProvider};
+use crate::buildings::common_components::{Building};
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::energy_supply::SupplierEnergy;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::interaction_state::UiInteractionState;
@@ -33,7 +34,7 @@ pub fn on_click_building_display_info_system(
 pub fn display_building_info_system(
     mut gizmos: Gizmos,
     ui_interaction_state: Res<UiInteractionState>,
-    buildings: Query<(&Building, &GridCoords, Option<&EnergyProvider>)>,
+    buildings: Query<(&Building, &GridCoords, Option<&SupplierEnergy>)>,
 ) {
     let UiInteractionState::DisplayBuildingInfo(building_id) = &*ui_interaction_state else {
         return;

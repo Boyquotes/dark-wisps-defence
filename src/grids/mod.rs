@@ -4,6 +4,7 @@ pub mod base;
 pub mod wisps;
 pub mod visited;
 pub mod emissions;
+pub mod energy_supply;
 
 use bevy::prelude::*;
 
@@ -21,10 +22,15 @@ impl Plugin for GridsPlugin {
         app.insert_resource(emissions_grid);
         app.insert_resource(emissions::EmissionsEnergyRecalculateAll(false));
         app.add_event::<emissions::EmitterCreatedEvent>();
+        let mut energy_supply_grid = energy_supply::EnergySupplyGrid::new_empty();
+        energy_supply_grid.resize_and_reset(100, 100);
+        app.insert_resource(energy_supply_grid);
+        app.add_event::<energy_supply::SupplierCreatedEvent>();
 
         app.add_systems(PostUpdate, (
             emissions::on_emitter_created_system,
-            emissions::emissions_energy_recalculate_all_system)
-        );
+            emissions::emissions_energy_recalculate_all_system,
+            energy_supply::on_supplier_created_system,
+        ));
     }
 }

@@ -37,8 +37,3 @@ pub enum TowerWispTarget {
     Wisp(WispEntity),
     NoValidTargets(GridVersion),
 }
-
-#[derive(Component)]
-pub struct EnergyProvider {
-    pub range: usize,
-}

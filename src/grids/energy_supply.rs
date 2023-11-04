@@ -25,6 +25,14 @@ impl EnergySupplyField {
 pub type EnergySupplyGrid = BaseGrid<EnergySupplyField, GridVersion>;
 
 impl EnergySupplyGrid {
+    pub fn increase_supply(&mut self, coords: GridCoords) {
+        self[coords].increase_supply();
+        self.version = self.version.wrapping_add(1);
+    }
+    pub fn decrease_supply(&mut self, coords: GridCoords) {
+        self[coords].decrease_supply();
+        self.version = self.version.wrapping_add(1);
+    }
     /// At least one of the imprint's cells mut have energy supply.
     pub fn is_imprint_suppliable(&self, coords: GridCoords, imprint: GridImprint) -> bool {
         match imprint {
@@ -41,6 +49,18 @@ impl EnergySupplyGrid {
             }
         }
         false
+    }
+    pub fn imprint_into_heatmap(&self, heatmap: &mut Vec<u8>) {
+        let mut idx = 0;
+        heatmap.chunks_mut(4).for_each(|chunk| {
+            let has_energy_supply = self.grid[idx].has_supply();
+            if has_energy_supply {
+                chunk[3] = 127;
+            } else {
+                chunk[3] = 0;
+            }
+            idx += 1;
+        });
     }
 }
 

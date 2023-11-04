@@ -120,8 +120,8 @@ pub fn flood_energy_supply(
 
             visited_grid.set_visited(new_coords);
             match mode {
-                FloodEnergySupplyMode::Increase => energy_supply_grid[coords].increase_supply(),
-                FloodEnergySupplyMode::Decrease => energy_supply_grid[coords].decrease_supply(),
+                FloodEnergySupplyMode::Increase => energy_supply_grid.increase_supply(coords),
+                FloodEnergySupplyMode::Decrease => energy_supply_grid.decrease_supply(coords),
             }
             let new_distance = distance + 1;
             if new_distance < range {

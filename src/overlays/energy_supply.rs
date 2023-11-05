@@ -16,7 +16,7 @@ pub struct EnergySupplyHeatmapMaterial {
 
 impl Material2d for EnergySupplyHeatmapMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/emissions_map.wgsl".into()
+        "shaders/energy_supply_map.wgsl".into()
     }
 }
 
@@ -47,7 +47,7 @@ pub fn create_energy_supply_overlay_startup_system(
     commands.spawn(
         MaterialMesh2dBundle {
             mesh: meshes.add(Mesh::from(shape::Quad::flipped(-Vec2::new(1.0, 1.0)))).into(),
-            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 0.).with_scale(Vec3::splat(full_world_size)),
+            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 10.).with_scale(Vec3::splat(full_world_size)),
             material: materials.add(EnergySupplyHeatmapMaterial {
                 heatmap: image,
             }),

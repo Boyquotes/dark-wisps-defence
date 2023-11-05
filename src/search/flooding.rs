@@ -1,9 +1,8 @@
 use std::collections::VecDeque;
-use bevy::prelude::*;
 use crate::grids::common::GridCoords;
-use crate::grids::emissions::{Emissions, EmissionsGrid, EmissionsType};
+use crate::grids::emissions::{EmissionsGrid, EmissionsType};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::{Field, ObstacleGrid};
+use crate::grids::obstacles::{ObstacleGrid};
 use crate::grids::visited::VisitedGrid;
 use crate::search::common::CARDINAL_DIRECTIONS;
 
@@ -105,7 +104,10 @@ pub fn flood_energy_supply(
     let mut visited_grid = VisitedGrid::new_with_size(energy_supply_grid.width, energy_supply_grid.height);
     let mut queue = VecDeque::new();
     start_coords.iter().for_each(|coords| {
-        energy_supply_grid[*coords].increase_supply();
+         match mode {
+             FloodEnergySupplyMode::Increase => energy_supply_grid.increase_supply(*coords),
+             FloodEnergySupplyMode::Decrease => energy_supply_grid.decrease_supply(*coords),
+         }
         queue.push_back((0, *coords));
         visited_grid.set_visited(*coords);
     });

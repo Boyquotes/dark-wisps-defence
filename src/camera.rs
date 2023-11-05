@@ -43,7 +43,7 @@ fn camera_zoom(
     mut mouse_wheel_events: EventReader<MouseWheel>
 ) {
     let mut scroll = 0.0;
-    for event in mouse_wheel_events.iter() {
+    for event in mouse_wheel_events.read() {
         scroll += event.y;
     }
 

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy::reflect::{TypePath, TypeUuid};
+use bevy::reflect::{TypePath};
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 use crate::buildings::common::BuildingId;
@@ -7,8 +7,7 @@ use crate::grids::base::GridVersion;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::energy_supply::EnergySupplyGrid;
 
-#[derive(AsBindGroup, TypeUuid, TypePath, Debug, Clone)]
-#[uuid = "7d7737dc-525b-4ea3-8898-dbe7c81e6678"]
+#[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
 pub struct EnergySupplyHeatmapMaterial {
     #[texture(0)]
     #[sampler(1)]
@@ -52,6 +51,7 @@ pub fn create_energy_supply_overlay_startup_system(
             material: materials.add(EnergySupplyHeatmapMaterial {
                 heatmap: image,
             }),
+            visibility: Visibility::Hidden,
             ..Default::default()
         }
     ).insert(EnergySupplyOverlay);
@@ -89,7 +89,7 @@ pub fn update_energy_supply_overlay_system(
     mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
     energy_supply_grid: Res<EnergySupplyGrid>,
     mut energy_supply_overlay_mode: ResMut<EnergySupplyOverlayMode>,
-    mut energy_supply_overlay: Query<&Handle<EnergySupplyHeatmapMaterial>, With<EnergySupplyOverlay>>,
+    energy_supply_overlay: Query<&Handle<EnergySupplyHeatmapMaterial>, With<EnergySupplyOverlay>>,
 ) {
     match &mut *energy_supply_overlay_mode {
         EnergySupplyOverlayMode::None => { return; },

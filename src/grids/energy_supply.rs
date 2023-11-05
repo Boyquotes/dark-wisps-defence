@@ -68,7 +68,7 @@ pub fn on_supplier_created_system(
     mut events: EventReader<SupplierCreatedEvent>,
     mut energy_supply_grid: ResMut<EnergySupplyGrid>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         flood_energy_supply(
             &mut energy_supply_grid,
             &event.coords,

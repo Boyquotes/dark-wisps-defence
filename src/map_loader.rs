@@ -7,7 +7,7 @@ use crate::buildings::main_base::create_main_base;
 use crate::buildings::tower_blaster::create_tower_blaster;
 use crate::buildings::tower_cannon::create_tower_cannon;
 use crate::grids::common::GridCoords;
-use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmissionsGrid, EmitterCreatedEvent};
+use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterCreatedEvent};
 use crate::grids::energy_supply::SupplierCreatedEvent;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::walls::create_wall;

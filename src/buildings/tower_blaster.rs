@@ -58,7 +58,7 @@ pub const fn get_tower_blaster_grid_imprint() -> GridImprint {
 pub fn shooting_system(
     mut commands: Commands,
     mut tower_blasters: Query<(&Transform, &mut TowerShootingTimer, &mut TowerWispTarget), With<MarkerTowerBlaster>>,
-    mut wisps: Query<&Transform, With<Wisp>>,
+    wisps: Query<&Transform, With<Wisp>>,
 ) {
     for (transform, mut timer, mut target) in tower_blasters.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };

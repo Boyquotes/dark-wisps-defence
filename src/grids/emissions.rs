@@ -84,7 +84,7 @@ pub fn on_emitter_created_system(
     mut emissions_grid: ResMut<EmissionsGrid>,
     obstacle_grid: Res<ObstacleGrid>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         flood_emissions(
             &mut emissions_grid,
             &obstacle_grid,

@@ -16,7 +16,7 @@ mod overlays;
 
 use bevy::prelude::*;
 use crate::grids::common::CELL_SIZE;
-use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmissionsGrid, EmitterCreatedEvent};
+use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterCreatedEvent};
 use crate::grids::energy_supply::SupplierCreatedEvent;
 use crate::grids::obstacles::{ObstacleGrid};
 use crate::map_editor::MapInfo;

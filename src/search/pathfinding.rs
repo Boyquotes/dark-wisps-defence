@@ -1,5 +1,4 @@
 use std::collections::BinaryHeap;
-use bevy::prelude::*;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
@@ -20,8 +19,7 @@ pub fn path_find_energy_beckon(
     let mut queue = BinaryHeap::new();
     queue.push(State{ cost: f32::MIN, distance: 0, coords: start_coords });
     tracking.set_tracked(start_coords, start_coords);
-    let max_distance = (obstacle_grid.height * obstacle_grid.width) as f32;
-    while let Some(State{ cost, distance, coords }) = queue.pop() {
+    while let Some(State{ distance, coords, .. }) = queue.pop() {
         for (delta_x, delta_y) in ALL_DIRECTIONS {
             let new_coords = coords.shifted((delta_x, delta_y));
             if !new_coords.is_in_bounds(obstacle_grid.bounds())

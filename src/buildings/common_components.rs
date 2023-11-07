@@ -47,3 +47,6 @@ pub enum TowerWispTarget {
     Wisp(WispEntity),
     NoValidTargets(GridVersion),
 }
+
+#[derive(Component)]
+pub struct TowerRange(pub usize);

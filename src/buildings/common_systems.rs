@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, TechnicalState, TowerShootingTimer};
+use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerRange, TowerShootingTimer, TowerWispTarget};
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmitterCreatedEvent;
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierCreatedEvent, SupplierEnergy};
 use crate::grids::obstacles::ObstacleGrid;
+use crate::grids::wisps::WispsGrid;
 use crate::mouse::MouseInfo;
+use crate::search::targetfinding::target_find_closest_wisp;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 
 pub fn onclick_building_spawn_system(
@@ -40,6 +42,36 @@ pub fn onclick_building_spawn_system(
         }
         _ => { return; }
     };
+}
+
+pub fn targeting_system(
+    mut tower_cannons: Query<(&GridCoords, &Building, &TechnicalState, &TowerRange, &mut TowerWispTarget), With<MarkerTower>>,
+    obstacle_grid: Res<ObstacleGrid>,
+    wisps_grid: Res<WispsGrid>,
+) {
+    for (coords, building, technical_state, range, mut target) in tower_cannons.iter_mut() {
+        if !technical_state.has_energy_supply { continue; }
+        match *target {
+            TowerWispTarget::Wisp(_) => continue,
+            TowerWispTarget::NoValidTargets(grid_version) => {
+                if grid_version == wisps_grid.version {
+                    continue;
+                }
+            },
+            TowerWispTarget::SearchForNewTarget => {},
+        }
+        if let Some((_a, target_wisp)) = target_find_closest_wisp(
+            &obstacle_grid,
+            &wisps_grid,
+            building.grid_imprint.covered_coords(*coords),
+            range.0,
+            true,
+        ) {
+            *target = TowerWispTarget::Wisp(target_wisp);
+        } else {
+            *target = TowerWispTarget::NoValidTargets(wisps_grid.version);
+        }
+    }
 }
 
 pub fn tick_shooting_timers_system(

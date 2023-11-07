@@ -1,14 +1,12 @@
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget, TowerShootingTimer, TechnicalState};
+use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget, TowerShootingTimer, TechnicalState, TowerRange};
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::ObstacleGrid;
-use crate::grids::wisps::WispsGrid;
 use crate::projectiles::laser_dart::create_laser_dart;
-use crate::search::targetfinding::target_find_closest_wisp;
 use crate::wisps::components::Wisp;
 
 const TOWER_BLASTER_GRID_WIDTH: i32 = 2;
@@ -36,6 +34,7 @@ pub fn create_tower_blaster(
         MarkerTowerBlaster,
         grid_position,
         Health(10000),
+        TowerRange(15),
         building.clone(),
         TowerShootingTimer::from_seconds(0.2),
         TowerWispTarget::default(),
@@ -80,35 +79,5 @@ pub fn shooting_system(
 
         create_laser_dart(&mut commands, transform.translation, target_wisp, (wisp_position - transform.translation.xy()).normalize());
         timer.0.reset();
-    }
-}
-
-pub fn targeting_system(
-    mut tower_blasters: Query<(&GridCoords, &Building, &TechnicalState, &mut TowerWispTarget), With<MarkerTowerBlaster>>,
-    obstacle_grid: Res<ObstacleGrid>,
-    wisps_grid: Res<WispsGrid>,
-) {
-    for (coords, building, technical_state, mut target) in tower_blasters.iter_mut() {
-        if !technical_state.is_operational() { continue; }
-        match *target {
-            TowerWispTarget::Wisp(_) => continue,
-            TowerWispTarget::NoValidTargets(grid_version) => {
-                if grid_version == wisps_grid.version {
-                    continue;
-                }
-            },
-            TowerWispTarget::SearchForNewTarget => {},
-        }
-        if let Some((_a, target_wisp)) = target_find_closest_wisp(
-            &obstacle_grid,
-            &wisps_grid,
-            building.grid_imprint.covered_coords(*coords),
-        15,
-        true,
-        ) {
-            *target = TowerWispTarget::Wisp(target_wisp);
-        } else {
-            *target = TowerWispTarget::NoValidTargets(wisps_grid.version);
-        }
     }
 }

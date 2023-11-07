@@ -38,6 +38,9 @@ pub fn onclick_building_spawn_system(
                 BuildingType::Tower(TowerType::Cannon) => {
                     super::tower_cannon::create_tower_cannon(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
+                BuildingType::Tower(TowerType::RocketLauncher) => {
+                    super::tower_rocket_launcher::create_tower_rocket_launcher(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
+                },
                 _ => panic!("Trying to place a non-supported building")            }
         }
         _ => { return; }

@@ -6,6 +6,7 @@ use crate::buildings::energy_relay::create_energy_relay;
 use crate::buildings::main_base::create_main_base;
 use crate::buildings::tower_blaster::create_tower_blaster;
 use crate::buildings::tower_cannon::create_tower_cannon;
+use crate::buildings::tower_rocket_launcher::create_tower_rocket_launcher;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterCreatedEvent};
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierCreatedEvent};
@@ -60,6 +61,9 @@ pub fn apply_map(
                     },
                     TowerType::Cannon => {
                         create_tower_cannon(&mut commands, &mut obstacles_grid, &energy_supply_grid, building.coords);
+                    },
+                    TowerType::RocketLauncher => {
+                        create_tower_rocket_launcher(&mut commands, &mut obstacles_grid, &energy_supply_grid, building.coords);
                     }
                 }
             }

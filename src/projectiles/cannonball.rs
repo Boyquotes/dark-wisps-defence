@@ -11,7 +11,7 @@ use crate::wisps::components::{Wisp};
 #[derive(Component)]
 pub struct MarkerCannonball;
 
-// Cannonball follows Wisp, and if the wisp no longer exists, follows the target vector
+// Cannonball follows Wisp, and if the wisp no longer exists, follows to the target position
 #[derive(Component, Default)]
 pub struct CannonballTarget{
     pub initial_distance: f32,

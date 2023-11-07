@@ -5,6 +5,7 @@ pub mod tower_blaster;
 pub mod tower_cannon;
 pub mod common_systems;
 pub mod energy_relay;
+pub mod tower_rocket_launcher;
 
 use bevy::prelude::*;
 
@@ -20,6 +21,7 @@ impl Plugin for BuildingsPlugin {
                 common_systems::targeting_system,
                 tower_blaster::shooting_system,
                 tower_cannon::shooting_system,
+                tower_rocket_launcher::shooting_system,
             )
         );
     }

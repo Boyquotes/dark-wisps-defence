@@ -5,6 +5,7 @@ use crate::buildings::energy_relay::get_energy_relay_grid_imprint;
 use crate::grids::common::GridImprint;
 use crate::buildings::tower_blaster::get_tower_blaster_grid_imprint;
 use crate::buildings::tower_cannon::get_tower_cannon_grid_imprint;
+use crate::buildings::tower_rocket_launcher::get_tower_rocket_launcher_grid_imprint;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{ObstacleGrid};
@@ -114,6 +115,12 @@ pub fn on_click_initiate_grid_object_placer_system(
             let grid_imprint = get_tower_cannon_grid_imprint();
             GridObjectPlacer::Building(
                 Building{grid_imprint, building_type: BuildingType::Tower(TowerType::Cannon)}
+            )
+        } else if keys.just_pressed(KeyCode::Key3) {
+            // Tower Rocket Launcher
+            let grid_imprint = get_tower_rocket_launcher_grid_imprint();
+            GridObjectPlacer::Building(
+                Building{grid_imprint, building_type: BuildingType::Tower(TowerType::RocketLauncher)}
             )
         } else {
             return

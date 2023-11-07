@@ -19,4 +19,5 @@ impl BuildingType {
 pub enum TowerType {
     Blaster,
     Cannon,
+    RocketLauncher,
 }

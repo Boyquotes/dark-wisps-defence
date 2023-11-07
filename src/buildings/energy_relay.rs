@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, MarkerEnergyRelay};
+use crate::buildings::common_components::{Building, MarkerEnergyRelay, TechnicalState};
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsType, EmitterCreatedEvent, EmitterEnergy};
@@ -38,6 +38,7 @@ pub fn create_energy_relay(
         building.clone(),
         EmitterEnergy(energy_emissions_details.clone()),
         supplier_energy,
+        TechnicalState{ has_energy_supply: true },
     )).id();
     emitter_created_event_writer.send(EmitterCreatedEvent {
         coords: building.grid_imprint.covered_coords(grid_position),

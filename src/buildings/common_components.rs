@@ -11,6 +11,16 @@ pub struct Building {
     pub building_type: BuildingType,
 }
 
+#[derive(Component, Default)]
+pub struct TechnicalState {
+    pub has_energy_supply: bool,
+}
+impl TechnicalState {
+    pub fn is_operational(&self) -> bool {
+        self.has_energy_supply
+    }
+}
+
 // Building type markers
 #[derive(Component)]
 pub struct MarkerMainBase;

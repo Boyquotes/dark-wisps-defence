@@ -1,7 +1,7 @@
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget, TowerShootingTimer};
+use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget, TowerShootingTimer, TechnicalState};
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::obstacles::ObstacleGrid;
@@ -32,7 +32,8 @@ pub fn create_tower_blaster(commands: &mut Commands, grid: &mut ResMut<ObstacleG
         Health(10000),
         building.clone(),
         TowerShootingTimer::from_seconds(0.2),
-        TowerWispTarget::default()
+        TowerWispTarget::default(),
+        TechnicalState::default(),
     )).id();
     grid.imprint_building(building, grid_position, building_entity);
     building_entity
@@ -57,10 +58,11 @@ pub const fn get_tower_blaster_grid_imprint() -> GridImprint {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_blasters: Query<(&Transform, &mut TowerShootingTimer, &mut TowerWispTarget), With<MarkerTowerBlaster>>,
+    mut tower_blasters: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget), With<MarkerTowerBlaster>>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
-    for (transform, mut timer, mut target) in tower_blasters.iter_mut() {
+    for (transform, technical_state, mut timer, mut target) in tower_blasters.iter_mut() {
+        if !technical_state.is_operational() { continue; }
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
 
@@ -76,11 +78,12 @@ pub fn shooting_system(
 }
 
 pub fn targeting_system(
-    mut tower_blasters: Query<(&GridCoords, &Building, &mut TowerWispTarget), With<MarkerTowerBlaster>>,
+    mut tower_blasters: Query<(&GridCoords, &Building, &TechnicalState, &mut TowerWispTarget), With<MarkerTowerBlaster>>,
     obstacle_grid: Res<ObstacleGrid>,
     wisps_grid: Res<WispsGrid>,
 ) {
-    for (coords, building, mut target) in tower_blasters.iter_mut() {
+    for (coords, building, technical_state, mut target) in tower_blasters.iter_mut() {
+        if !technical_state.is_operational() { continue; }
         match *target {
             TowerWispTarget::Wisp(_) => continue,
             TowerWispTarget::NoValidTargets(grid_version) => {

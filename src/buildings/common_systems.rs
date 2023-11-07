@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::TowerShootingTimer;
+use crate::buildings::common_components::{Building, TechnicalState, TowerShootingTimer};
+use crate::grids::base::GridVersion;
+use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmitterCreatedEvent;
-use crate::grids::energy_supply::SupplierCreatedEvent;
+use crate::grids::energy_supply::{EnergySupplyGrid, SupplierCreatedEvent, SupplierEnergy};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -44,4 +46,16 @@ pub fn tick_shooting_timers_system(
     time: Res<Time>,
 ) {
     shooting_timers.iter_mut().for_each(|mut timer| { timer.0.tick(time.delta()); });
+}
+
+pub fn check_energy_supply_system(
+    mut current_energy_supply_grid_version: Local<GridVersion>,
+    energy_supply_grid: Res<EnergySupplyGrid>,
+    mut buildings: Query<(&Building, &GridCoords, &mut TechnicalState), Without<SupplierEnergy>>
+) {
+    if *current_energy_supply_grid_version == energy_supply_grid.version { return; }
+    *current_energy_supply_grid_version = energy_supply_grid.version;
+    for (building, grid_coords, mut technical_state) in buildings.iter_mut() {
+        technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(*grid_coords, building.grid_imprint);
+    }
 }

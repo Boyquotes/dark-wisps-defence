@@ -4,6 +4,7 @@ use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget, TowerShootingTimer, TechnicalState};
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::laser_dart::create_laser_dart;
@@ -18,7 +19,12 @@ const TOWER_BLASTER_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_BLASTER_GRID_HEIGHT as
 #[derive(Component)]
 pub struct MarkerTowerBlaster;
 
-pub fn create_tower_blaster(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, grid_position: GridCoords) -> Entity {
+pub fn create_tower_blaster(
+    commands: &mut Commands,
+    obstacle_grid: &mut ObstacleGrid,
+    energy_supply_grid: &EnergySupplyGrid,
+    grid_position: GridCoords
+) -> Entity {
     let building = Building {
         grid_imprint: get_tower_blaster_grid_imprint(),
         building_type: BuildingType::Tower(TowerType::Blaster)
@@ -33,9 +39,9 @@ pub fn create_tower_blaster(commands: &mut Commands, grid: &mut ResMut<ObstacleG
         building.clone(),
         TowerShootingTimer::from_seconds(0.2),
         TowerWispTarget::default(),
-        TechnicalState::default(),
+        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, building.grid_imprint) },
     )).id();
-    grid.imprint_building(building, grid_position, building_entity);
+    obstacle_grid.imprint_building(building, grid_position, building_entity);
     building_entity
 }
 

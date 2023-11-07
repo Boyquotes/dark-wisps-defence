@@ -17,7 +17,7 @@ mod overlays;
 use bevy::prelude::*;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterCreatedEvent};
-use crate::grids::energy_supply::SupplierCreatedEvent;
+use crate::grids::energy_supply::{EnergySupplyGrid, SupplierCreatedEvent};
 use crate::grids::obstacles::{ObstacleGrid};
 use crate::map_editor::MapInfo;
 
@@ -68,10 +68,12 @@ pub fn is_game_mode(config: Res<GameConfig>) -> bool {
 
 pub fn generate_default_map(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
     mut emitter_created_event_writer: EventWriter<EmitterCreatedEvent>,
     mut supplier_created_event_writer: EventWriter<SupplierCreatedEvent>,
     mut obstacles_grid: ResMut<ObstacleGrid>,
+    energy_supply_grid: Res<EnergySupplyGrid>,
     mut map_info: ResMut<MapInfo>,
 ) {
     let map = map_loader::load_map("test_map");
@@ -80,5 +82,13 @@ pub fn generate_default_map(
     map_info.grid_height = map.height;
     map_info.world_width = map.width as f32 * CELL_SIZE;
     map_info.world_height = map.height as f32 * CELL_SIZE;
-    map_loader::apply_map(map, &mut commands, &mut emissions_energy_recalculate_all, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacles_grid);
+    map_loader::apply_map(
+        map,
+        &mut commands, &asset_server,
+        &mut emissions_energy_recalculate_all,
+        &mut emitter_created_event_writer,
+        &mut supplier_created_event_writer,
+        &mut obstacles_grid,
+        &energy_supply_grid,
+    );
 }

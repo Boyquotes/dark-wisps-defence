@@ -9,12 +9,13 @@ use crate::grids::obstacles::ObstacleGrid;
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator};
 
 const MAIN_BASE_GRID_WIDTH: i32 = 6;
-const MAIN_BASE_GRID_HEIGHT: i32 = 4;
+const MAIN_BASE_GRID_HEIGHT: i32 = 6;
 const MAIN_BASE_WORLD_WIDTH: f32 = CELL_SIZE * MAIN_BASE_GRID_WIDTH as f32;
 const MAIN_BASE_WORLD_HEIGHT: f32 = CELL_SIZE * MAIN_BASE_GRID_HEIGHT as f32;
 
 pub fn create_main_base(
     commands: &mut Commands,
+    asset_server: &AssetServer,
     emitter_created_event_writer: &mut EventWriter<EmitterCreatedEvent>,
     supplier_created_event_writer: &mut EventWriter<SupplierCreatedEvent>,
     obstacles_grid: &mut ResMut<ObstacleGrid>,
@@ -31,7 +32,7 @@ pub fn create_main_base(
     };
     let supplier_energy = SupplierEnergy { range: 15 };
     let building_entity = commands.spawn((
-        get_main_base_sprite_bundle(grid_position),
+        get_main_base_sprite_bundle(grid_position, asset_server),
         MarkerMainBase,
         grid_position,
         Health(10000),
@@ -53,7 +54,7 @@ pub fn create_main_base(
     building_entity
 }
 
-pub fn get_main_base_sprite_bundle(coords: GridCoords) -> SpriteBundle {
+pub fn get_main_base_sprite_bundle(coords: GridCoords, asset_server: &AssetServer) -> SpriteBundle {
     let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
@@ -61,6 +62,7 @@ pub fn get_main_base_sprite_bundle(coords: GridCoords) -> SpriteBundle {
             custom_size: Some(Vec2::new(MAIN_BASE_WORLD_WIDTH, MAIN_BASE_WORLD_HEIGHT)),
             ..Default::default()
         },
+        texture: asset_server.load("buildings/main_base.png"),
         transform: Transform::from_translation(world_position + Vec3::new(MAIN_BASE_WORLD_WIDTH/2., MAIN_BASE_WORLD_HEIGHT/2., 0.0)),
         ..Default::default()
     }

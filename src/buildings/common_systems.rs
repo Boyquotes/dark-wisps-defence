@@ -14,6 +14,7 @@ pub fn onclick_building_spawn_system(
     mut emitter_created_event_writer: EventWriter<EmitterCreatedEvent>,
     mut supplier_created_event_writer: EventWriter<SupplierCreatedEvent>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
+    energy_supply_grid: Res<EnergySupplyGrid>,
     mouse: Res<Input<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Query<&GridObjectPlacer>,
@@ -30,10 +31,10 @@ pub fn onclick_building_spawn_system(
                     );
                 }
                 BuildingType::Tower(TowerType::Blaster) => {
-                    super::tower_blaster::create_tower_blaster(&mut commands, &mut obstacle_grid, mouse_coords);
+                    super::tower_blaster::create_tower_blaster(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
                 BuildingType::Tower(TowerType::Cannon) => {
-                    super::tower_cannon::create_tower_cannon(&mut commands, &mut obstacle_grid, mouse_coords);
+                    super::tower_cannon::create_tower_cannon(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
                 _ => panic!("Trying to place a non-supported building")            }
         }

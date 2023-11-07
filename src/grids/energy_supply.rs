@@ -55,7 +55,7 @@ impl EnergySupplyGrid {
         heatmap.chunks_mut(4).for_each(|chunk| {
             let has_energy_supply = self.grid[idx].has_supply();
             if has_energy_supply {
-                chunk[3] = 127;
+                chunk[3] = 15;
             } else {
                 chunk[3] = 0;
             }

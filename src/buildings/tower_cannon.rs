@@ -3,6 +3,7 @@ use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerShootingTimer, TowerWispTarget};
 use crate::common_components::{Health};
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::cannonball::create_cannonball;
@@ -17,7 +18,12 @@ const TOWER_CANNON_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_CANNON_GRID_HEIGHT as f
 #[derive(Component)]
 pub struct MarkerTowerCannon;
 
-pub fn create_tower_cannon(commands: &mut Commands, grid: &mut ResMut<ObstacleGrid>, grid_position: GridCoords) -> Entity {
+pub fn create_tower_cannon(
+    commands: &mut Commands,
+    obstacle_grid: &mut ResMut<ObstacleGrid>,
+    energy_supply_grid: &EnergySupplyGrid,
+    grid_position: GridCoords,
+) -> Entity {
     let building = Building {
         grid_imprint: get_tower_cannon_grid_imprint(),
         building_type: BuildingType::Tower(TowerType::Cannon)
@@ -32,9 +38,9 @@ pub fn create_tower_cannon(commands: &mut Commands, grid: &mut ResMut<ObstacleGr
         building.clone(),
         TowerShootingTimer::from_seconds(2.0),
         TowerWispTarget::default(),
-        TechnicalState::default(),
+        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, building.grid_imprint) },
     )).id();
-    grid.imprint_building(building, grid_position, building_entity);
+    obstacle_grid.imprint_building(building, grid_position, building_entity);
     building_entity
 }
 

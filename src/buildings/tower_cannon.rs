@@ -18,6 +18,7 @@ pub struct MarkerTowerCannon;
 
 pub fn create_tower_cannon(
     commands: &mut Commands,
+    asset_server: &AssetServer,
     obstacle_grid: &mut ResMut<ObstacleGrid>,
     energy_supply_grid: &EnergySupplyGrid,
     grid_position: GridCoords,
@@ -27,7 +28,7 @@ pub fn create_tower_cannon(
         building_type: BuildingType::Tower(TowerType::Cannon)
     };
     let building_entity = commands.spawn(
-        get_tower_cannon_sprite_bundle(grid_position)
+        get_tower_cannon_sprite_bundle(grid_position, asset_server),
     ).insert((
         MarkerTower,
         MarkerTowerCannon,
@@ -43,14 +44,14 @@ pub fn create_tower_cannon(
     building_entity
 }
 
-pub fn get_tower_cannon_sprite_bundle(coords: GridCoords) -> SpriteBundle {
+pub fn get_tower_cannon_sprite_bundle(coords: GridCoords, asset_server: &AssetServer,) -> SpriteBundle {
     let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
-            color: Color::rgb_u8(30, 135, 104),
             custom_size: Some(Vec2::new(TOWER_CANNON_WORLD_WIDTH, TOWER_CANNON_WORLD_HEIGHT)),
             ..Default::default()
         },
+        texture: asset_server.load("buildings/tower_cannon.png"),
         transform: Transform::from_translation(world_position + Vec3::new(TOWER_CANNON_WORLD_WIDTH/2., TOWER_CANNON_WORLD_HEIGHT/2., 0.0)),
         ..Default::default()
     }

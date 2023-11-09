@@ -13,6 +13,7 @@ use crate::ui::grid_object_placer::GridObjectPlacer;
 
 pub fn onclick_building_spawn_system(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut emitter_created_event_writer: EventWriter<EmitterCreatedEvent>,
     mut supplier_created_event_writer: EventWriter<SupplierCreatedEvent>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
@@ -36,7 +37,7 @@ pub fn onclick_building_spawn_system(
                     super::tower_blaster::create_tower_blaster(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
                 BuildingType::Tower(TowerType::Cannon) => {
-                    super::tower_cannon::create_tower_cannon(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
+                    super::tower_cannon::create_tower_cannon(&mut commands, &asset_server, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
                 BuildingType::Tower(TowerType::RocketLauncher) => {
                     super::tower_rocket_launcher::create_tower_rocket_launcher(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);

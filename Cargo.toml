@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.12.0", features = ["dynamic_linking"] }
 nanorand = "0.7.0"
-serde = "1.0.190"
+serde = "1.0.192"
 serde_yaml = "0.9.27"
 
 [profile.release]

@@ -19,7 +19,9 @@ impl Plugin for BuildingsPlugin {
                 common_systems::onclick_building_spawn_system,
                 common_systems::check_energy_supply_system,
                 common_systems::targeting_system,
+                common_systems::rotate_tower_top_system,
                 tower_blaster::shooting_system,
+                tower_blaster::rotating_system,
                 tower_cannon::shooting_system,
                 tower_rocket_launcher::shooting_system,
             )

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerRange, TowerShootingTimer, TowerWispTarget};
+use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmitterCreatedEvent;
@@ -34,7 +34,7 @@ pub fn onclick_building_spawn_system(
                     );
                 }
                 BuildingType::Tower(TowerType::Blaster) => {
-                    super::tower_blaster::create_tower_blaster(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
+                    super::tower_blaster::create_tower_blaster(&mut commands, &asset_server, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
                 BuildingType::Tower(TowerType::Cannon) => {
                     super::tower_cannon::create_tower_cannon(&mut commands, &asset_server, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
@@ -94,5 +94,18 @@ pub fn check_energy_supply_system(
     *current_energy_supply_grid_version = energy_supply_grid.version;
     for (building, grid_coords, mut technical_state) in buildings.iter_mut() {
         technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(*grid_coords, building.grid_imprint);
+    }
+}
+
+pub fn rotate_tower_top_system(
+    mut tower_rotational_top: Query<(&MarkerTowerRotationalTop, &mut Transform)>,
+    towers: Query<&TowerTopRotation, With<MarkerTower>>,
+) {
+    for (tower_rotational_top, mut tower_top_transform) in tower_rotational_top.iter_mut() {
+        let parent_building = tower_rotational_top.0;
+        let tower_top_rotation = towers.get(*parent_building).unwrap();
+
+        // Offset due to image naturally pointing downwards
+        tower_top_transform.rotation = Quat::from_rotation_z(tower_top_rotation.current_angle + std::f32::consts::PI / 2.0);
     }
 }

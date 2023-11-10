@@ -1,6 +1,6 @@
 use std::time::Duration;
 use bevy::prelude::*;
-use crate::buildings::common::BuildingType;
+use crate::buildings::common::{BuildingId, BuildingType};
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridImprint;
 use crate::wisps::components::WispEntity;
@@ -29,6 +29,10 @@ pub struct MarkerTower;
 #[derive(Component)]
 pub struct MarkerEnergyRelay;
 
+// Building sub-parts markers
+#[derive(Component)]
+pub struct MarkerTowerRotationalTop(pub BuildingId);
+
 #[derive(Component)]
 pub struct TowerShootingTimer(pub Timer);
 impl TowerShootingTimer {
@@ -50,3 +54,9 @@ pub enum TowerWispTarget {
 
 #[derive(Component)]
 pub struct TowerRange(pub usize);
+
+#[derive(Component)]
+pub struct TowerTopRotation {
+    pub speed: f32, // in radians per second
+    pub current_angle: f32,
+}

@@ -57,7 +57,7 @@ pub fn apply_map(
             BuildingType::Tower(tower_type) => {
                 match tower_type {
                     TowerType::Blaster => {
-                        create_tower_blaster(&mut commands, &mut obstacles_grid, &energy_supply_grid, building.coords);
+                        create_tower_blaster(&mut commands, &asset_server, &mut obstacles_grid, &energy_supply_grid, building.coords);
                     },
                     TowerType::Cannon => {
                         create_tower_cannon(&mut commands, &asset_server, &mut obstacles_grid, &energy_supply_grid, building.coords);

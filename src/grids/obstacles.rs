@@ -10,49 +10,62 @@ pub enum Field {
     Empty,
     Building(Entity, BuildingType),
     Wall(Entity),
+    DarkOre(Entity),
 }
 impl Field {
     pub fn is_empty(&self) -> bool {
         matches!(self, Field::Empty)
     }
-    pub fn is_wall(&self) -> bool {
-        matches!(self, Field::Wall(_))
-    }
     pub fn is_building(&self) -> bool {
         matches!(self, Field::Building(_, _))
     }
-    pub fn is_obstacle(&self) -> bool {
-        self.is_building() || self.is_wall()
+    pub fn is_wall(&self) -> bool {
+        matches!(self, Field::Wall(_))
     }
+    pub fn is_dark_ore(&self) -> bool { matches!(self, Field::DarkOre(_)) }
+    pub fn is_obstacle(&self) -> bool { !self.is_empty() }
 }
 
 pub type ObstacleGrid = BaseGrid<Field, GridVersion>;
 
 impl ObstacleGrid {
-    pub fn imprint_building(&mut self, building: Building, coords: GridCoords, building_entity: Entity) {
-        let Building { grid_imprint, building_type } = building;
-        match grid_imprint {
+    pub fn imprint(&mut self, coords: GridCoords, field: Field, imprint: GridImprint) {
+        match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
                     for x in 0..width {
                         let index = self.index(coords.shifted((x, y)));
-                        self.grid[index] = Field::Building(building_entity, building_type);
+                        self.grid[index] = field.clone();
                     }
                 }
             }
         }
         self.version = self.version.wrapping_add(1);
     }
-    pub fn imprint_wall(&mut self, coords: GridCoords, entity: Entity) {
-        let index = self.index(coords);
-        self.grid[index] = Field::Wall(entity);
+    pub fn remove(&mut self, coords: GridCoords, imprint: GridImprint) {
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let index = self.index(coords.shifted((x, y)));
+                        self.grid[index] = Field::Empty;
+                    }
+                }
+            }
+        }
         self.version = self.version.wrapping_add(1);
     }
-    pub fn remove_wall(&mut self, coords: GridCoords) {
-        let index = self.index(coords);
-        self.grid[index] = Field::Empty;
-        self.version = self.version.wrapping_add(1);
-    }
+
+    // pub fn imprint_wall(&mut self, coords: GridCoords, entity: Entity) {
+    //     let index = self.index(coords);
+    //     self.grid[index] = Field::Wall(entity);
+    //     self.version = self.version.wrapping_add(1);
+    // }
+    // pub fn remove_wall(&mut self, coords: GridCoords) {
+    //     let index = self.index(coords);
+    //     self.grid[index] = Field::Empty;
+    //     self.version = self.version.wrapping_add(1);
+    // }
     pub fn is_imprint_placable(&self, coords: GridCoords, imprint: GridImprint) -> bool {
         match imprint {
             GridImprint::Rectangle { width, height } => {

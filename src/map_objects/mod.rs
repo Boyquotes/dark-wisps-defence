@@ -1,4 +1,5 @@
 pub mod walls;
+pub mod dark_ore;
 
 use bevy::prelude::*;
 

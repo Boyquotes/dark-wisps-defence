@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub const CELL_SIZE: f32 = 16.;
+pub const CELL_CENTER: Vec2 = Vec2::new(CELL_SIZE / 2., CELL_SIZE / 2.);
 
 // TODO: remove alongside generic targets from common.rs
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -69,6 +70,21 @@ impl GridImprint {
                  (0..*height)
                      .flat_map(|y| (0..*width).map(move |x| coords.shifted((x, y))))
                      .collect()
+            }
+        }
+    }
+
+    pub fn world_size(&self) -> Vec2 {
+        match self {
+            GridImprint::Rectangle{width, height} => {
+                Vec2::new(*width as f32 * CELL_SIZE, *height as f32 * CELL_SIZE)
+            }
+        }
+    }
+    pub fn world_center(&self) -> Vec2 {
+        match self {
+            GridImprint::Rectangle{width, height} => {
+                self.world_size() / 2.
             }
         }
     }

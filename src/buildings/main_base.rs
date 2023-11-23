@@ -5,13 +5,14 @@ use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsType, EmitterCreatedEvent, EmitterEnergy};
 use crate::grids::energy_supply::{SupplierCreatedEvent, SupplierEnergy};
-use crate::grids::obstacles::ObstacleGrid;
+use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator};
 
-const MAIN_BASE_GRID_WIDTH: i32 = 6;
-const MAIN_BASE_GRID_HEIGHT: i32 = 6;
-const MAIN_BASE_WORLD_WIDTH: f32 = CELL_SIZE * MAIN_BASE_GRID_WIDTH as f32;
-const MAIN_BASE_WORLD_HEIGHT: f32 = CELL_SIZE * MAIN_BASE_GRID_HEIGHT as f32;
+pub const MAIN_BASE_GRID_WIDTH: i32 = 6;
+pub const MAIN_BASE_GRID_HEIGHT: i32 = 6;
+pub const MAIN_BASE_WORLD_WIDTH: f32 = CELL_SIZE * MAIN_BASE_GRID_WIDTH as f32;
+pub const MAIN_BASE_WORLD_HEIGHT: f32 = CELL_SIZE * MAIN_BASE_GRID_HEIGHT as f32;
+pub const MAIN_BASE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: MAIN_BASE_GRID_WIDTH, height: MAIN_BASE_GRID_HEIGHT };
 
 pub fn create_main_base(
     commands: &mut Commands,
@@ -22,7 +23,7 @@ pub fn create_main_base(
     grid_position: GridCoords,
 ) -> Entity {
     let building = Building {
-        grid_imprint: get_main_base_grid_imprint(),
+        grid_imprint: MAIN_BASE_GRID_IMPRINT,
         building_type: BuildingType::MainBase
     };
     let energy_emissions_details = FloodEmissionsDetails {
@@ -50,7 +51,7 @@ pub fn create_main_base(
         coords: covered_coords,
         supplier: supplier_energy,
     });
-    obstacles_grid.imprint_building(building, grid_position, building_entity);
+    obstacles_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), MAIN_BASE_GRID_IMPRINT);
     building_entity
 }
 
@@ -66,8 +67,4 @@ pub fn get_main_base_sprite_bundle(coords: GridCoords, asset_server: &AssetServe
         transform: Transform::from_translation(world_position + Vec3::new(MAIN_BASE_WORLD_WIDTH/2., MAIN_BASE_WORLD_HEIGHT/2., 0.0)),
         ..Default::default()
     }
-}
-
-pub fn get_main_base_grid_imprint() -> GridImprint {
-    GridImprint::Rectangle { width: MAIN_BASE_GRID_WIDTH, height: MAIN_BASE_GRID_HEIGHT }
 }

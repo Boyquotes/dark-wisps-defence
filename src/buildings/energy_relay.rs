@@ -5,13 +5,14 @@ use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsType, EmitterCreatedEvent, EmitterEnergy};
 use crate::grids::energy_supply::{SupplierCreatedEvent, SupplierEnergy};
-use crate::grids::obstacles::ObstacleGrid;
+use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator};
 
-const ENERGY_RELAY_GRID_WIDTH: i32 = 1;
-const ENERGY_RELAY_GRID_HEIGHT: i32 = 1;
-const ENERGY_RELAY_WORLD_WIDTH: f32 = CELL_SIZE * ENERGY_RELAY_GRID_WIDTH as f32;
-const ENERGY_RELAY_WORLD_HEIGHT: f32 = CELL_SIZE * ENERGY_RELAY_GRID_HEIGHT as f32;
+pub const ENERGY_RELAY_GRID_WIDTH: i32 = 1;
+pub const ENERGY_RELAY_GRID_HEIGHT: i32 = 1;
+pub const ENERGY_RELAY_WORLD_WIDTH: f32 = CELL_SIZE * ENERGY_RELAY_GRID_WIDTH as f32;
+pub const ENERGY_RELAY_WORLD_HEIGHT: f32 = CELL_SIZE * ENERGY_RELAY_GRID_HEIGHT as f32;
+pub const ENERGY_RELAY_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: ENERGY_RELAY_GRID_WIDTH, height: ENERGY_RELAY_GRID_HEIGHT };
 
 pub fn create_energy_relay(
     commands: &mut Commands,
@@ -21,7 +22,7 @@ pub fn create_energy_relay(
     grid_position: GridCoords,
 ) -> Entity {
     let building = Building {
-        grid_imprint: get_energy_relay_grid_imprint(),
+        grid_imprint: ENERGY_RELAY_GRID_IMPRINT,
         building_type: BuildingType::EnergyRelay
     };
     let energy_emissions_details = FloodEmissionsDetails {
@@ -48,7 +49,7 @@ pub fn create_energy_relay(
         coords: building.grid_imprint.covered_coords(grid_position),
         supplier: supplier_energy,
     });
-    obstacles_grid.imprint_building(building, grid_position, building_entity);
+    obstacles_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), ENERGY_RELAY_GRID_IMPRINT);
     building_entity
 }
 
@@ -63,8 +64,4 @@ pub fn get_energy_relay_sprite_bundle(coords: GridCoords) -> SpriteBundle {
         transform: Transform::from_translation(world_position + Vec3::new(ENERGY_RELAY_WORLD_WIDTH/2., ENERGY_RELAY_WORLD_HEIGHT/2., 0.0)),
         ..Default::default()
     }
-}
-
-pub fn get_energy_relay_grid_imprint() -> GridImprint {
-    GridImprint::Rectangle { width: ENERGY_RELAY_GRID_WIDTH, height: ENERGY_RELAY_GRID_HEIGHT }
 }

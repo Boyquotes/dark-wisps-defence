@@ -4,14 +4,15 @@ use crate::buildings::common_components::{Building, MarkerTower, TechnicalState,
 use crate::common_components::{Health};
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::ObstacleGrid;
+use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::projectiles::cannonball::create_cannonball;
 use crate::wisps::components::{Target, Wisp};
 
-const TOWER_CANNON_GRID_WIDTH: i32 = 3;
-const TOWER_CANNON_GRID_HEIGHT: i32 = 3;
-const TOWER_CANNON_WORLD_WIDTH: f32 = CELL_SIZE * TOWER_CANNON_GRID_WIDTH as f32;
-const TOWER_CANNON_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_CANNON_GRID_HEIGHT as f32;
+pub const TOWER_CANNON_GRID_WIDTH: i32 = 3;
+pub const TOWER_CANNON_GRID_HEIGHT: i32 = 3;
+pub const TOWER_CANNON_WORLD_WIDTH: f32 = CELL_SIZE * TOWER_CANNON_GRID_WIDTH as f32;
+pub const TOWER_CANNON_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_CANNON_GRID_HEIGHT as f32;
+pub const TOWER_CANNON_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: TOWER_CANNON_GRID_WIDTH , height: TOWER_CANNON_GRID_HEIGHT };
 
 #[derive(Component)]
 pub struct MarkerTowerCannon;
@@ -24,7 +25,7 @@ pub fn create_tower_cannon(
     grid_position: GridCoords,
 ) -> Entity {
     let building = Building {
-        grid_imprint: get_tower_cannon_grid_imprint(),
+        grid_imprint: TOWER_CANNON_GRID_IMPRINT,
         building_type: BuildingType::Tower(TowerType::Cannon)
     };
     let building_entity = commands.spawn(
@@ -40,7 +41,7 @@ pub fn create_tower_cannon(
         TowerWispTarget::default(),
         TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, building.grid_imprint) },
     )).id();
-    obstacle_grid.imprint_building(building, grid_position, building_entity);
+    obstacle_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), TOWER_CANNON_GRID_IMPRINT);
     building_entity
 }
 
@@ -55,10 +56,6 @@ pub fn get_tower_cannon_sprite_bundle(coords: GridCoords, asset_server: &AssetSe
         transform: Transform::from_translation(world_position + Vec3::new(TOWER_CANNON_WORLD_WIDTH/2., TOWER_CANNON_WORLD_HEIGHT/2., 0.0)),
         ..Default::default()
     }
-}
-
-pub const fn get_tower_cannon_grid_imprint() -> GridImprint {
-    GridImprint::Rectangle { width: TOWER_CANNON_GRID_WIDTH , height: TOWER_CANNON_GRID_HEIGHT }
 }
 
 pub fn shooting_system(

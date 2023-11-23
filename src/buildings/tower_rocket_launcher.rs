@@ -4,15 +4,16 @@ use crate::buildings::common_components::{Building, MarkerTower, TechnicalState,
 use crate::common_components::{Health};
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::ObstacleGrid;
+use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::projectiles::cannonball::create_cannonball;
 use crate::projectiles::rocket::create_rocket;
 use crate::wisps::components::{Target, Wisp};
 
-const TOWER_ROCKET_LAUNCHER_GRID_WIDTH: i32 = 3;
-const TOWER_ROCKET_LAUNCHER_GRID_HEIGHT: i32 = 3;
-const TOWER_ROCKET_LAUNCHER_WORLD_WIDTH: f32 = CELL_SIZE * TOWER_ROCKET_LAUNCHER_GRID_WIDTH as f32;
-const TOWER_ROCKET_LAUNCHER_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_ROCKET_LAUNCHER_GRID_HEIGHT as f32;
+pub const TOWER_ROCKET_LAUNCHER_GRID_WIDTH: i32 = 3;
+pub const TOWER_ROCKET_LAUNCHER_GRID_HEIGHT: i32 = 3;
+pub const TOWER_ROCKET_LAUNCHER_WORLD_WIDTH: f32 = CELL_SIZE * TOWER_ROCKET_LAUNCHER_GRID_WIDTH as f32;
+pub const TOWER_ROCKET_LAUNCHER_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_ROCKET_LAUNCHER_GRID_HEIGHT as f32;
+pub const TOWER_ROCKET_LAUNCHER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: TOWER_ROCKET_LAUNCHER_GRID_WIDTH , height: TOWER_ROCKET_LAUNCHER_GRID_HEIGHT };
 
 #[derive(Component)]
 pub struct MarkerTowerRocketLauncher;
@@ -24,7 +25,7 @@ pub fn create_tower_rocket_launcher(
     grid_position: GridCoords,
 ) -> Entity {
     let building = Building {
-        grid_imprint: get_tower_rocket_launcher_grid_imprint(),
+        grid_imprint: TOWER_ROCKET_LAUNCHER_GRID_IMPRINT,
         building_type: BuildingType::Tower(TowerType::RocketLauncher)
     };
     let building_entity = commands.spawn(
@@ -40,7 +41,7 @@ pub fn create_tower_rocket_launcher(
         TowerWispTarget::default(),
         TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, building.grid_imprint) },
     )).id();
-    obstacle_grid.imprint_building(building, grid_position, building_entity);
+    obstacle_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), TOWER_ROCKET_LAUNCHER_GRID_IMPRINT);
     building_entity
 }
 
@@ -57,10 +58,6 @@ pub fn get_tower_rocket_launcher_sprite_bundle(coords: GridCoords) -> SpriteBund
     }
 }
 
-pub const fn get_tower_rocket_launcher_grid_imprint() -> GridImprint {
-    GridImprint::Rectangle { width: TOWER_ROCKET_LAUNCHER_GRID_WIDTH , height: TOWER_ROCKET_LAUNCHER_GRID_HEIGHT }
-}
-
 pub fn shooting_system(
     mut commands: Commands,
     mut tower_rocket_launchers: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget), With<MarkerTowerRocketLauncher>>,
@@ -71,7 +68,7 @@ pub fn shooting_system(
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
 
-        let Ok((wisp_target, wisp_coords)) = wisps.get(*target_wisp) else {
+        if wisps.get(*target_wisp).is_err() {
             // Target wisp does not exist anymore
             *target = TowerWispTarget::SearchForNewTarget;
             continue;

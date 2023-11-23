@@ -5,15 +5,16 @@ use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget
 use crate::common_components::Health;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::ObstacleGrid;
+use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::projectiles::laser_dart::create_laser_dart;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
 
-const TOWER_BLASTER_GRID_WIDTH: i32 = 2;
-const TOWER_BLASTER_GRID_HEIGHT: i32 = 2;
-const TOWER_BLASTER_WORLD_WIDTH: f32 = CELL_SIZE * TOWER_BLASTER_GRID_WIDTH as f32;
-const TOWER_BLASTER_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_BLASTER_GRID_HEIGHT as f32;
+pub const TOWER_BLASTER_GRID_WIDTH: i32 = 2;
+pub const TOWER_BLASTER_GRID_HEIGHT: i32 = 2;
+pub const TOWER_BLASTER_WORLD_WIDTH: f32 = CELL_SIZE * TOWER_BLASTER_GRID_WIDTH as f32;
+pub const TOWER_BLASTER_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_BLASTER_GRID_HEIGHT as f32;
+pub const TOWER_BLASTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: TOWER_BLASTER_GRID_WIDTH , height: TOWER_BLASTER_GRID_HEIGHT };
 
 #[derive(Component)]
 pub struct MarkerTowerBlaster;
@@ -26,7 +27,7 @@ pub fn create_tower_blaster(
     grid_position: GridCoords
 ) -> Entity {
     let building = Building {
-        grid_imprint: get_tower_blaster_grid_imprint(),
+        grid_imprint: TOWER_BLASTER_GRID_IMPRINT,
         building_type: BuildingType::Tower(TowerType::Blaster)
     };
     let (tower_base_bundle, tower_top_bundle) = get_tower_blaster_sprite_bundle(grid_position, asset_server);
@@ -49,7 +50,7 @@ pub fn create_tower_blaster(
         tower_top_bundle,
         MarkerTowerRotationalTop(building_entity.into()),
     ));
-    obstacle_grid.imprint_building(building, grid_position, building_entity);
+    obstacle_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), TOWER_BLASTER_GRID_IMPRINT);
     building_entity
 }
 
@@ -76,10 +77,6 @@ pub fn get_tower_blaster_sprite_bundle(coords: GridCoords, asset_server: &AssetS
         ..Default::default()
     };
     (tower_base, tower_top)
-}
-
-pub const fn get_tower_blaster_grid_imprint() -> GridImprint {
-    GridImprint::Rectangle { width: TOWER_BLASTER_GRID_WIDTH , height: TOWER_BLASTER_GRID_HEIGHT }
 }
 
 pub fn shooting_system(

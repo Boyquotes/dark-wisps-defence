@@ -1,14 +1,16 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::Building;
-use crate::buildings::energy_relay::get_energy_relay_grid_imprint;
+use crate::buildings::energy_relay::ENERGY_RELAY_GRID_IMPRINT;
+use crate::buildings::tower_blaster::TOWER_BLASTER_GRID_IMPRINT;
+use crate::buildings::tower_cannon::TOWER_CANNON_GRID_IMPRINT;
+use crate::buildings::tower_rocket_launcher::TOWER_ROCKET_LAUNCHER_GRID_IMPRINT;
 use crate::grids::common::GridImprint;
-use crate::buildings::tower_blaster::get_tower_blaster_grid_imprint;
-use crate::buildings::tower_cannon::get_tower_cannon_grid_imprint;
-use crate::buildings::tower_rocket_launcher::get_tower_rocket_launcher_grid_imprint;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{ObstacleGrid};
+use crate::map_objects::dark_ore::{DARK_ORE_GRID_IMPRINT, DARK_ORE_WORLD_HEIGHT, DARK_ORE_WORLD_WIDTH};
+use crate::map_objects::walls::WALL_GRID_IMPRINT;
 use crate::mouse::MouseInfo;
 use crate::ui::interaction_state::UiInteractionState;
 
@@ -18,6 +20,17 @@ pub enum GridObjectPlacer {
     None,
     Building(Building),
     Wall,
+    DarkOre,
+}
+impl GridObjectPlacer {
+    pub fn as_grid_imprint(&self) -> GridImprint {
+        match self {
+            GridObjectPlacer::Building(building) => building.grid_imprint,
+            GridObjectPlacer::Wall => WALL_GRID_IMPRINT,
+            GridObjectPlacer::DarkOre => DARK_ORE_GRID_IMPRINT,
+            GridObjectPlacer::None => unreachable!(),
+        }
+    }
 }
 
 pub fn create_grid_object_placer_system(mut commands: Commands) {
@@ -46,20 +59,12 @@ pub fn update_grid_object_placer_system(
     };
     transform.translation = mouse_info.grid_coords.to_world_position().extend(10.);
     let is_imprint_placable = match &*grid_object_placer {
-        GridObjectPlacer::Wall => {
-            transform.translation += Vec3::new(8., 8., 0.);
-            mouse_info.grid_coords.is_in_bounds(obstacle_grid.bounds()) && obstacle_grid[mouse_info.grid_coords].is_empty()
-        },
-        GridObjectPlacer::Building(building) => {
-            match building.grid_imprint {
-                GridImprint::Rectangle { width, height } => {
-                    transform.translation.x += width as f32 * CELL_SIZE / 2.;
-                    transform.translation.y += height as f32 * CELL_SIZE / 2.;
-                }
-            }
-            obstacle_grid.is_imprint_placable(mouse_info.grid_coords, building.grid_imprint)
+        GridObjectPlacer::None => false,
+        placed => {
+            let imprint = placed.as_grid_imprint();
+            transform.translation += imprint.world_center().extend(0.);
+            obstacle_grid.is_imprint_placable(mouse_info.grid_coords, imprint)
         }
-        _ => false
     };
     let (needs_energy_supply, is_imprint_suppliable) = match &*grid_object_placer {
         GridObjectPlacer::Building(building) => match building.building_type {
@@ -98,27 +103,29 @@ pub fn on_click_initiate_grid_object_placer_system(
     let placer_request = {
         if keys.just_pressed(KeyCode::W) {
             GridObjectPlacer::Wall
+        } else if keys.just_pressed(KeyCode::O) {
+            GridObjectPlacer::DarkOre
         } else if keys.just_pressed(KeyCode::E) {
             // Energy Relay
-            let grid_imprint = get_energy_relay_grid_imprint();
+            let grid_imprint = ENERGY_RELAY_GRID_IMPRINT;
             GridObjectPlacer::Building(
                 Building{grid_imprint, building_type: BuildingType::EnergyRelay}
             )
         } else if keys.just_pressed(KeyCode::Key1) {
             // Tower Blaster
-            let grid_imprint = get_tower_blaster_grid_imprint();
+            let grid_imprint = TOWER_BLASTER_GRID_IMPRINT;
             GridObjectPlacer::Building(
                 Building{grid_imprint, building_type: BuildingType::Tower(TowerType::Blaster)}
             )
         } else if keys.just_pressed(KeyCode::Key2) {
             // Tower Cannon
-            let grid_imprint = get_tower_cannon_grid_imprint();
+            let grid_imprint = TOWER_CANNON_GRID_IMPRINT;
             GridObjectPlacer::Building(
                 Building{grid_imprint, building_type: BuildingType::Tower(TowerType::Cannon)}
             )
         } else if keys.just_pressed(KeyCode::Key3) {
             // Tower Rocket Launcher
-            let grid_imprint = get_tower_rocket_launcher_grid_imprint();
+            let grid_imprint = TOWER_ROCKET_LAUNCHER_GRID_IMPRINT;
             GridObjectPlacer::Building(
                 Building{grid_imprint, building_type: BuildingType::Tower(TowerType::RocketLauncher)}
             )
@@ -132,10 +139,9 @@ pub fn on_click_initiate_grid_object_placer_system(
     *visibility = Visibility::Visible;
     *grid_object_placer = placer_request;
     sprite.custom_size = match &*grid_object_placer {
-        GridObjectPlacer::Building(building) => match building.grid_imprint {
-            GridImprint::Rectangle { width, height } => Some(Vec2::new(width as f32 * CELL_SIZE, height as f32 * CELL_SIZE)),
-        },
-        GridObjectPlacer::Wall => Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
+        GridObjectPlacer::Building(building) => Some(building.grid_imprint.world_size()),
+        GridObjectPlacer::Wall => Some(WALL_GRID_IMPRINT.world_size()),
+        GridObjectPlacer::DarkOre => Some(DARK_ORE_GRID_IMPRINT.world_size()),
         GridObjectPlacer::None => None,
     }
 }

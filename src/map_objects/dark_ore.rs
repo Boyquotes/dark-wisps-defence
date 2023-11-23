@@ -5,57 +5,62 @@ use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 
-pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
+pub const DARK_ORE_GRID_WIDTH: i32 = 3;
+pub const DARK_ORE_GRID_HEIGHT: i32 = 3;
+pub const DARK_ORE_WORLD_WIDTH: f32 = CELL_SIZE * DARK_ORE_GRID_WIDTH as f32;
+pub const DARK_ORE_WORLD_HEIGHT: f32 = CELL_SIZE * DARK_ORE_GRID_HEIGHT as f32;
+pub const DARK_ORE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: DARK_ORE_GRID_WIDTH, height: DARK_ORE_GRID_HEIGHT };
 
 #[derive(Component)]
-pub struct Wall;
+pub struct DarkOre {
+    amount: isize,
+    grid_imprint: GridImprint,
+}
 
-pub fn create_wall(
+pub fn create_dark_ore(
     commands: &mut Commands,
     emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
     obstacles_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) -> Entity {
     if !obstacles_grid[grid_position].is_empty() {
-        panic!("Cannot place a wall on a non-empty field");
+        panic!("Cannot place dark ore on a non-empty field");
     }
+    
+    let world_position = grid_position.to_world_position();
+    let world_position_centered = world_position + Vec2::new(DARK_ORE_WORLD_WIDTH, DARK_ORE_WORLD_HEIGHT) / 2.;
 
-    let color = Color::hsla(0., 0.5, 1.3, 0.8);
-    let color = Color::GRAY;
-
-    let entity = commands.spawn(
+    let entity = commands.spawn((
         SpriteBundle {
             sprite: Sprite {
-                color,
+                color: Color::INDIGO,
                 custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
                 ..Default::default()
             },
-            transform: Transform::from_translation(grid_position.to_world_position_centered().extend(0.)),
+            transform: Transform::from_translation(world_position_centered.extend(0.)),
             ..Default::default()
-        }
-    ).insert(
-        grid_position
-    ).insert(
-        Wall
-    ).id();
+        },
+        grid_position,
+        DarkOre { amount: 10000, grid_imprint: DARK_ORE_GRID_IMPRINT },
+    )).id();
 
-    obstacles_grid.imprint(grid_position, Field::Wall(entity), WALL_GRID_IMPRINT);
+    obstacles_grid.imprint(grid_position, Field::DarkOre(entity), DARK_ORE_GRID_IMPRINT);
     emissions_energy_recalculate_all.0 = true;
     entity
 }
 
-pub fn remove_wall(
+pub fn remove_dark_ore(
     commands: &mut Commands,
     emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
     obstacle_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) {
     let entity = match &obstacle_grid[grid_position] {
-        Field::Wall(entity) => *entity,
-        _ => panic!("Cannot remove a wall on a non-wall"),
+        Field::DarkOre(entity) => *entity,
+        _ => panic!("Cannot remove a dark_ore on a non-dark_ore"),
     };
     commands.entity(entity).despawn();
-    obstacle_grid.remove(grid_position, WALL_GRID_IMPRINT);
+    obstacle_grid.remove(grid_position, DARK_ORE_GRID_IMPRINT);
     emissions_energy_recalculate_all.0 = true;
 }
 
@@ -68,33 +73,18 @@ pub fn onclick_spawn_system(
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Query<&GridObjectPlacer>,
 ) {
-    if !matches!(*grid_object_placer.single(), GridObjectPlacer::Wall) { return; }
+    if !matches!(*grid_object_placer.single(), GridObjectPlacer::DarkOre) { return; }
     let mouse_coords = mouse_info.grid_coords;
     if !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {
-        // Place a wall
+        // Place a dark_ore
         if obstacle_grid[mouse_coords].is_empty() {
-            create_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
+            create_dark_ore(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
         }
     } else if mouse.pressed(MouseButton::Right) {
-        // Remove a wall
-        if obstacle_grid[mouse_coords].is_wall() {
-            remove_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
-        }
-    }
-}
-
-// TODO: decide whether to keep it
-pub fn color_rotation_system(
-    mut query: Query<&mut Sprite, With<Wall>>,
-    time: Res<Time>,
-) {
-    for mut sprite in query.iter_mut() {
-        if let Color::Hsla{hue, ..} = &mut sprite.color {
-            *hue += time.delta_seconds() * 100.;
-            if *hue > 360. {
-                *hue = 0.;
-            }
+        // Remove a dark_ore
+        if obstacle_grid[mouse_coords].is_dark_ore() {
+            remove_dark_ore(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
         }
     }
 }

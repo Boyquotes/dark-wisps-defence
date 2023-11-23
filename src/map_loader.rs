@@ -11,6 +11,7 @@ use crate::grids::common::GridCoords;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterCreatedEvent};
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierCreatedEvent};
 use crate::grids::obstacles::ObstacleGrid;
+use crate::map_objects::dark_ore::create_dark_ore;
 use crate::map_objects::walls::create_wall;
 
 /// Represents yaml content for a map
@@ -20,6 +21,7 @@ pub struct Map {
     pub height: i32,
     pub buildings: Vec<MapBuilding>,
     pub walls: Vec<GridCoords>,
+    pub dark_ores: Vec<GridCoords>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -45,6 +47,9 @@ pub fn apply_map(
 ) {
     map.walls.iter().for_each(|wall_coords| {
         create_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *wall_coords);
+    });
+    map.dark_ores.iter().for_each(|dark_ore_coords| {
+        create_dark_ore(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *dark_ore_coords);
     });
     map.buildings.iter().for_each(|building| {
         match building.building_type {

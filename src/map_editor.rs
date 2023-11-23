@@ -6,6 +6,7 @@ use crate::buildings::common_components::Building;
 use crate::grids::common::GridCoords;
 use crate::map_loader;
 use crate::map_loader::MapBuilding;
+use crate::map_objects::dark_ore::DarkOre;
 
 pub struct MapEditorPlugin;
 impl Plugin for MapEditorPlugin {
@@ -36,10 +37,12 @@ pub fn save_map_system(
     grid: Res<ObstacleGrid>,
     keys: Res<Input<KeyCode>>,
     buildings_query: Query<(&Building, &GridCoords)>,
+    dark_ores_query: Query<(&DarkOre, &GridCoords)>,
 ) {
     if !keys.just_pressed(KeyCode::S) { return; }
     let mut processed_entities = HashSet::new();
     let mut walls = Vec::new();
+    let mut dark_ores = Vec::new();
     let mut buildings = Vec::new();
     // Iterate over grid collecting entities
     for y in 0..grid.height {
@@ -48,6 +51,12 @@ pub fn save_map_system(
             match grid[coords] {
                 Field::Wall(_) => {
                     walls.push(coords);
+                },
+                Field::DarkOre(entity) => {
+                    if processed_entities.insert(entity) {
+                        let (_, dark_ore_coords) = dark_ores_query.get(entity).unwrap();
+                        dark_ores.push(*dark_ore_coords);
+                    }
                 },
                 Field::Building(entity, _) => {
                     if processed_entities.insert(entity) {
@@ -70,6 +79,7 @@ pub fn save_map_system(
         height: map_info.grid_height,
         buildings,
         walls,
+        dark_ores,
     };
     // Save yaml file
     serde_yaml::to_writer(File::create(format!("maps/{}.yaml", map_info.name)).unwrap(), &map).unwrap();

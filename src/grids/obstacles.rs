@@ -24,6 +24,7 @@ impl Field {
     }
     pub fn is_dark_ore(&self) -> bool { matches!(self, Field::DarkOre(_)) }
     pub fn is_obstacle(&self) -> bool { !self.is_empty() }
+    pub fn is_natural_obstacle(&self) -> bool { !self.is_empty() && !self.is_building() }
 }
 
 pub type ObstacleGrid = BaseGrid<Field, GridVersion>;
@@ -56,16 +57,6 @@ impl ObstacleGrid {
         self.version = self.version.wrapping_add(1);
     }
 
-    // pub fn imprint_wall(&mut self, coords: GridCoords, entity: Entity) {
-    //     let index = self.index(coords);
-    //     self.grid[index] = Field::Wall(entity);
-    //     self.version = self.version.wrapping_add(1);
-    // }
-    // pub fn remove_wall(&mut self, coords: GridCoords) {
-    //     let index = self.index(coords);
-    //     self.grid[index] = Field::Empty;
-    //     self.version = self.version.wrapping_add(1);
-    // }
     pub fn is_imprint_placable(&self, coords: GridCoords, imprint: GridImprint) -> bool {
         match imprint {
             GridImprint::Rectangle { width, height } => {

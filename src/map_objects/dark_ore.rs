@@ -34,7 +34,7 @@ pub fn create_dark_ore(
         SpriteBundle {
             sprite: Sprite {
                 color: Color::INDIGO,
-                custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
+                custom_size: Some(Vec2::new(DARK_ORE_WORLD_WIDTH, DARK_ORE_WORLD_HEIGHT)),
                 ..Default::default()
             },
             transform: Transform::from_translation(world_position_centered.extend(0.)),
@@ -72,6 +72,7 @@ pub fn onclick_spawn_system(
     mouse: Res<Input<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Query<&GridObjectPlacer>,
+    dark_ores_query: Query<&GridCoords, With<DarkOre>>,
 ) {
     if !matches!(*grid_object_placer.single(), GridObjectPlacer::DarkOre) { return; }
     let mouse_coords = mouse_info.grid_coords;
@@ -83,8 +84,13 @@ pub fn onclick_spawn_system(
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a dark_ore
-        if obstacle_grid[mouse_coords].is_dark_ore() {
-            remove_dark_ore(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
+        match obstacle_grid[mouse_coords] {
+            Field::DarkOre(entity) => {
+                if let Ok(dark_ore_coords) = dark_ores_query.get(entity) {
+                    remove_dark_ore(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, *dark_ore_coords);
+                }
+            },
+            _ => {}
         }
     }
 }

@@ -10,6 +10,7 @@ impl Plugin for MapObjectsPlugin {
         app.add_systems(Update, (
             walls::onclick_spawn_system,
             walls::color_rotation_system,
+            dark_ore::onclick_spawn_system,
         ));
     }
 }

@@ -30,7 +30,7 @@ pub fn flood_emissions(
     obstacles_grid: &ObstacleGrid,
     start_coords: &Vec<GridCoords>,
     emissions_details: &Vec<FloodEmissionsDetails>,
-    ignore_walls: bool,
+    ignore_natural_obstacles: bool,
     ignore_buildings: bool
 ) {
     let mut visited_grid = VisitedGrid::new_with_size(obstacles_grid.width, obstacles_grid.height);
@@ -48,7 +48,7 @@ pub fn flood_emissions(
             let new_coords = coords.shifted((delta_x, delta_y));
             if !new_coords.is_in_bounds(obstacles_grid.bounds())
                 || visited_grid.is_visited(new_coords)
-                || (!ignore_walls && obstacles_grid[new_coords].is_wall())
+                || (!ignore_natural_obstacles && obstacles_grid[new_coords].is_natural_obstacle())
                 || (!ignore_buildings && obstacles_grid[new_coords].is_building())
             {
                 continue;

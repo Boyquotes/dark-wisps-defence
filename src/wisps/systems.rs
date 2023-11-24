@@ -3,7 +3,7 @@ use nanorand::Rng;
 use crate::buildings::common_components::Building;
 use crate::common::TargetType;
 use crate::common_components::Health;
-use crate::grids::common::{GridCoords, GridType};
+use crate::grids::common::{GridCoords, GridImprint, GridType};
 use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
@@ -35,7 +35,7 @@ pub fn move_wisps(
         if let Some(grid_path) = &mut target.grid_path {
             let next_target = grid_path.first().unwrap();
             let curr_world_coords = transform.translation.truncate();
-            let interim_target_world_coords = next_target.to_world_position_centered();
+            let interim_target_world_coords = next_target.to_world_position_centered(GridImprint::default());
             let direction = interim_target_world_coords - curr_world_coords;
             let (sx, sy) = (direction.x.signum(), direction.y.signum());
             transform.translation += Vec3::new(sx * time.delta_seconds() * 30., sy * time.delta_seconds() * 30., 0.);

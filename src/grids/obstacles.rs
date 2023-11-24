@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::Building;
 use crate::grids::base::{BaseGrid, GridVersion};
 use crate::grids::common::{ GridCoords, GridImprint};
 
@@ -43,7 +42,7 @@ impl ObstacleGrid {
         }
         self.version = self.version.wrapping_add(1);
     }
-    pub fn remove(&mut self, coords: GridCoords, imprint: GridImprint) {
+    pub fn deprint(&mut self, coords: GridCoords, imprint: GridImprint) {
         match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {

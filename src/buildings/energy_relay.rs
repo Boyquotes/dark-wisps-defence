@@ -2,17 +2,13 @@ use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, MarkerEnergyRelay, TechnicalState};
 use crate::common_components::Health;
-use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsType, EmitterCreatedEvent, EmitterEnergy};
 use crate::grids::energy_supply::{SupplierCreatedEvent, SupplierEnergy};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator};
 
-pub const ENERGY_RELAY_GRID_WIDTH: i32 = 1;
-pub const ENERGY_RELAY_GRID_HEIGHT: i32 = 1;
-pub const ENERGY_RELAY_WORLD_WIDTH: f32 = CELL_SIZE * ENERGY_RELAY_GRID_WIDTH as f32;
-pub const ENERGY_RELAY_WORLD_HEIGHT: f32 = CELL_SIZE * ENERGY_RELAY_GRID_HEIGHT as f32;
-pub const ENERGY_RELAY_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: ENERGY_RELAY_GRID_WIDTH, height: ENERGY_RELAY_GRID_HEIGHT };
+pub const ENERGY_RELAY_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
 pub fn create_energy_relay(
     commands: &mut Commands,
@@ -54,14 +50,13 @@ pub fn create_energy_relay(
 }
 
 pub fn get_energy_relay_sprite_bundle(coords: GridCoords) -> SpriteBundle {
-    let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(1., 1., 1.),
-            custom_size: Some(Vec2::new(ENERGY_RELAY_WORLD_WIDTH, ENERGY_RELAY_WORLD_HEIGHT)),
+            custom_size: Some(ENERGY_RELAY_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
-        transform: Transform::from_translation(world_position + Vec3::new(ENERGY_RELAY_WORLD_WIDTH/2., ENERGY_RELAY_WORLD_HEIGHT/2., 0.0)),
+        transform: Transform::from_translation(coords.to_world_position_centered(ENERGY_RELAY_GRID_IMPRINT).extend(0.)),
         ..Default::default()
     }
 }

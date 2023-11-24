@@ -2,17 +2,13 @@ use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, MarkerMainBase, TechnicalState};
 use crate::common_components::Health;
-use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsType, EmitterCreatedEvent, EmitterEnergy};
 use crate::grids::energy_supply::{SupplierCreatedEvent, SupplierEnergy};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator};
 
-pub const MAIN_BASE_GRID_WIDTH: i32 = 6;
-pub const MAIN_BASE_GRID_HEIGHT: i32 = 6;
-pub const MAIN_BASE_WORLD_WIDTH: f32 = CELL_SIZE * MAIN_BASE_GRID_WIDTH as f32;
-pub const MAIN_BASE_WORLD_HEIGHT: f32 = CELL_SIZE * MAIN_BASE_GRID_HEIGHT as f32;
-pub const MAIN_BASE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: MAIN_BASE_GRID_WIDTH, height: MAIN_BASE_GRID_HEIGHT };
+pub const MAIN_BASE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 6, height: 6 };
 
 pub fn create_main_base(
     commands: &mut Commands,
@@ -56,15 +52,14 @@ pub fn create_main_base(
 }
 
 pub fn get_main_base_sprite_bundle(coords: GridCoords, asset_server: &AssetServer) -> SpriteBundle {
-    let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(1.0, 1.0, 1.0),
-            custom_size: Some(Vec2::new(MAIN_BASE_WORLD_WIDTH, MAIN_BASE_WORLD_HEIGHT)),
+            custom_size: Some(MAIN_BASE_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
         texture: asset_server.load("buildings/main_base.png"),
-        transform: Transform::from_translation(world_position + Vec3::new(MAIN_BASE_WORLD_WIDTH/2., MAIN_BASE_WORLD_HEIGHT/2., 0.0)),
+        transform: Transform::from_translation(coords.to_world_position_centered(MAIN_BASE_GRID_IMPRINT).extend(0.)),
         ..Default::default()
     }
 }

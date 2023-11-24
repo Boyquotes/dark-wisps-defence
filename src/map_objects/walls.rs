@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::EmissionsEnergyRecalculateAll;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
@@ -20,17 +20,17 @@ pub fn create_wall(
         panic!("Cannot place a wall on a non-empty field");
     }
 
-    let color = Color::hsla(0., 0.5, 1.3, 0.8);
+    let _color = Color::hsla(0., 0.5, 1.3, 0.8);
     let color = Color::GRAY;
 
     let entity = commands.spawn(
         SpriteBundle {
             sprite: Sprite {
                 color,
-                custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
+                custom_size: Some(WALL_GRID_IMPRINT.world_size()),
                 ..Default::default()
             },
-            transform: Transform::from_translation(grid_position.to_world_position_centered().extend(0.)),
+            transform: Transform::from_translation(grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(0.)),
             ..Default::default()
         }
     ).insert(
@@ -55,7 +55,7 @@ pub fn remove_wall(
         _ => panic!("Cannot remove a wall on a non-wall"),
     };
     commands.entity(entity).despawn();
-    obstacle_grid.remove(grid_position, WALL_GRID_IMPRINT);
+    obstacle_grid.deprint(grid_position, WALL_GRID_IMPRINT);
     emissions_energy_recalculate_all.0 = true;
 }
 

@@ -2,18 +2,13 @@ use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerRange, TowerShootingTimer, TowerWispTarget};
 use crate::common_components::{Health};
-use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::projectiles::cannonball::create_cannonball;
 use crate::projectiles::rocket::create_rocket;
 use crate::wisps::components::{Target, Wisp};
 
-pub const TOWER_ROCKET_LAUNCHER_GRID_WIDTH: i32 = 3;
-pub const TOWER_ROCKET_LAUNCHER_GRID_HEIGHT: i32 = 3;
-pub const TOWER_ROCKET_LAUNCHER_WORLD_WIDTH: f32 = CELL_SIZE * TOWER_ROCKET_LAUNCHER_GRID_WIDTH as f32;
-pub const TOWER_ROCKET_LAUNCHER_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_ROCKET_LAUNCHER_GRID_HEIGHT as f32;
-pub const TOWER_ROCKET_LAUNCHER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: TOWER_ROCKET_LAUNCHER_GRID_WIDTH , height: TOWER_ROCKET_LAUNCHER_GRID_HEIGHT };
+pub const TOWER_ROCKET_LAUNCHER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 
 #[derive(Component)]
 pub struct MarkerTowerRocketLauncher;
@@ -46,14 +41,13 @@ pub fn create_tower_rocket_launcher(
 }
 
 pub fn get_tower_rocket_launcher_sprite_bundle(coords: GridCoords) -> SpriteBundle {
-    let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
             color: Color::rgb_u8(80, 45, 104),
-            custom_size: Some(Vec2::new(TOWER_ROCKET_LAUNCHER_WORLD_WIDTH, TOWER_ROCKET_LAUNCHER_WORLD_HEIGHT)),
+            custom_size: Some(TOWER_ROCKET_LAUNCHER_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
-        transform: Transform::from_translation(world_position + Vec3::new(TOWER_ROCKET_LAUNCHER_WORLD_WIDTH/2., TOWER_ROCKET_LAUNCHER_WORLD_HEIGHT/2., 0.0)),
+        transform: Transform::from_translation(coords.to_world_position_centered(TOWER_ROCKET_LAUNCHER_GRID_IMPRINT).extend(0.)),
         ..Default::default()
     }
 }

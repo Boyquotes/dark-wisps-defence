@@ -3,18 +3,14 @@ use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget, TowerShootingTimer, TechnicalState, TowerRange, TowerTopRotation, MarkerTowerRotationalTop};
 use crate::common_components::Health;
-use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::projectiles::laser_dart::create_laser_dart;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
 
-pub const TOWER_BLASTER_GRID_WIDTH: i32 = 2;
-pub const TOWER_BLASTER_GRID_HEIGHT: i32 = 2;
-pub const TOWER_BLASTER_WORLD_WIDTH: f32 = CELL_SIZE * TOWER_BLASTER_GRID_WIDTH as f32;
-pub const TOWER_BLASTER_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_BLASTER_GRID_HEIGHT as f32;
-pub const TOWER_BLASTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: TOWER_BLASTER_GRID_WIDTH , height: TOWER_BLASTER_GRID_HEIGHT };
+pub const TOWER_BLASTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 2, height: 2 };
 
 #[derive(Component)]
 pub struct MarkerTowerBlaster;
@@ -55,25 +51,26 @@ pub fn create_tower_blaster(
 }
 
 /// Returns (tower base sprite bundle, tower top sprite bundle)
-pub fn get_tower_blaster_sprite_bundle(coords: GridCoords, asset_server: &AssetServer) -> (SpriteBundle, SpriteBundle) {
-    let world_position = coords.to_world_position().extend(0.);
+pub fn get_tower_blaster_sprite_bundle(grid_position: GridCoords, asset_server: &AssetServer) -> (SpriteBundle, SpriteBundle) {
+    let world_position = grid_position.to_world_position_centered(TOWER_BLASTER_GRID_IMPRINT).extend(0.);
+    let world_size = TOWER_BLASTER_GRID_IMPRINT.world_size();
     let tower_base = SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(Vec2::new(TOWER_BLASTER_WORLD_WIDTH, TOWER_BLASTER_WORLD_HEIGHT)),
+            custom_size: Some(world_size),
             ..Default::default()
         },
         texture: asset_server.load("buildings/tower_blaster.png"),
-        transform: Transform::from_translation(world_position + Vec3::new(TOWER_BLASTER_WORLD_WIDTH/2., TOWER_BLASTER_WORLD_HEIGHT/2., 0.0)),
+        transform: Transform::from_translation(world_position),
         ..Default::default()
     };
 
     let tower_top = SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(Vec2::new(TOWER_BLASTER_WORLD_WIDTH * 0.5, TOWER_BLASTER_WORLD_HEIGHT * 1.52 * 0.5)),
+            custom_size: Some(Vec2::new(world_size.x * 0.5, world_size.y * 1.52 * 0.5)),
             ..Default::default()
         },
         texture: asset_server.load("buildings/tower_blaster_top.png"),
-        transform: Transform::from_translation(world_position + Vec3::new(TOWER_BLASTER_WORLD_WIDTH/2., TOWER_BLASTER_WORLD_HEIGHT/2., 0.0)),
+        transform: Transform::from_translation(world_position),
         ..Default::default()
     };
     (tower_base, tower_top)
@@ -101,9 +98,10 @@ pub fn shooting_system(
         if angle_difference(target_angle, top_rotation.current_angle).abs() > std::f32::consts::PI / 36. { continue; }
 
         // Calculate transform offset in the direction we are aiming
+        let tower_world_width = TOWER_BLASTER_GRID_IMPRINT.world_size().x;
         let offset = Vec2::new(
-            top_rotation.current_angle.cos() * TOWER_BLASTER_WORLD_WIDTH * 0.4,
-            top_rotation.current_angle.sin() * TOWER_BLASTER_WORLD_WIDTH * 0.4,
+            top_rotation.current_angle.cos() * tower_world_width * 0.4,
+            top_rotation.current_angle.sin() * tower_world_width * 0.4,
         );
         let spawn_position = transform.translation.xy() + offset;
 

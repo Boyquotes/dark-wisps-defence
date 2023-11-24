@@ -2,17 +2,13 @@ use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerRange, TowerShootingTimer, TowerWispTarget};
 use crate::common_components::{Health};
-use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::projectiles::cannonball::create_cannonball;
 use crate::wisps::components::{Target, Wisp};
-
-pub const TOWER_CANNON_GRID_WIDTH: i32 = 3;
-pub const TOWER_CANNON_GRID_HEIGHT: i32 = 3;
-pub const TOWER_CANNON_WORLD_WIDTH: f32 = CELL_SIZE * TOWER_CANNON_GRID_WIDTH as f32;
-pub const TOWER_CANNON_WORLD_HEIGHT: f32 = CELL_SIZE * TOWER_CANNON_GRID_HEIGHT as f32;
-pub const TOWER_CANNON_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: TOWER_CANNON_GRID_WIDTH , height: TOWER_CANNON_GRID_HEIGHT };
+use crate::wisps::spawning::WISP_GRID_IMPRINT;
+pub const TOWER_CANNON_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 
 #[derive(Component)]
 pub struct MarkerTowerCannon;
@@ -46,14 +42,13 @@ pub fn create_tower_cannon(
 }
 
 pub fn get_tower_cannon_sprite_bundle(coords: GridCoords, asset_server: &AssetServer,) -> SpriteBundle {
-    let world_position = coords.to_world_position().extend(0.);
     SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(Vec2::new(TOWER_CANNON_WORLD_WIDTH, TOWER_CANNON_WORLD_HEIGHT)),
+            custom_size: Some(TOWER_CANNON_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
         texture: asset_server.load("buildings/tower_cannon.png"),
-        transform: Transform::from_translation(world_position + Vec3::new(TOWER_CANNON_WORLD_WIDTH/2., TOWER_CANNON_WORLD_HEIGHT/2., 0.0)),
+        transform: Transform::from_translation(coords.to_world_position_centered(TOWER_CANNON_GRID_IMPRINT).extend(0.)),
         ..Default::default()
     }
 }
@@ -74,9 +69,19 @@ pub fn shooting_system(
             continue;
         };
 
-        let target_world_position = wisp_target.grid_path.as_ref().map_or(wisp_coords.to_world_position_centered(), |path| {
-            path.first().map_or(wisp_coords.to_world_position_centered(), |coords| coords.to_world_position_centered())
-        });
+        let target_world_position = wisp_target.grid_path
+            .as_ref()
+            .map_or(
+                wisp_coords.to_world_position_centered(WISP_GRID_IMPRINT),
+                |path| {
+                    path
+                        .first()
+                        .map_or(
+                            wisp_coords.to_world_position_centered(WISP_GRID_IMPRINT),
+                            |coords| coords.to_world_position_centered(WISP_GRID_IMPRINT)
+                        )
+                }
+            );
 
         create_cannonball(&mut commands, transform.translation, target_world_position);
         timer.0.reset();

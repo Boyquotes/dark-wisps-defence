@@ -49,7 +49,7 @@ pub fn apply_map(
         create_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *wall_coords);
     });
     map.dark_ores.iter().for_each(|dark_ore_coords| {
-        create_dark_ore(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *dark_ore_coords);
+        create_dark_ore(&mut commands, &asset_server, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *dark_ore_coords);
     });
     map.buildings.iter().for_each(|building| {
         match building.building_type {

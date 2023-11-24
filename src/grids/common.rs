@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub const CELL_SIZE: f32 = 16.;
-pub const CELL_CENTER: Vec2 = Vec2::new(CELL_SIZE / 2., CELL_SIZE / 2.);
 
 // TODO: remove alongside generic targets from common.rs
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -34,8 +33,8 @@ impl GridCoords {
     pub fn to_world_position(&self) -> Vec2 {
         Vec2::new(self.x as f32 * CELL_SIZE, self.y as f32 * CELL_SIZE)
     }
-    pub fn to_world_position_centered(&self) -> Vec2 {
-        Vec2::new(self.x as f32 * CELL_SIZE + CELL_SIZE / 2., self.y as f32 * CELL_SIZE + CELL_SIZE / 2.)
+    pub fn to_world_position_centered(&self, imprint: GridImprint) -> Vec2 {
+        self.to_world_position() + imprint.world_center()
     }
     pub fn shifted(&self, (dx, dy): (i32, i32)) -> Self {
         Self {
@@ -82,10 +81,12 @@ impl GridImprint {
         }
     }
     pub fn world_center(&self) -> Vec2 {
-        match self {
-            GridImprint::Rectangle{width, height} => {
-                self.world_size() / 2.
-            }
-        }
+        self.world_size() / 2.
+    }
+}
+
+impl Default for GridImprint {
+    fn default() -> Self {
+        GridImprint::Rectangle{width: 1, height: 1}
     }
 }

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use crate::inventory::resources::DarkOreStock;
 
 #[derive(Component)]
-pub struct DarkOreBadgeMarkerText;
+pub struct MarkerDarkOreBadgeText;
 
 
 pub fn create_dark_ore_badge(
@@ -36,7 +36,7 @@ pub fn create_dark_ore_badge(
                 ..Default::default()
             },
             Label,
-            DarkOreBadgeMarkerText,
+            MarkerDarkOreBadgeText,
         ));
     }).id();
     dare_ore_badge
@@ -50,7 +50,7 @@ pub fn initialize_badges_system(
 }
 
 pub fn sync_dark_ore_badge_system(
-    mut query: Query<&mut Text, With<DarkOreBadgeMarkerText>>,
+    mut query: Query<&mut Text, With<MarkerDarkOreBadgeText>>,
     mut dark_ore_stock: Res<DarkOreStock>,
 ) {
     let mut text = query.single_mut();

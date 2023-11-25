@@ -1,4 +1,8 @@
 use bevy::prelude::*;
+use crate::inventory::resources::DarkOreStock;
+
+#[derive(Component)]
+pub struct DarkOreBadgeMarkerText;
 
 
 pub fn create_dark_ore_badge(
@@ -19,7 +23,7 @@ pub fn create_dark_ore_badge(
             background_color: Color::WHITE.into(),
             ..Default::default()
         },
-        UiImage::new(asset_server.load("ui/dark_ore_badge.png"))
+        UiImage::new(asset_server.load("ui/dark_ore_badge.png")),
     )).with_children(|parent| {
         parent.spawn((
             TextBundle {
@@ -32,6 +36,7 @@ pub fn create_dark_ore_badge(
                 ..Default::default()
             },
             Label,
+            DarkOreBadgeMarkerText,
         ));
     }).id();
     dare_ore_badge
@@ -42,4 +47,12 @@ pub fn initialize_badges_system(
     asset_server: Res<AssetServer>,
 ) {
     create_dark_ore_badge(&mut commands, &asset_server);
+}
+
+pub fn sync_dark_ore_badge_system(
+    mut query: Query<&mut Text, With<DarkOreBadgeMarkerText>>,
+    mut dark_ore_stock: Res<DarkOreStock>,
+) {
+    let mut text = query.single_mut();
+    text.sections[0].value = dark_ore_stock.amount.to_string();
 }

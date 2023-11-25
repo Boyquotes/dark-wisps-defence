@@ -17,6 +17,7 @@ impl Plugin for UiPlugin {
             grid_object_placer::create_grid_object_placer_system
         ));
         app.add_systems(Update, (
+            badges::sync_dark_ore_badge_system,
             display_building_info::on_click_building_display_info_system,
             display_building_info::display_building_info_system,
             grid_display::show_hide_grid_system,

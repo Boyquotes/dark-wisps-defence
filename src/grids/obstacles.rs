@@ -59,39 +59,6 @@ impl ObstacleGrid {
         self.version = self.version.wrapping_add(1);
     }
 
-    pub fn is_imprint_placable(&self, coords: GridCoords, imprint: GridImprint) -> bool {
-        match imprint {
-            GridImprint::Rectangle { width, height } => {
-                for y in 0..height {
-                    for x in 0..width {
-                        let inner_coords = coords.shifted((x, y));
-                        if !inner_coords.is_in_bounds(self.bounds()) || !self[inner_coords].is_empty() {
-                            return false;
-                        }
-
-                    }
-                }
-            }
-        }
-        true
-    }
-
-    pub fn is_imprint_all_ore(&self, coords: GridCoords, imprint: GridImprint) -> bool {
-        match imprint {
-            GridImprint::Rectangle { width, height } => {
-                for y in 0..height {
-                    for x in 0..width {
-                        let inner_coords = coords.shifted((x, y));
-                        if !inner_coords.is_in_bounds(self.bounds()) || !self[inner_coords].is_dark_ore() {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        true
-    }
-
     pub fn imprint_query_all(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
         match imprint {
             GridImprint::Rectangle { width, height } => {

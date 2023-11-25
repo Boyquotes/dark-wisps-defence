@@ -1,4 +1,3 @@
-use std::i16::MIN;
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::Building;
@@ -71,7 +70,7 @@ pub fn update_grid_object_placer_system(
         placed => {
             let imprint = placed.as_grid_imprint();
             transform.translation += imprint.world_center().extend(0.);
-            obstacle_grid.is_imprint_placable(mouse_info.grid_coords, imprint)
+            obstacle_grid.imprint_query_all(mouse_info.grid_coords, imprint, |field| field.is_empty())
         }
     };
     let (needs_energy_supply, is_imprint_suppliable) = match &*grid_object_placer {

@@ -27,7 +27,7 @@ pub fn onclick_building_spawn_system(
     if !mouse.pressed(MouseButton::Left) || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     match &*grid_object_placer.single() {
         GridObjectPlacer::Building(building) => {
-            if !obstacle_grid.is_imprint_placable(mouse_coords, building.grid_imprint) { return; }
+            if !obstacle_grid.imprint_query_all(mouse_coords, building.grid_imprint, |field| field.is_empty()) { return; }
             match building.building_type {
                 BuildingType::EnergyRelay => {
                     super::energy_relay::create_energy_relay(

@@ -9,7 +9,7 @@ pub enum GridType {
     Obstacles,
 }
 
-#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq, Component)]
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq, Component, Hash)]
 pub struct GridCoords {
     pub x: i32,
     pub y: i32,

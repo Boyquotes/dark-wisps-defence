@@ -6,6 +6,7 @@ pub mod tower_cannon;
 pub mod common_systems;
 pub mod energy_relay;
 pub mod tower_rocket_launcher;
+pub mod mining_complex;
 
 use bevy::prelude::*;
 

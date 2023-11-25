@@ -52,7 +52,6 @@ pub fn create_energy_relay(
 pub fn get_energy_relay_sprite_bundle(coords: GridCoords) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            color: Color::rgb(1., 1., 1.),
             custom_size: Some(ENERGY_RELAY_GRID_IMPRINT.world_size()),
             ..Default::default()
         },

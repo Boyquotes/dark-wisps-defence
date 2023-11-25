@@ -1,9 +1,11 @@
 use std::fs::File;
 use bevy::prelude::*;
+use bevy::utils::HashMap;
 use serde::{Deserialize, Serialize};
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::energy_relay::create_energy_relay;
 use crate::buildings::main_base::create_main_base;
+use crate::buildings::mining_complex::create_mining_complex;
 use crate::buildings::tower_blaster::create_tower_blaster;
 use crate::buildings::tower_cannon::create_tower_cannon;
 use crate::buildings::tower_rocket_launcher::create_tower_rocket_launcher;
@@ -48,9 +50,10 @@ pub fn apply_map(
     map.walls.iter().for_each(|wall_coords| {
         create_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *wall_coords);
     });
-    map.dark_ores.iter().for_each(|dark_ore_coords| {
-        create_dark_ore(&mut commands, &asset_server, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *dark_ore_coords);
-    });
+    let dark_ores = map.dark_ores.iter().map(|dark_ore_coords| {
+        let dark_ore_entity = create_dark_ore(&mut commands, &asset_server, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *dark_ore_coords);
+        (*dark_ore_coords, dark_ore_entity)
+    }).collect::<HashMap<_,_>>();
     map.buildings.iter().for_each(|building| {
         match building.building_type {
             BuildingType::MainBase => {
@@ -71,6 +74,9 @@ pub fn apply_map(
                         create_tower_rocket_launcher(&mut commands, &mut obstacles_grid, &energy_supply_grid, building.coords);
                     }
                 }
+            }
+            BuildingType::MiningComplex => {
+                create_mining_complex(&mut commands, &asset_server, &mut obstacles_grid, building.coords, *dark_ores.get(&building.coords).unwrap());
             }
         }
     });

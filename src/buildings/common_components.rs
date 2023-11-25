@@ -28,6 +28,9 @@ pub struct MarkerMainBase;
 pub struct MarkerTower;
 #[derive(Component)]
 pub struct MarkerEnergyRelay;
+#[derive(Component)]
+pub struct MarkerMiningComplex;
+
 
 // Building sub-parts markers
 #[derive(Component)]

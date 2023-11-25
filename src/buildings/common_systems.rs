@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
+use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmitterCreatedEvent;
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierCreatedEvent, SupplierEnergy};
-use crate::grids::obstacles::ObstacleGrid;
+use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::mouse::MouseInfo;
 use crate::search::targetfinding::target_find_closest_wisp;
@@ -43,6 +44,12 @@ pub fn onclick_building_spawn_system(
                     super::tower_rocket_launcher::create_tower_rocket_launcher(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
                 _ => panic!("Trying to place a non-supported building")            }
+        }
+        GridObjectPlacer::MiningComplex => {
+            if !obstacle_grid.imprint_query_all(mouse_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore()) { return; }
+            let Field::DarkOre(dark_ore) = obstacle_grid[mouse_coords] else { unreachable!() };
+            super::mining_complex::create_mining_complex(&mut commands, &asset_server,&mut obstacle_grid, mouse_coords, dark_ore);
+
         }
         _ => { return; }
     };

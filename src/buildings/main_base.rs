@@ -15,7 +15,7 @@ pub fn create_main_base(
     asset_server: &AssetServer,
     emitter_created_event_writer: &mut EventWriter<EmitterCreatedEvent>,
     supplier_created_event_writer: &mut EventWriter<SupplierCreatedEvent>,
-    obstacles_grid: &mut ResMut<ObstacleGrid>,
+    obstacle_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) -> Entity {
     let building = Building {
@@ -47,14 +47,13 @@ pub fn create_main_base(
         coords: covered_coords,
         supplier: supplier_energy,
     });
-    obstacles_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), MAIN_BASE_GRID_IMPRINT);
+    obstacle_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), MAIN_BASE_GRID_IMPRINT);
     building_entity
 }
 
 pub fn get_main_base_sprite_bundle(coords: GridCoords, asset_server: &AssetServer) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            color: Color::rgb(1.0, 1.0, 1.0),
             custom_size: Some(MAIN_BASE_GRID_IMPRINT.world_size()),
             ..Default::default()
         },

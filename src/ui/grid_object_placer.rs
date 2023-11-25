@@ -1,7 +1,9 @@
+use std::i16::MIN;
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::Building;
 use crate::buildings::energy_relay::ENERGY_RELAY_GRID_IMPRINT;
+use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
 use crate::buildings::tower_blaster::TOWER_BLASTER_GRID_IMPRINT;
 use crate::buildings::tower_cannon::TOWER_CANNON_GRID_IMPRINT;
 use crate::buildings::tower_rocket_launcher::TOWER_ROCKET_LAUNCHER_GRID_IMPRINT;
@@ -20,6 +22,7 @@ pub enum GridObjectPlacer {
     Building(Building),
     Wall,
     DarkOre,
+    MiningComplex,
 }
 impl GridObjectPlacer {
     pub fn as_grid_imprint(&self) -> GridImprint {
@@ -27,6 +30,7 @@ impl GridObjectPlacer {
             GridObjectPlacer::Building(building) => building.grid_imprint,
             GridObjectPlacer::Wall => WALL_GRID_IMPRINT,
             GridObjectPlacer::DarkOre => DARK_ORE_GRID_IMPRINT,
+            GridObjectPlacer::MiningComplex => MINING_COMPLEX_GRID_IMPRINT,
             GridObjectPlacer::None => unreachable!(),
         }
     }
@@ -59,6 +63,11 @@ pub fn update_grid_object_placer_system(
     transform.translation = mouse_info.grid_coords.to_world_position().extend(10.);
     let is_imprint_placable = match &*grid_object_placer {
         GridObjectPlacer::None => false,
+        GridObjectPlacer::MiningComplex => {
+            transform.translation += MINING_COMPLEX_GRID_IMPRINT.world_center().extend(0.);
+            obstacle_grid.imprint_query_all(mouse_info.grid_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore())
+
+        }
         placed => {
             let imprint = placed.as_grid_imprint();
             transform.translation += imprint.world_center().extend(0.);
@@ -71,7 +80,8 @@ pub fn update_grid_object_placer_system(
                 (true, energy_supply_grid.is_imprint_suppliable(mouse_info.grid_coords, building.grid_imprint))
             },
             _ => (false, false)
-        }
+        },
+        GridObjectPlacer::MiningComplex => (true, energy_supply_grid.is_imprint_suppliable(mouse_info.grid_coords, MINING_COMPLEX_GRID_IMPRINT)),
         _ => (false, false)
     };
 
@@ -104,7 +114,9 @@ pub fn on_click_initiate_grid_object_placer_system(
             GridObjectPlacer::Wall
         } else if keys.just_pressed(KeyCode::O) {
             GridObjectPlacer::DarkOre
-        } else if keys.just_pressed(KeyCode::E) {
+        } else if keys.just_pressed(KeyCode::M) {
+            GridObjectPlacer::MiningComplex
+        }else if keys.just_pressed(KeyCode::E) {
             // Energy Relay
             let grid_imprint = ENERGY_RELAY_GRID_IMPRINT;
             GridObjectPlacer::Building(
@@ -141,6 +153,7 @@ pub fn on_click_initiate_grid_object_placer_system(
         GridObjectPlacer::Building(building) => Some(building.grid_imprint.world_size()),
         GridObjectPlacer::Wall => Some(WALL_GRID_IMPRINT.world_size()),
         GridObjectPlacer::DarkOre => Some(DARK_ORE_GRID_IMPRINT.world_size()),
+        GridObjectPlacer::MiningComplex => Some(MINING_COMPLEX_GRID_IMPRINT.world_size()),
         GridObjectPlacer::None => None,
     }
 }

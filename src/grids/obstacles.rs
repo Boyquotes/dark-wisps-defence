@@ -10,20 +10,23 @@ pub enum Field {
     Building(Entity, BuildingType),
     Wall(Entity),
     DarkOre(Entity),
+    MiningComplex{dark_ore: Entity, mining_complex: Entity},
 }
 impl Field {
     pub fn is_empty(&self) -> bool {
         matches!(self, Field::Empty)
     }
     pub fn is_building(&self) -> bool {
-        matches!(self, Field::Building(_, _))
+        matches!(self, Field::Building(_, _) | Field::MiningComplex{..})
     }
     pub fn is_wall(&self) -> bool {
         matches!(self, Field::Wall(_))
     }
     pub fn is_dark_ore(&self) -> bool { matches!(self, Field::DarkOre(_)) }
     pub fn is_obstacle(&self) -> bool { !self.is_empty() }
-    pub fn is_natural_obstacle(&self) -> bool { !self.is_empty() && !self.is_building() }
+    pub fn is_natural_obstacle(&self) -> bool {
+        matches!(self, Field::Wall(_) | Field::DarkOre(_) | Field::MiningComplex{..})
+    }
 }
 
 pub type ObstacleGrid = BaseGrid<Field, GridVersion>;
@@ -66,6 +69,38 @@ impl ObstacleGrid {
                             return false;
                         }
 
+                    }
+                }
+            }
+        }
+        true
+    }
+
+    pub fn is_imprint_all_ore(&self, coords: GridCoords, imprint: GridImprint) -> bool {
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let inner_coords = coords.shifted((x, y));
+                        if !inner_coords.is_in_bounds(self.bounds()) || !self[inner_coords].is_dark_ore() {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        true
+    }
+
+    pub fn imprint_query_all(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let inner_coords = coords.shifted((x, y));
+                        if inner_coords.is_in_bounds(self.bounds()) && !query(&self[inner_coords]) {
+                            return false;
+                        }
                     }
                 }
             }

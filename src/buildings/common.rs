@@ -8,6 +8,7 @@ pub enum BuildingType {
     EnergyRelay,
     MainBase,
     Tower(TowerType),
+    MiningComplex,
 }
 impl BuildingType {
     pub fn is_energy_rich(&self) -> bool {

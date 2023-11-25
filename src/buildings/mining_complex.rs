@@ -32,10 +32,10 @@ pub fn create_mining_complex(
 pub fn get_mining_complex_sprite_bundle(coords: GridCoords, asset_server: &AssetServer) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            color: Color::rgb(1.0, 1.0, 1.0),
             custom_size: Some(MINING_COMPLEX_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
+        texture: asset_server.load("buildings/mining_complex.png"),
         transform: Transform::from_translation(coords.to_world_position_centered(MINING_COMPLEX_GRID_IMPRINT).extend(0.)),
         ..Default::default()
     }

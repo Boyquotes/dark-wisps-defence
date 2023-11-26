@@ -20,6 +20,8 @@ impl Plugin for UiPlugin {
         ));
         app.add_systems(Update, (
             badges::sync_dark_ore_badge_system,
+            construction_menu::menu_hover_system,
+            construction_menu::menu_activation_system.after(construction_menu::menu_hover_system),
             display_building_info::on_click_building_display_info_system,
             display_building_info::display_building_info_system,
             grid_display::show_hide_grid_system,

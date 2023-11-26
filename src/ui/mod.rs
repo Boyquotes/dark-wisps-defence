@@ -3,6 +3,7 @@ pub mod interaction_state;
 pub mod grid_object_placer;
 pub mod display_building_info;
 pub mod badges;
+mod construction_menu;
 
 use bevy::prelude::*;
 use crate::ui::interaction_state::UiInteractionState;
@@ -14,6 +15,7 @@ impl Plugin for UiPlugin {
         app.insert_resource(UiInteractionState::default());
         app.add_systems(Startup, (
             badges::initialize_badges_system,
+            construction_menu::initialize_construction_menu_system,
             grid_object_placer::create_grid_object_placer_system
         ));
         app.add_systems(Update, (

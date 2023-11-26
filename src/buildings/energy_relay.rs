@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, MarkerEnergyRelay, TechnicalState};
+use crate::common::Z_BUILDING;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsType, EmitterCreatedEvent, EmitterEnergy};
@@ -55,7 +56,7 @@ pub fn get_energy_relay_sprite_bundle(coords: GridCoords) -> SpriteBundle {
             custom_size: Some(ENERGY_RELAY_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
-        transform: Transform::from_translation(coords.to_world_position_centered(ENERGY_RELAY_GRID_IMPRINT).extend(0.)),
+        transform: Transform::from_translation(coords.to_world_position_centered(ENERGY_RELAY_GRID_IMPRINT).extend(Z_BUILDING)),
         ..Default::default()
     }
 }

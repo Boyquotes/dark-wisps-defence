@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerRange, TowerShootingTimer, TowerWispTarget};
+use crate::common::Z_BUILDING;
 use crate::common_components::{Health};
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
@@ -48,7 +49,7 @@ pub fn get_tower_cannon_sprite_bundle(coords: GridCoords, asset_server: &AssetSe
             ..Default::default()
         },
         texture: asset_server.load("buildings/tower_cannon.png"),
-        transform: Transform::from_translation(coords.to_world_position_centered(TOWER_CANNON_GRID_IMPRINT).extend(0.)),
+        transform: Transform::from_translation(coords.to_world_position_centered(TOWER_CANNON_GRID_IMPRINT).extend(Z_BUILDING)),
         ..Default::default()
     }
 }
@@ -83,7 +84,7 @@ pub fn shooting_system(
                 }
             );
 
-        create_cannonball(&mut commands, transform.translation, target_world_position);
+        create_cannonball(&mut commands, transform.translation.xy(), target_world_position);
         timer.0.reset();
     }
 }

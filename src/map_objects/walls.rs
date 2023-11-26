@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crate::common::Z_OBSTACLE;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::EmissionsEnergyRecalculateAll;
 use crate::grids::obstacles::{Field, ObstacleGrid};
@@ -30,7 +31,9 @@ pub fn create_wall(
                 custom_size: Some(WALL_GRID_IMPRINT.world_size()),
                 ..Default::default()
             },
-            transform: Transform::from_translation(grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(0.)),
+            transform: Transform::from_translation(
+                grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(Z_OBSTACLE)
+            ),
             ..Default::default()
         }
     ).insert(

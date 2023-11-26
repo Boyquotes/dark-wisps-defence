@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerRange, TowerShootingTimer, TowerWispTarget};
+use crate::common::Z_BUILDING;
 use crate::common_components::{Health};
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
@@ -47,7 +48,7 @@ pub fn get_tower_rocket_launcher_sprite_bundle(coords: GridCoords) -> SpriteBund
             custom_size: Some(TOWER_ROCKET_LAUNCHER_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
-        transform: Transform::from_translation(coords.to_world_position_centered(TOWER_ROCKET_LAUNCHER_GRID_IMPRINT).extend(0.)),
+        transform: Transform::from_translation(coords.to_world_position_centered(TOWER_ROCKET_LAUNCHER_GRID_IMPRINT).extend(Z_BUILDING)),
         ..Default::default()
     }
 }
@@ -68,7 +69,7 @@ pub fn shooting_system(
             continue;
         };
 
-        create_rocket(&mut commands, transform.translation, target_wisp);
+        create_rocket(&mut commands, transform.translation.xy(), target_wisp);
         timer.0.reset();
     }
 }

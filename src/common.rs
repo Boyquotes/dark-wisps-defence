@@ -24,3 +24,26 @@ impl TargetType {
         matches!(self, TargetType::Unreachable{..})
     }
 }
+
+macro_rules! define_z_indexes {
+    // Internal macro to handle incrementing the counter
+    (@internal $counter:expr, $name:ident) => {
+        pub const $name: f32 = $counter;
+    };
+    (@internal $counter:expr, $name:ident, $($rest:ident),+) => {
+        pub const $name: f32 = $counter;
+        define_z_indexes!(@internal $counter + 0.001, $($rest),+);
+    };
+    // Public-facing macro interface
+    ($($name:ident),+) => {
+        define_z_indexes!(@internal 0.001, $($name),+);
+    };
+}
+
+define_z_indexes!(
+    Z_OBSTACLE,
+    Z_BUILDING,
+    Z_WISP,
+    Z_TOWER_TOP,
+    Z_PROJECTILE
+);

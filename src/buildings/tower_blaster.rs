@@ -2,6 +2,7 @@ use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget, TowerShootingTimer, TechnicalState, TowerRange, TowerTopRotation, MarkerTowerRotationalTop};
+use crate::common::{Z_BUILDING, Z_TOWER_TOP};
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
@@ -52,7 +53,7 @@ pub fn create_tower_blaster(
 
 /// Returns (tower base sprite bundle, tower top sprite bundle)
 pub fn get_tower_blaster_sprite_bundle(grid_position: GridCoords, asset_server: &AssetServer) -> (SpriteBundle, SpriteBundle) {
-    let world_position = grid_position.to_world_position_centered(TOWER_BLASTER_GRID_IMPRINT).extend(0.);
+    let world_position = grid_position.to_world_position_centered(TOWER_BLASTER_GRID_IMPRINT);
     let world_size = TOWER_BLASTER_GRID_IMPRINT.world_size();
     let tower_base = SpriteBundle {
         sprite: Sprite {
@@ -60,7 +61,7 @@ pub fn get_tower_blaster_sprite_bundle(grid_position: GridCoords, asset_server: 
             ..Default::default()
         },
         texture: asset_server.load("buildings/tower_blaster.png"),
-        transform: Transform::from_translation(world_position),
+        transform: Transform::from_translation(world_position.extend(Z_BUILDING)),
         ..Default::default()
     };
 
@@ -70,7 +71,7 @@ pub fn get_tower_blaster_sprite_bundle(grid_position: GridCoords, asset_server: 
             ..Default::default()
         },
         texture: asset_server.load("buildings/tower_blaster_top.png"),
-        transform: Transform::from_translation(world_position),
+        transform: Transform::from_translation(world_position.extend(Z_TOWER_TOP)),
         ..Default::default()
     };
     (tower_base, tower_top)
@@ -105,7 +106,7 @@ pub fn shooting_system(
         );
         let spawn_position = transform.translation.xy() + offset;
 
-        create_laser_dart(&mut commands, spawn_position.extend(0.), target_wisp, (wisp_position - spawn_position).normalize());
+        create_laser_dart(&mut commands, spawn_position, target_wisp, (wisp_position - spawn_position).normalize());
         timer.0.reset();
     }
 }

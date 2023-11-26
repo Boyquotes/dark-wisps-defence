@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
+use crate::common::Z_PROJECTILE;
 use crate::common_components::{Health};
 use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
@@ -18,7 +19,7 @@ pub struct CannonballTarget{
     pub target_position: Vec2,
 }
 
-pub fn create_cannonball(commands: &mut Commands, world_position: Vec3, target_position: Vec2) -> Entity {
+pub fn create_cannonball(commands: &mut Commands, world_position: Vec2, target_position: Vec2) -> Entity {
     let entity = commands.spawn(
         SpriteBundle {
             sprite: Sprite {
@@ -27,7 +28,7 @@ pub fn create_cannonball(commands: &mut Commands, world_position: Vec3, target_p
                 ..Default::default()
             },
             transform: Transform {
-                translation: world_position,
+                translation: world_position.extend(Z_PROJECTILE),
                 ..Default::default()
             },
             ..Default::default()
@@ -36,7 +37,7 @@ pub fn create_cannonball(commands: &mut Commands, world_position: Vec3, target_p
         (MarkerProjectile, MarkerCannonball)
     ).insert(
         CannonballTarget{
-            initial_distance: world_position.xy().distance(target_position),
+            initial_distance: world_position.distance(target_position),
             target_position,
         }
     ).id();

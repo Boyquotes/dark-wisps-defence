@@ -1,5 +1,6 @@
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
+use crate::common::Z_PROJECTILE;
 use crate::common_components::{Health};
 use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
@@ -16,7 +17,7 @@ pub struct LaserDartTarget {
     pub target_vector: Vec2,
 }
 
-pub fn create_laser_dart(commands: &mut Commands, world_position: Vec3, target_wisp: WispEntity, target_vector: Vec2) -> Entity {
+pub fn create_laser_dart(commands: &mut Commands, world_position: Vec2, target_wisp: WispEntity, target_vector: Vec2) -> Entity {
     let entity = commands.spawn(
         SpriteBundle {
             sprite: Sprite {
@@ -25,7 +26,7 @@ pub fn create_laser_dart(commands: &mut Commands, world_position: Vec3, target_w
                 ..Default::default()
             },
             transform: Transform {
-                translation: world_position,
+                translation: world_position.extend(Z_PROJECTILE),
                 rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
                 ..Default::default()
             },

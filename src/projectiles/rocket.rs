@@ -1,5 +1,6 @@
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
+use crate::common::Z_PROJECTILE;
 use crate::common_components::{Health};
 use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
@@ -14,7 +15,7 @@ pub struct MarkerRocket;
 #[derive(Component)]
 pub struct RocketTarget(pub WispEntity);
 
-pub fn create_rocket(commands: &mut Commands, world_position: Vec3, target_wisp: WispEntity) -> Entity {
+pub fn create_rocket(commands: &mut Commands, world_position: Vec2, target_wisp: WispEntity) -> Entity {
     let entity = commands.spawn(
         SpriteBundle {
             sprite: Sprite {
@@ -23,7 +24,7 @@ pub fn create_rocket(commands: &mut Commands, world_position: Vec3, target_wisp:
                 ..Default::default()
             },
             transform: Transform {
-                translation: world_position,
+                translation: world_position.extend(Z_PROJECTILE),
                 ..Default::default()
             },
             ..Default::default()

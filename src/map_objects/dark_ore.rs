@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crate::common::Z_OBSTACLE;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::EmissionsEnergyRecalculateAll;
 use crate::grids::obstacles::{Field, ObstacleGrid};
@@ -42,7 +43,9 @@ pub fn get_dark_ore_sprite_bundle(grid_position: GridCoords, asset_server: &Asse
             ..Default::default()
         },
         texture: asset_server.load("map_objects/dark_ore.png"),
-        transform: Transform::from_translation(grid_position.to_world_position_centered(DARK_ORE_GRID_IMPRINT).extend(0.)),
+        transform: Transform::from_translation(
+            grid_position.to_world_position_centered(DARK_ORE_GRID_IMPRINT).extend(Z_OBSTACLE)
+        ),
         ..Default::default()
     }
 }

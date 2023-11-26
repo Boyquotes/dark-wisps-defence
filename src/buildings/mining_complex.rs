@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, MarkerMiningComplex, TechnicalState};
+use crate::common::Z_BUILDING;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::obstacles::{Field, ObstacleGrid};
@@ -41,7 +42,7 @@ pub fn get_mining_complex_sprite_bundle(coords: GridCoords, asset_server: &Asset
             ..Default::default()
         },
         texture: asset_server.load("buildings/mining_complex.png"),
-        transform: Transform::from_translation(coords.to_world_position_centered(MINING_COMPLEX_GRID_IMPRINT).extend(0.)),
+        transform: Transform::from_translation(coords.to_world_position_centered(MINING_COMPLEX_GRID_IMPRINT).extend(Z_BUILDING)),
         ..Default::default()
     }
 }

@@ -4,6 +4,7 @@ pub mod grid_object_placer;
 pub mod display_building_info;
 pub mod badges;
 mod construction_menu;
+mod common;
 
 use bevy::prelude::*;
 use crate::ui::interaction_state::UiInteractionState;
@@ -18,10 +19,13 @@ impl Plugin for UiPlugin {
             construction_menu::initialize_construction_menu_system,
             grid_object_placer::create_grid_object_placer_system
         ));
+        app.add_systems(PreUpdate, (
+            common::mouse_release_system,
+        ));
         app.add_systems(Update, (
             badges::sync_dark_ore_badge_system,
-            construction_menu::menu_hover_system,
-            construction_menu::menu_activation_system.after(construction_menu::menu_hover_system),
+            construction_menu::menu_activation_system,
+            construction_menu::construct_building_on_click_system,
             display_building_info::on_click_building_display_info_system,
             display_building_info::display_building_info_system,
             grid_display::show_hide_grid_system,

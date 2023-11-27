@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
+use crate::buildings::common::{BuildingType, TowerType};
+use crate::ui::common::AdvancedInteraction;
 
 const NOT_HOVERED_ALPHA: f32 = 0.2;
 
@@ -7,11 +9,6 @@ const NOT_HOVERED_ALPHA: f32 = 0.2;
 pub struct ConstructMenuButton {
     pub is_hovered: bool,
 }
-#[derive(Component, Default)]
-pub struct ConstructMenuListPicker {
-    pub is_hovered: bool,
-}
-
 #[derive(Bundle, Default)]
 pub struct ConstructButtonBundle {
     pub button: ButtonBundle,
@@ -35,6 +32,10 @@ impl ConstructButtonBundle {
     }
 }
 
+#[derive(Component, Default)]
+pub struct ConstructMenuListPicker {
+    pub is_hovered: bool,
+}
 #[derive(Bundle, Default)]
 pub struct ConstructMenuListPickerBundle {
     pub button: ButtonBundle,
@@ -48,6 +49,12 @@ impl ConstructMenuListPickerBundle {
                     flex_direction: FlexDirection::Row,
                     align_items: AlignItems::Center,
                     left: Val::Px(65.),
+                    padding: UiRect {
+                        left: Val::Px(2.5),
+                        right: Val::Px(2.5),
+                        top: Val::ZERO,
+                        bottom: Val::ZERO,
+                    },
                     ..Default::default()
                 },
                 background_color: Color::BLACK.into(),
@@ -59,22 +66,38 @@ impl ConstructMenuListPickerBundle {
     }
 }
 
-#[derive(Bundle, Default)]
-pub struct ConstructTowerButtonBundle {
-    pub button: ButtonBundle,
+#[derive(Component)]
+pub struct ConstructBuildingButton {
+    pub building_type: BuildingType,
 }
-impl ConstructTowerButtonBundle {
-    pub fn new() -> Self {
+#[derive(Bundle)]
+pub struct ConstructBuildingButtonBundle {
+    pub button: ButtonBundle,
+    pub construct_tower_button: ConstructBuildingButton,
+    pub advanced_interaction: AdvancedInteraction,
+}
+impl ConstructBuildingButtonBundle {
+    pub fn new(building_type: BuildingType) -> Self {
         Self {
             button: ButtonBundle {
                 style: Style {
                     width: Val::Px(48.),
                     height: Val::Px(48.),
+                    margin: UiRect {
+                        left: Val::Px(2.5),
+                        right: Val::Px(2.5),
+                        top: Val::ZERO,
+                        bottom: Val::ZERO,
+                    },
                     ..Default::default()
                 },
                 focus_policy: FocusPolicy::Pass,
                 ..Default::default()
             },
+            construct_tower_button: ConstructBuildingButton {
+                building_type,
+            },
+            advanced_interaction: Default::default(),
         }
     }
 }
@@ -104,9 +127,9 @@ pub fn create_construct_menu(
                 ConstructMenuListPickerBundle::new(),
             )).with_children(|parent| {
                 // Specific tower to construct
-                parent.spawn(
-                    ConstructTowerButtonBundle::new(),
-                );
+                parent.spawn(ConstructBuildingButtonBundle::new(BuildingType::Tower(TowerType::Blaster)));
+                parent.spawn(ConstructBuildingButtonBundle::new(BuildingType::Tower(TowerType::Cannon)));
+                parent.spawn(ConstructBuildingButtonBundle::new(BuildingType::Tower(TowerType::RocketLauncher)));
             });
         });
         parent.spawn(
@@ -123,31 +146,29 @@ pub fn initialize_construction_menu_system(
     create_construct_menu(&mut commands, &asset_server);
 }
 
-pub fn menu_hover_system(
-    mut menu_buttons: Query<(&Interaction, &mut ConstructMenuButton), Changed<Interaction>>,
-    mut list_pickers: Query<(&Interaction, &mut ConstructMenuListPicker), Changed<Interaction>>,
-) {
-    for (interaction, mut menu_button) in menu_buttons.iter_mut() {
-        menu_button.is_hovered = !matches!(interaction, Interaction::None);
-    }
-    for (interaction, mut list_picker) in list_pickers.iter_mut() {
-        list_picker.is_hovered = !matches!(interaction, Interaction::None);
-    }
-}
-
 pub fn menu_activation_system(
-    mut menu_buttons: Query<(&ConstructMenuButton, &mut BackgroundColor, &Children)>,
-    mut list_pickers: Query<(&ConstructMenuListPicker, &mut Visibility)>,
+    mut menu_buttons: Query<(&Interaction, &mut BackgroundColor, &Children), With<ConstructMenuButton>>,
+    mut list_pickers: Query<(&Interaction, &mut Visibility), With<ConstructMenuListPicker>>,
 ) {
-    for (menu_button, mut background, children) in menu_buttons.iter_mut() {
+    for (menu_interaction, mut background, children) in menu_buttons.iter_mut() {
         let list_picker_entity = children.get(0).unwrap();
-        let (list_picker, mut list_picker_visibility) = list_pickers.get_mut(*list_picker_entity).unwrap();
-        if menu_button.is_hovered || list_picker.is_hovered {
+        let (list_picker_interaction, mut list_picker_visibility) = list_pickers.get_mut(*list_picker_entity).unwrap();
+        if !matches!(menu_interaction, Interaction::None) || !matches!(list_picker_interaction, Interaction::None) {
             background.0.set_a(1.);
             *list_picker_visibility = Visibility::Inherited;
         } else {
             background.0.set_a(NOT_HOVERED_ALPHA);
             *list_picker_visibility = Visibility::Hidden;
+        }
+    }
+}
+
+pub fn construct_building_on_click_system(
+    mut menu_buttons: Query<(&AdvancedInteraction, &ConstructBuildingButton), Changed<AdvancedInteraction>>,
+) {
+    for (advanced_interaction, button) in menu_buttons.iter_mut() {
+        if advanced_interaction.was_just_released {
+            println!("{:?}", button.building_type);
         }
     }
 }

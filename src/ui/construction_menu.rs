@@ -12,6 +12,73 @@ pub struct ConstructMenuListPicker {
     pub is_hovered: bool,
 }
 
+#[derive(Bundle, Default)]
+pub struct ConstructButtonBundle {
+    pub button: ButtonBundle,
+    pub construct_menu_button: ConstructMenuButton,
+}
+impl ConstructButtonBundle {
+    pub fn new(image: Handle<Image>) -> Self {
+        Self {
+            button: ButtonBundle {
+                style: Style {
+                    width: Val::Px(65.),
+                    height: Val::Px(64.),
+                    ..Default::default()
+                },
+                background_color: (*Color::WHITE.set_a(NOT_HOVERED_ALPHA)).into(),
+                image: UiImage::new(image),
+                ..Default::default()
+            },
+            construct_menu_button: ConstructMenuButton::default(),
+        }
+    }
+}
+
+#[derive(Bundle, Default)]
+pub struct ConstructMenuListPickerBundle {
+    pub button: ButtonBundle,
+    pub construct_menu_list_picker: ConstructMenuListPicker,
+}
+impl ConstructMenuListPickerBundle {
+    pub fn new() -> Self {
+        Self {
+            button: ButtonBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Row,
+                    align_items: AlignItems::Center,
+                    left: Val::Px(65.),
+                    ..Default::default()
+                },
+                background_color: Color::BLACK.into(),
+                z_index: ZIndex::Global(-1),
+                ..Default::default()
+            },
+            construct_menu_list_picker: ConstructMenuListPicker::default(),
+        }
+    }
+}
+
+#[derive(Bundle, Default)]
+pub struct ConstructTowerButtonBundle {
+    pub button: ButtonBundle,
+}
+impl ConstructTowerButtonBundle {
+    pub fn new() -> Self {
+        Self {
+            button: ButtonBundle {
+                style: Style {
+                    width: Val::Px(48.),
+                    height: Val::Px(48.),
+                    ..Default::default()
+                },
+                focus_policy: FocusPolicy::Pass,
+                ..Default::default()
+            },
+        }
+    }
+}
+
 pub fn create_construct_menu(
     commands: &mut Commands,
     asset_server: &AssetServer,
@@ -29,57 +96,22 @@ pub fn create_construct_menu(
         ..Default::default()
     })).with_children(|parent| {
         // Construct towers button
-        parent.spawn((ButtonBundle {
-                style: Style {
-                    width: Val::Px(65.),
-                    height: Val::Px(64.),
-                    ..Default::default()
-                },
-                background_color: (*Color::WHITE.set_a(NOT_HOVERED_ALPHA)).into(),
-                image: UiImage::new(asset_server.load("ui/construct_towers.png")),
-                ..Default::default()
-            },
-            ConstructMenuButton::default(),
-        )).with_children(|parent| {
+        parent.spawn(
+            ConstructButtonBundle::new(asset_server.load("ui/construct_towers.png")),
+        ).with_children(|parent| {
             // Construct towers list picker
-            parent.spawn((ButtonBundle {
-                    style: Style {
-                        flex_direction: FlexDirection::Row,
-                        align_items: AlignItems::Center,
-                        left: Val::Px(65.),
-                        ..Default::default()
-                    },
-                    background_color: Color::BLACK.into(),
-                    z_index: ZIndex::Global(-1),
-                    ..Default::default()
-                },
-                ConstructMenuListPicker::default(),
+            parent.spawn((
+                ConstructMenuListPickerBundle::new(),
             )).with_children(|parent| {
                 // Specific tower to construct
-                parent.spawn((ButtonBundle {
-                    style: Style {
-                        width: Val::Px(48.),
-                        height: Val::Px(48.),
-                        ..Default::default()
-                    },
-                    focus_policy: FocusPolicy::Pass,
-                    ..Default::default()
-                }));
+                parent.spawn(
+                    ConstructTowerButtonBundle::new(),
+                );
             });
         });
-        parent.spawn((ButtonBundle {
-            // Construct buildings button
-                style: Style {
-                    width: Val::Px(65.),
-                    height: Val::Px(64.),
-                    ..Default::default()
-                },
-                background_color: (*Color::WHITE.set_a(NOT_HOVERED_ALPHA)).into(),
-                image: UiImage::new(asset_server.load("ui/construct_buildings.png")),
-                ..Default::default()
-            },
-            ConstructMenuButton::default(),
-        ));
+        parent.spawn(
+            ConstructButtonBundle::new(asset_server.load("ui/construct_buildings.png"))
+        );
     }).id();
     construct_towers_button
 }

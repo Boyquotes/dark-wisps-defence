@@ -78,7 +78,7 @@ pub fn onclick_spawn_system(
 ) {
     if !matches!(*grid_object_placer.single(), GridObjectPlacer::DarkOre) { return; }
     let mouse_coords = mouse_info.grid_coords;
-    if !mouse_coords.is_in_bounds(obstacles_grid.bounds()) { return; }
+    if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacles_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {
         // Place a dark_ore
         if obstacles_grid[mouse_coords].is_empty() {

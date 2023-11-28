@@ -17,11 +17,13 @@ pub struct MouseInfo {
     pub screen_position: Vec2,
     pub world_position: Vec2,
     pub grid_coords: GridCoords, // Not guaranteed to be in bounds
+    pub is_over_ui: bool,
 }
 
 pub fn update_mouse_info_system(
     window: Query<&Window, With<PrimaryWindow>>,
     camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    ui_nodes: Query<&Interaction, (Changed<Interaction>, With<Node>)>,
     mut mouse_info: ResMut<MouseInfo>,
 ) {
     let window = window.single();
@@ -34,5 +36,8 @@ pub fn update_mouse_info_system(
         mouse_info.screen_position = screen_position;
         mouse_info.world_position = world_position;
         mouse_info.grid_coords = grid_coords;
+    }
+    if !ui_nodes.is_empty() {
+        mouse_info.is_over_ui = ui_nodes.iter().any(|interaction| !matches!(interaction, Interaction::None));
     }
 }

@@ -14,7 +14,11 @@ use crate::map_objects::walls::WALL_GRID_IMPRINT;
 use crate::mouse::MouseInfo;
 use crate::ui::interaction_state::UiInteractionState;
 
-#[derive(Component, Default)]
+
+#[derive(Resource, Default)]
+pub struct GridObjectPlacerRequest(pub Option<GridObjectPlacer>);
+
+#[derive(Component, Default, Clone, Debug)]
 pub enum GridObjectPlacer {
     #[default]
     None,
@@ -95,19 +99,10 @@ pub fn update_grid_object_placer_system(
     };
 }
 
-pub fn on_click_initiate_grid_object_placer_system(
-    mut ui_interaction_state: ResMut<UiInteractionState>,
-    mut placer: Query<(&mut Sprite, &mut Visibility, &mut GridObjectPlacer)>,
+pub fn keyboard_input_system(
+    mut grid_object_placer_request: ResMut<GridObjectPlacerRequest>,
     keys: Res<Input<KeyCode>>,
 ) {
-    if !matches!(*ui_interaction_state, UiInteractionState::Free | UiInteractionState::PlaceGridObject) {
-        return;
-    }
-    if keys.just_pressed(KeyCode::Escape) {
-        *ui_interaction_state = UiInteractionState::Free;
-        return;
-    }
-
     let placer_request = {
         if keys.just_pressed(KeyCode::W) {
             GridObjectPlacer::Wall
@@ -143,7 +138,18 @@ pub fn on_click_initiate_grid_object_placer_system(
             return
         }
     };
+    grid_object_placer_request.0 = Some(placer_request);
+}
 
+pub fn on_request_grid_object_placer_system(
+    mut ui_interaction_state: ResMut<UiInteractionState>,
+    mut placer: Query<(&mut Sprite, &mut Visibility, &mut GridObjectPlacer)>,
+    mut placer_request: ResMut<GridObjectPlacerRequest>,
+) {
+    let Some(placer_request) = placer_request.0.take() else { return; };
+    if !matches!(*ui_interaction_state, UiInteractionState::Free | UiInteractionState::PlaceGridObject) {
+        return;
+    }
     let (mut sprite, mut visibility, mut grid_object_placer) = placer.single_mut();
     *ui_interaction_state = UiInteractionState::PlaceGridObject;
     *visibility = Visibility::Visible;

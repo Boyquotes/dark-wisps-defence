@@ -8,3 +8,13 @@ pub enum UiInteractionState {
     PlaceGridObject,
     DisplayBuildingInfo(BuildingId),
 }
+
+pub fn keyboard_input_system(
+    keys: Res<Input<KeyCode>>,
+    mut ui_interaction_state: ResMut<UiInteractionState>,
+) {
+    if keys.just_pressed(KeyCode::Escape) {
+        *ui_interaction_state = UiInteractionState::Free;
+        return;
+    }
+}

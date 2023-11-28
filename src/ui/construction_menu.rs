@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::ui::common::AdvancedInteraction;
+use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
 
 const NOT_HOVERED_ALPHA: f32 = 0.2;
 
@@ -67,16 +68,16 @@ impl ConstructMenuListPickerBundle {
 }
 
 #[derive(Component)]
-pub struct ConstructBuildingButton {
-    pub building_type: BuildingType,
+pub struct ConstructObjectButton {
+    pub object_type: GridObjectPlacer,
 }
 #[derive(Bundle)]
-pub struct ConstructBuildingButtonBundle {
+pub struct ConstructObjectButtonBundle {
     pub button: ButtonBundle,
-    pub construct_tower_button: ConstructBuildingButton,
+    pub construct_tower_button: ConstructObjectButton,
     pub advanced_interaction: AdvancedInteraction,
 }
-impl ConstructBuildingButtonBundle {
+impl ConstructObjectButtonBundle {
     pub fn new(building_type: BuildingType) -> Self {
         Self {
             button: ButtonBundle {
@@ -94,8 +95,8 @@ impl ConstructBuildingButtonBundle {
                 focus_policy: FocusPolicy::Pass,
                 ..Default::default()
             },
-            construct_tower_button: ConstructBuildingButton {
-                building_type,
+            construct_tower_button: ConstructObjectButton {
+                object_type: GridObjectPlacer::Building(building_type.into()),
             },
             advanced_interaction: Default::default(),
         }
@@ -127,9 +128,9 @@ pub fn create_construct_menu(
                 ConstructMenuListPickerBundle::new(),
             )).with_children(|parent| {
                 // Specific tower to construct
-                parent.spawn(ConstructBuildingButtonBundle::new(BuildingType::Tower(TowerType::Blaster)));
-                parent.spawn(ConstructBuildingButtonBundle::new(BuildingType::Tower(TowerType::Cannon)));
-                parent.spawn(ConstructBuildingButtonBundle::new(BuildingType::Tower(TowerType::RocketLauncher)));
+                parent.spawn(ConstructObjectButtonBundle::new(BuildingType::Tower(TowerType::Blaster)));
+                parent.spawn(ConstructObjectButtonBundle::new(BuildingType::Tower(TowerType::Cannon)));
+                parent.spawn(ConstructObjectButtonBundle::new(BuildingType::Tower(TowerType::RocketLauncher)));
             });
         });
         parent.spawn(
@@ -164,11 +165,15 @@ pub fn menu_activation_system(
 }
 
 pub fn construct_building_on_click_system(
-    mut menu_buttons: Query<(&AdvancedInteraction, &ConstructBuildingButton), Changed<AdvancedInteraction>>,
+    mut grid_object_placer_request: ResMut<GridObjectPlacerRequest>,
+    mut menu_buttons: Query<(&AdvancedInteraction, &ConstructObjectButton), Changed<AdvancedInteraction>>,
+    mut list_pickers: Query<(&mut Interaction, &mut Visibility), With<ConstructMenuListPicker>>,
 ) {
     for (advanced_interaction, button) in menu_buttons.iter_mut() {
         if advanced_interaction.was_just_released {
-            println!("{:?}", button.building_type);
+            println!("{:?}", button.object_type);
+            grid_object_placer_request.0 = Some(button.object_type.clone());
+            list_pickers.for_each_mut(|(mut interaction, mut visibility)| { *visibility = Visibility::Hidden; *interaction = Interaction::None; });
         }
     }
 }

@@ -39,6 +39,15 @@ impl GridObjectPlacer {
     }
 }
 
+impl From<BuildingType> for GridObjectPlacer {
+    fn from(building_type: BuildingType) -> Self {
+        match building_type {
+            BuildingType::MiningComplex => GridObjectPlacer::MiningComplex,
+            _ => GridObjectPlacer::Building(building_type.into()),
+        }
+    }
+}
+
 pub fn create_grid_object_placer_system(mut commands: Commands) {
     commands.spawn(
         GridObjectPlacer::default()

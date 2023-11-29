@@ -1,6 +1,11 @@
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use crate::buildings::common::{BuildingType, TowerType};
+use crate::buildings::main_base::MAIN_BASE_BASE_IMAGE;
+use crate::buildings::mining_complex::MINING_COMPLEX_BASE_IMAGE;
+use crate::buildings::tower_blaster::TOWER_BLASTER_BASE_IMAGE;
+use crate::buildings::tower_cannon::TOWER_CANNON_BASE_IMAGE;
+use crate::map_objects::dark_ore::DARK_ORE_BASE_IMAGE;
 use crate::ui::common::AdvancedInteraction;
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
 
@@ -78,7 +83,7 @@ pub struct ConstructObjectButtonBundle {
     pub advanced_interaction: AdvancedInteraction,
 }
 impl ConstructObjectButtonBundle {
-    pub fn new(building_type: BuildingType) -> Self {
+    pub fn new(grid_object_placer: GridObjectPlacer) -> Self {
         Self {
             button: ButtonBundle {
                 style: Style {
@@ -92,14 +97,49 @@ impl ConstructObjectButtonBundle {
                     },
                     ..Default::default()
                 },
+                background_color: Color::TURQUOISE.into(),
                 focus_policy: FocusPolicy::Pass,
                 ..Default::default()
             },
             construct_tower_button: ConstructObjectButton {
-                object_type: GridObjectPlacer::Building(building_type.into()),
+                object_type: grid_object_placer,
             },
             advanced_interaction: Default::default(),
         }
+    }
+    pub fn spawn(builder: &mut ChildBuilder, asset_server: &AssetServer, grid_object_placer: GridObjectPlacer) {
+        let image_path = match &grid_object_placer {
+            GridObjectPlacer::MiningComplex => Some(MINING_COMPLEX_BASE_IMAGE),
+            GridObjectPlacer::Building(building) => match building.building_type {
+                BuildingType::Tower(tower_type) => {
+                    match tower_type {
+                        TowerType::Blaster => Some(TOWER_BLASTER_BASE_IMAGE),
+                        TowerType::Cannon => Some(TOWER_CANNON_BASE_IMAGE),
+                        _ => None,
+                    }
+                },
+                BuildingType::MainBase => Some(MAIN_BASE_BASE_IMAGE),
+                _ => None,
+            },
+            GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGE),
+            _ => None,
+        };
+        builder.spawn(ConstructObjectButtonBundle::new(grid_object_placer)).with_children(|parent| {
+            if let Some(image_path) = image_path {
+                parent.spawn((
+                    NodeBundle {
+                        style: Style {
+                            width: Val::Px(48.0),
+                            height: Val::Px(48.0),
+                            ..default()
+                        },
+                        background_color: Color::WHITE.into(),
+                        ..default()
+                    },
+                    UiImage::new(asset_server.load(image_path)),
+                ));
+            }
+        });
     }
 }
 
@@ -107,7 +147,7 @@ pub fn create_construct_menu(
     commands: &mut Commands,
     asset_server: &AssetServer,
 ) -> Entity {
-    let construct_towers_button = commands.spawn((NodeBundle {
+    let construct_towers_button = commands.spawn(NodeBundle {
         // Main Menu node
         style: Style {
             position_type: PositionType::Absolute,
@@ -118,24 +158,48 @@ pub fn create_construct_menu(
             ..Default::default()
         },
         ..Default::default()
-    })).with_children(|parent| {
+    }).with_children(|parent| {
         // Construct towers button
         parent.spawn(
             ConstructButtonBundle::new(asset_server.load("ui/construct_towers.png")),
         ).with_children(|parent| {
             // Construct towers list picker
-            parent.spawn((
+            parent.spawn(
                 ConstructMenuListPickerBundle::new(),
-            )).with_children(|parent| {
+            ).with_children(|mut parent| {
                 // Specific tower to construct
-                parent.spawn(ConstructObjectButtonBundle::new(BuildingType::Tower(TowerType::Blaster)));
-                parent.spawn(ConstructObjectButtonBundle::new(BuildingType::Tower(TowerType::Cannon)));
-                parent.spawn(ConstructObjectButtonBundle::new(BuildingType::Tower(TowerType::RocketLauncher)));
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::Blaster).into());
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::Cannon).into());
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::RocketLauncher).into());
             });
         });
         parent.spawn(
-            ConstructButtonBundle::new(asset_server.load("ui/construct_buildings.png"))
-        );
+            ConstructButtonBundle::new(asset_server.load("ui/construct_buildings.png")),
+        ).with_children(|parent| {
+            // Construct buildings list picker
+            parent.spawn(
+                ConstructMenuListPickerBundle::new(),
+            ).with_children(|mut parent| {
+                // Specific building to construct
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::EnergyRelay.into());
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::MiningComplex.into());
+            });
+        });
+    }).with_children(|parent| {
+        // Construct objects(editor)
+        parent.spawn(
+            ConstructButtonBundle::new(asset_server.load("ui/construct_editor.png")),
+        ).with_children(|parent| {
+            // Construct editor list picker
+            parent.spawn(
+                ConstructMenuListPickerBundle::new(),
+            ).with_children(|mut parent| {
+                // Specific editor buildings to construct
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::MainBase.into());
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::DarkOre);
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::Wall);
+            });
+        });
     }).id();
     construct_towers_button
 }
@@ -171,7 +235,6 @@ pub fn construct_building_on_click_system(
 ) {
     for (advanced_interaction, button) in menu_buttons.iter_mut() {
         if advanced_interaction.was_just_released {
-            println!("{:?}", button.object_type);
             grid_object_placer_request.0 = Some(button.object_type.clone());
             list_pickers.for_each_mut(|(mut interaction, mut visibility)| { *visibility = Visibility::Hidden; *interaction = Interaction::None; });
         }

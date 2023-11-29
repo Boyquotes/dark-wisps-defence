@@ -10,6 +10,7 @@ use crate::projectiles::cannonball::create_cannonball;
 use crate::wisps::components::{Target, Wisp};
 use crate::wisps::spawning::WISP_GRID_IMPRINT;
 pub const TOWER_CANNON_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
+pub const TOWER_CANNON_BASE_IMAGE: &str = "buildings/tower_cannon.png";
 
 #[derive(Component)]
 pub struct MarkerTowerCannon;
@@ -48,7 +49,7 @@ pub fn get_tower_cannon_sprite_bundle(coords: GridCoords, asset_server: &AssetSe
             custom_size: Some(TOWER_CANNON_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
-        texture: asset_server.load("buildings/tower_cannon.png"),
+        texture: asset_server.load(TOWER_CANNON_BASE_IMAGE),
         transform: Transform::from_translation(coords.to_world_position_centered(TOWER_CANNON_GRID_IMPRINT).extend(Z_BUILDING)),
         ..Default::default()
     }

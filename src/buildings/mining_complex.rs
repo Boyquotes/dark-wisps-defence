@@ -8,6 +8,7 @@ use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::inventory::resources::DarkOreStock;
 
 pub const MINING_COMPLEX_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
+pub const MINING_COMPLEX_BASE_IMAGE: &str = "buildings/mining_complex.png";
 
 #[derive(Component)]
 pub struct MiningComplexDeliveryTimer(pub Timer);
@@ -41,7 +42,7 @@ pub fn get_mining_complex_sprite_bundle(coords: GridCoords, asset_server: &Asset
             custom_size: Some(MINING_COMPLEX_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
-        texture: asset_server.load("buildings/mining_complex.png"),
+        texture: asset_server.load(MINING_COMPLEX_BASE_IMAGE),
         transform: Transform::from_translation(coords.to_world_position_centered(MINING_COMPLEX_GRID_IMPRINT).extend(Z_BUILDING)),
         ..Default::default()
     }

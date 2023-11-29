@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
+use crate::buildings::common::BuildingType::MainBase;
 use crate::buildings::common_components::{Building, MarkerMainBase, TechnicalState};
 use crate::common::Z_BUILDING;
 use crate::common_components::Health;
@@ -10,6 +11,7 @@ use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator};
 
 pub const MAIN_BASE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 6, height: 6 };
+pub const MAIN_BASE_BASE_IMAGE: &str = "buildings/main_base.png";
 
 pub fn create_main_base(
     commands: &mut Commands,
@@ -58,7 +60,7 @@ pub fn get_main_base_sprite_bundle(coords: GridCoords, asset_server: &AssetServe
             custom_size: Some(MAIN_BASE_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
-        texture: asset_server.load("buildings/main_base.png"),
+        texture: asset_server.load(MAIN_BASE_BASE_IMAGE),
         transform: Transform::from_translation(coords.to_world_position_centered(MAIN_BASE_GRID_IMPRINT).extend(Z_BUILDING)),
         ..Default::default()
     }

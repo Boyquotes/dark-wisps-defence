@@ -7,6 +7,7 @@ use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 
 pub const DARK_ORE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
+pub const DARK_ORE_BASE_IMAGE: &str = "map_objects/dark_ore.png";
 
 #[derive(Component)]
 pub struct DarkOre {
@@ -42,7 +43,7 @@ pub fn get_dark_ore_sprite_bundle(grid_position: GridCoords, asset_server: &Asse
             custom_size: Some(DARK_ORE_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
-        texture: asset_server.load("map_objects/dark_ore.png"),
+        texture: asset_server.load(DARK_ORE_BASE_IMAGE),
         transform: Transform::from_translation(
             grid_position.to_world_position_centered(DARK_ORE_GRID_IMPRINT).extend(Z_OBSTACLE)
         ),

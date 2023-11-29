@@ -12,6 +12,7 @@ use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
 
 pub const TOWER_BLASTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 2, height: 2 };
+pub const TOWER_BLASTER_BASE_IMAGE: &str = "buildings/tower_blaster.png";
 
 #[derive(Component)]
 pub struct MarkerTowerBlaster;
@@ -60,7 +61,7 @@ pub fn get_tower_blaster_sprite_bundle(grid_position: GridCoords, asset_server: 
             custom_size: Some(world_size),
             ..Default::default()
         },
-        texture: asset_server.load("buildings/tower_blaster.png"),
+        texture: asset_server.load(TOWER_BLASTER_BASE_IMAGE),
         transform: Transform::from_translation(world_position.extend(Z_BUILDING)),
         ..Default::default()
     };

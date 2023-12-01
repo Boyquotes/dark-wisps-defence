@@ -20,10 +20,6 @@ pub fn create_tower_rocket_launcher(
     energy_supply_grid: &EnergySupplyGrid,
     grid_position: GridCoords,
 ) -> Entity {
-    let building = Building {
-        grid_imprint: TOWER_ROCKET_LAUNCHER_GRID_IMPRINT,
-        building_type: BuildingType::Tower(TowerType::RocketLauncher)
-    };
     let building_entity = commands.spawn(
         get_tower_rocket_launcher_sprite_bundle(grid_position)
     ).insert((
@@ -32,12 +28,12 @@ pub fn create_tower_rocket_launcher(
         grid_position,
         Health(10000),
         TowerRange(30),
-        building.clone(),
+        Building::from(BuildingType::Tower(TowerType::RocketLauncher)),
         TowerShootingTimer::from_seconds(2.0),
         TowerWispTarget::default(),
-        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, building.grid_imprint) },
+        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_ROCKET_LAUNCHER_GRID_IMPRINT) },
     )).id();
-    obstacle_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), TOWER_ROCKET_LAUNCHER_GRID_IMPRINT);
+    obstacle_grid.imprint(grid_position, Field::Building(building_entity, BuildingType::Tower(TowerType::RocketLauncher)), TOWER_ROCKET_LAUNCHER_GRID_IMPRINT);
     building_entity
 }
 

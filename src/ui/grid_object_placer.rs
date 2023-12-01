@@ -1,11 +1,7 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::Building;
-use crate::buildings::energy_relay::ENERGY_RELAY_GRID_IMPRINT;
 use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
-use crate::buildings::tower_blaster::TOWER_BLASTER_GRID_IMPRINT;
-use crate::buildings::tower_cannon::TOWER_CANNON_GRID_IMPRINT;
-use crate::buildings::tower_rocket_launcher::TOWER_ROCKET_LAUNCHER_GRID_IMPRINT;
 use crate::grids::common::GridImprint;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{ObstacleGrid};
@@ -120,29 +116,13 @@ pub fn keyboard_input_system(
         } else if keys.just_pressed(KeyCode::M) {
             GridObjectPlacer::MiningComplex
         }else if keys.just_pressed(KeyCode::E) {
-            // Energy Relay
-            let grid_imprint = ENERGY_RELAY_GRID_IMPRINT;
-            GridObjectPlacer::Building(
-                Building{grid_imprint, building_type: BuildingType::EnergyRelay}
-            )
+            GridObjectPlacer::Building(BuildingType::EnergyRelay.into())
         } else if keys.just_pressed(KeyCode::Key1) {
-            // Tower Blaster
-            let grid_imprint = TOWER_BLASTER_GRID_IMPRINT;
-            GridObjectPlacer::Building(
-                Building{grid_imprint, building_type: BuildingType::Tower(TowerType::Blaster)}
-            )
+            GridObjectPlacer::Building(BuildingType::Tower(TowerType::Blaster).into())
         } else if keys.just_pressed(KeyCode::Key2) {
-            // Tower Cannon
-            let grid_imprint = TOWER_CANNON_GRID_IMPRINT;
-            GridObjectPlacer::Building(
-                Building{grid_imprint, building_type: BuildingType::Tower(TowerType::Cannon)}
-            )
+            GridObjectPlacer::Building(BuildingType::Tower(TowerType::Cannon).into())
         } else if keys.just_pressed(KeyCode::Key3) {
-            // Tower Rocket Launcher
-            let grid_imprint = TOWER_ROCKET_LAUNCHER_GRID_IMPRINT;
-            GridObjectPlacer::Building(
-                Building{grid_imprint, building_type: BuildingType::Tower(TowerType::RocketLauncher)}
-            )
+            GridObjectPlacer::Building(BuildingType::Tower(TowerType::RocketLauncher).into())
         } else {
             return
         }

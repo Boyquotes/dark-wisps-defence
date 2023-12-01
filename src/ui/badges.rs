@@ -51,7 +51,7 @@ pub fn initialize_badges_system(
 
 pub fn sync_dark_ore_badge_system(
     mut query: Query<&mut Text, With<MarkerDarkOreBadgeText>>,
-    mut dark_ore_stock: Res<DarkOreStock>,
+    dark_ore_stock: Res<DarkOreStock>,
 ) {
     let mut text = query.single_mut();
     text.sections[0].value = dark_ore_stock.amount.to_string();

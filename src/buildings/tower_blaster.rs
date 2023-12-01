@@ -24,10 +24,6 @@ pub fn create_tower_blaster(
     energy_supply_grid: &EnergySupplyGrid,
     grid_position: GridCoords
 ) -> Entity {
-    let building = Building {
-        grid_imprint: TOWER_BLASTER_GRID_IMPRINT,
-        building_type: BuildingType::Tower(TowerType::Blaster)
-    };
     let (tower_base_bundle, tower_top_bundle) = get_tower_blaster_sprite_bundle(grid_position, asset_server);
     let building_entity = commands.spawn((
         tower_base_bundle,
@@ -36,10 +32,10 @@ pub fn create_tower_blaster(
         grid_position,
         Health(10000),
         TowerRange(15),
-        building.clone(),
+        Building::from(BuildingType::Tower(TowerType::Blaster)),
         TowerShootingTimer::from_seconds(0.2),
         TowerWispTarget::default(),
-        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, building.grid_imprint) },
+        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_BLASTER_GRID_IMPRINT) },
         TowerTopRotation { speed: 10.0, current_angle: 0. }
     )).id();
 
@@ -48,7 +44,7 @@ pub fn create_tower_blaster(
         tower_top_bundle,
         MarkerTowerRotationalTop(building_entity.into()),
     ));
-    obstacle_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), TOWER_BLASTER_GRID_IMPRINT);
+    obstacle_grid.imprint(grid_position, Field::Building(building_entity, BuildingType::Tower(TowerType::Blaster)), TOWER_BLASTER_GRID_IMPRINT);
     building_entity
 }
 

@@ -22,10 +22,6 @@ pub fn create_tower_cannon(
     energy_supply_grid: &EnergySupplyGrid,
     grid_position: GridCoords,
 ) -> Entity {
-    let building = Building {
-        grid_imprint: TOWER_CANNON_GRID_IMPRINT,
-        building_type: BuildingType::Tower(TowerType::Cannon)
-    };
     let building_entity = commands.spawn(
         get_tower_cannon_sprite_bundle(grid_position, asset_server),
     ).insert((
@@ -34,12 +30,12 @@ pub fn create_tower_cannon(
         grid_position,
         Health(10000),
         TowerRange(15),
-        building.clone(),
+        Building::from(BuildingType::Tower(TowerType::Cannon)),
         TowerShootingTimer::from_seconds(2.0),
         TowerWispTarget::default(),
-        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, building.grid_imprint) },
+        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_CANNON_GRID_IMPRINT) },
     )).id();
-    obstacle_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), TOWER_CANNON_GRID_IMPRINT);
+    obstacle_grid.imprint(grid_position, Field::Building(building_entity, BuildingType::Tower(TowerType::Cannon)), TOWER_CANNON_GRID_IMPRINT);
     building_entity
 }
 

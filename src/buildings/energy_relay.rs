@@ -18,10 +18,6 @@ pub fn create_energy_relay(
     obstacles_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) -> Entity {
-    let building = Building {
-        grid_imprint: ENERGY_RELAY_GRID_IMPRINT,
-        building_type: BuildingType::EnergyRelay
-    };
     let energy_emissions_details = FloodEmissionsDetails {
         emissions_type: EmissionsType::Energy,
         range: usize::MAX,
@@ -33,20 +29,21 @@ pub fn create_energy_relay(
         MarkerEnergyRelay,
         grid_position,
         Health(10000),
-        building.clone(),
+        Building::from(BuildingType::EnergyRelay),
         EmitterEnergy(energy_emissions_details.clone()),
         supplier_energy,
         TechnicalState{ has_energy_supply: true },
     )).id();
+    let covered_coords = ENERGY_RELAY_GRID_IMPRINT.covered_coords(grid_position);
     emitter_created_event_writer.send(EmitterCreatedEvent {
-        coords: building.grid_imprint.covered_coords(grid_position),
+        coords: covered_coords.clone(),
         emissions_details: vec![energy_emissions_details],
     });
     supplier_created_event_writer.send(SupplierCreatedEvent {
-        coords: building.grid_imprint.covered_coords(grid_position),
+        coords: covered_coords,
         supplier: supplier_energy,
     });
-    obstacles_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), ENERGY_RELAY_GRID_IMPRINT);
+    obstacles_grid.imprint(grid_position, Field::Building(building_entity, BuildingType::EnergyRelay), ENERGY_RELAY_GRID_IMPRINT);
     building_entity
 }
 

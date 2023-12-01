@@ -25,10 +25,7 @@ pub fn create_mining_complex(
         MarkerMiningComplex,
         grid_position,
         Health(10000),
-        Building {
-            grid_imprint: MINING_COMPLEX_GRID_IMPRINT,
-            building_type: BuildingType::MiningComplex
-        },
+        Building::from(BuildingType::MiningComplex),
         TechnicalState::default(),
         MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
     )).id();

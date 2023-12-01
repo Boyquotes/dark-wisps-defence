@@ -1,6 +1,6 @@
 use std::time::Duration;
 use bevy::prelude::*;
-use crate::buildings::common::{BuildingId, BuildingType};
+use crate::buildings::common::{BuildingId, BuildingType, TowerType};
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridImprint;
 use crate::wisps::components::WispEntity;
@@ -9,6 +9,11 @@ use crate::wisps::components::WispEntity;
 pub struct Building {
     pub grid_imprint: GridImprint,
     pub building_type: BuildingType,
+}
+impl From<BuildingType> for Building {
+    fn from(building_type: BuildingType) -> Building {
+        Building { building_type, grid_imprint: building_type.grid_imprint() }
+    }
 }
 
 #[derive(Component, Default)]

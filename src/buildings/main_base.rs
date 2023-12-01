@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::buildings::common::BuildingType::MainBase;
 use crate::buildings::common_components::{Building, MarkerMainBase, TechnicalState};
 use crate::common::Z_BUILDING;
 use crate::common_components::Health;
@@ -21,10 +20,6 @@ pub fn create_main_base(
     obstacle_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) -> Entity {
-    let building = Building {
-        grid_imprint: MAIN_BASE_GRID_IMPRINT,
-        building_type: BuildingType::MainBase
-    };
     let energy_emissions_details = FloodEmissionsDetails {
         emissions_type: EmissionsType::Energy,
         range: usize::MAX,
@@ -36,12 +31,12 @@ pub fn create_main_base(
         MarkerMainBase,
         grid_position,
         Health(10000),
-        building.clone(),
+        Building::from(BuildingType::MainBase),
         EmitterEnergy(energy_emissions_details.clone()),
         supplier_energy,
         TechnicalState{ has_energy_supply: true },
     )).id();
-    let covered_coords = building.grid_imprint.covered_coords(grid_position);
+    let covered_coords = MAIN_BASE_GRID_IMPRINT.covered_coords(grid_position);
     emitter_created_event_writer.send(EmitterCreatedEvent {
         coords: covered_coords.clone(),
         emissions_details: vec![energy_emissions_details],
@@ -50,7 +45,7 @@ pub fn create_main_base(
         coords: covered_coords,
         supplier: supplier_energy,
     });
-    obstacle_grid.imprint(grid_position, Field::Building(building_entity, building.building_type), MAIN_BASE_GRID_IMPRINT);
+    obstacle_grid.imprint(grid_position, Field::Building(building_entity, BuildingType::MainBase), MAIN_BASE_GRID_IMPRINT);
     building_entity
 }
 

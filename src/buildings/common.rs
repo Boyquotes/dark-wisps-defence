@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::buildings::common_components::Building;
+use crate::grids::common::GridImprint;
 use crate::utils::id::Id;
 
 pub type BuildingId = Id<BuildingType, Entity>;
@@ -15,10 +15,8 @@ impl BuildingType {
     pub fn is_energy_rich(&self) -> bool {
         matches!(self, BuildingType::MainBase | BuildingType::EnergyRelay)
     }
-}
-impl Into<Building> for BuildingType {
-    fn into(self) -> Building {
-        let imprint = match self {
+    pub fn grid_imprint(&self) -> GridImprint {
+        match self {
             BuildingType::EnergyRelay => super::energy_relay::ENERGY_RELAY_GRID_IMPRINT,
             BuildingType::MainBase => super::main_base::MAIN_BASE_GRID_IMPRINT,
             BuildingType::Tower(tower_type) => {
@@ -29,10 +27,6 @@ impl Into<Building> for BuildingType {
                 }
             },
             BuildingType::MiningComplex => super::mining_complex::MINING_COMPLEX_GRID_IMPRINT,
-        };
-        Building {
-            building_type: self,
-            grid_imprint: imprint,
         }
     }
 }

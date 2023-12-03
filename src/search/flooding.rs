@@ -9,7 +9,7 @@ use crate::search::common::CARDINAL_DIRECTIONS;
 /// Defines how to calculate the emissions as a function of distance
 /// `Constant` - value is constant regardless of distance
 /// `Linear` - value decreasing linearly with distance
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum FloodEmissionsEvaluator {
     Constant(f32),
     Linear{growth: f32},
@@ -18,11 +18,18 @@ pub enum FloodEmissionsEvaluator {
 
 /// Describes what type of emissions, and how far to spread it.
 /// The evaluator determines how to calculate the emissions value as the flood spreads
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FloodEmissionsDetails {
     pub emissions_type: EmissionsType,
     pub range: usize,
     pub evaluator: FloodEmissionsEvaluator,
+    pub mode: FloodEmissionsMode,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum FloodEmissionsMode {
+    Increase,
+    Decrease,
 }
 
 pub fn flood_emissions(
@@ -82,7 +89,7 @@ fn apply_emissions_details(
         FloodEmissionsEvaluator::ExponentialDecay{start_value, decay} => {
             start_value * (-1. * decay * distance as f32).exp()
         },
-    };
+    } * if matches!(details.mode, FloodEmissionsMode::Increase) { 1. } else { -1. };
     match details.emissions_type {
         EmissionsType::Energy => {
             emissions_grid.add_energy(grid_coords, value);
@@ -90,6 +97,7 @@ fn apply_emissions_details(
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum FloodEnergySupplyMode {
     Increase,
     Decrease,

@@ -17,8 +17,8 @@ mod inventory;
 
 use bevy::prelude::*;
 use crate::grids::common::CELL_SIZE;
-use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterCreatedEvent};
-use crate::grids::energy_supply::{EnergySupplyGrid, SupplierCreatedEvent};
+use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
+use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};
 use crate::grids::obstacles::{ObstacleGrid};
 use crate::map_editor::MapInfo;
 
@@ -72,8 +72,8 @@ pub fn generate_default_map(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
-    mut emitter_created_event_writer: EventWriter<EmitterCreatedEvent>,
-    mut supplier_created_event_writer: EventWriter<SupplierCreatedEvent>,
+    mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
+    mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     mut obstacles_grid: ResMut<ObstacleGrid>,
     energy_supply_grid: Res<EnergySupplyGrid>,
     mut map_info: ResMut<MapInfo>,

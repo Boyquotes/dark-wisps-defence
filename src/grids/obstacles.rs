@@ -59,6 +59,12 @@ impl ObstacleGrid {
         self.version = self.version.wrapping_add(1);
     }
 
+    pub fn reprint(&mut self, old_coords: GridCoords, new_coords: GridCoords, field: Field, imprint: GridImprint) {
+        self.deprint(old_coords, imprint);
+        self.imprint(new_coords, field, imprint);
+    }
+
+
     pub fn imprint_query_all(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
         match imprint {
             GridImprint::Rectangle { width, height } => {

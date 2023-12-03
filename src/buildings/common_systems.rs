@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
+use crate::buildings::common_components::{Building, MarkerMainBase, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
 use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridCoords;
-use crate::grids::emissions::EmitterCreatedEvent;
-use crate::grids::energy_supply::{EnergySupplyGrid, SupplierCreatedEvent, SupplierEnergy};
+use crate::grids::emissions::EmitterChangedEvent;
+use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, SupplierEnergy};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::mouse::MouseInfo;
@@ -15,13 +15,14 @@ use crate::ui::grid_object_placer::GridObjectPlacer;
 pub fn onclick_building_spawn_system(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut emitter_created_event_writer: EventWriter<EmitterCreatedEvent>,
-    mut supplier_created_event_writer: EventWriter<SupplierCreatedEvent>,
+    mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
+    mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     energy_supply_grid: Res<EnergySupplyGrid>,
     mouse: Res<Input<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Query<&GridObjectPlacer>,
+    mut main_base: Query<(Entity, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
 ) {
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse.pressed(MouseButton::Left) || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
@@ -43,6 +44,16 @@ pub fn onclick_building_spawn_system(
                 BuildingType::Tower(TowerType::RocketLauncher) => {
                     super::tower_rocket_launcher::create_tower_rocket_launcher(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
+                BuildingType::MainBase => {
+                    let (main_base_entity, mut main_base_coords, supplier_energy, mut transform) = main_base.single_mut();
+                    super::main_base::move_main_base(
+                        &mut emitter_created_event_writer,
+                        &mut supplier_created_event_writer,
+                        &mut obstacle_grid,
+                        (main_base_entity, &mut main_base_coords, supplier_energy, &mut transform),
+                        mouse_coords
+                    );
+                }
                 _ => panic!("Trying to place a non-supported building")            }
         }
         GridObjectPlacer::MiningComplex => {

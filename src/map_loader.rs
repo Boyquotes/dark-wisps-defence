@@ -10,8 +10,8 @@ use crate::buildings::tower_blaster::create_tower_blaster;
 use crate::buildings::tower_cannon::create_tower_cannon;
 use crate::buildings::tower_rocket_launcher::create_tower_rocket_launcher;
 use crate::grids::common::GridCoords;
-use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterCreatedEvent};
-use crate::grids::energy_supply::{EnergySupplyGrid, SupplierCreatedEvent};
+use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
+use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::dark_ore::create_dark_ore;
 use crate::map_objects::walls::create_wall;
@@ -42,8 +42,8 @@ pub fn apply_map(
     mut commands: &mut Commands,
     asset_server: &AssetServer,
     mut emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
-    mut emitter_created_event_writer: &mut EventWriter<EmitterCreatedEvent>,
-    mut supplier_created_event_writer: &mut EventWriter<SupplierCreatedEvent>,
+    mut emitter_created_event_writer: &mut EventWriter<EmitterChangedEvent>,
+    mut supplier_created_event_writer: &mut EventWriter<SupplierChangedEvent>,
     mut obstacles_grid: &mut ResMut<ObstacleGrid>,
     energy_supply_grid: &EnergySupplyGrid,
 ) {

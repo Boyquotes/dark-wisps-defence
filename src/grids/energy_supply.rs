@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::grids::base::{BaseGrid, GridVersion};
-use crate::grids::common::{ GridCoords, GridImprint};
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::search::flooding::{flood_energy_supply, FloodEnergySupplyMode};
 
 #[derive(Component, Copy, Clone, Debug)]
@@ -9,9 +9,10 @@ pub struct SupplierEnergy{
 }
 
 #[derive(Event)]
-pub struct SupplierCreatedEvent {
+pub struct SupplierChangedEvent {
     pub coords: Vec<GridCoords>,
     pub supplier: SupplierEnergy,
+    pub mode: FloodEnergySupplyMode,
 }
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -65,14 +66,14 @@ impl EnergySupplyGrid {
 }
 
 pub fn on_supplier_created_system(
-    mut events: EventReader<SupplierCreatedEvent>,
+    mut events: EventReader<SupplierChangedEvent>,
     mut energy_supply_grid: ResMut<EnergySupplyGrid>,
 ) {
     for event in events.read() {
         flood_energy_supply(
             &mut energy_supply_grid,
             &event.coords,
-            FloodEnergySupplyMode::Increase,
+            event.mode,
             event.supplier.range
         );
     }

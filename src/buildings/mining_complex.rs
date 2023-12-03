@@ -54,7 +54,7 @@ pub fn mine_ore_system(
         if !technical_state.has_energy_supply { continue; }
         timer.0.tick(time.delta());
         if timer.0.just_finished() {
-            dark_ore_stock.amount += 10;
+            dark_ore_stock.add(10);
         }
     }
 }

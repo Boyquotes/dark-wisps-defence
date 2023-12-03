@@ -8,8 +8,8 @@ use crate::search::flooding::{flood_emissions, FloodEmissionsDetails};
 #[derive(Component)]
 pub struct EmitterEnergy(pub FloodEmissionsDetails);
 
-#[derive(Event)]
-pub struct EmitterCreatedEvent {
+#[derive(Event, Debug)]
+pub struct EmitterChangedEvent {
     pub coords: Vec<GridCoords>,
     pub emissions_details: Vec<FloodEmissionsDetails>,
 }
@@ -36,6 +36,7 @@ pub type EmissionsGrid = BaseGrid<Emissions, EmissionsGridVersion>;
 impl EmissionsGrid {
     pub fn add_energy(&mut self, coords: GridCoords, energy: f32) {
         self[coords].energy += energy;
+        if self[coords].energy < 0. { self[coords].energy = 0.; }
         self.version.energy = self.version.energy.wrapping_add(1);
     }
     pub fn reset_energy_emissions(&mut self) {
@@ -79,42 +80,40 @@ impl EmissionsGrid {
     }
 }
 
-pub fn on_emitter_created_system(
-    mut events: EventReader<EmitterCreatedEvent>,
-    mut emissions_grid: ResMut<EmissionsGrid>,
-    obstacle_grid: Res<ObstacleGrid>,
-) {
-    for event in events.read() {
-        flood_emissions(
-            &mut emissions_grid,
-            &obstacle_grid,
-            &event.coords,
-            &event.emissions_details,
-            false,
-            true,
-        );
-    }
-}
-
-pub fn emissions_energy_recalculate_all_system(
+pub fn emissions_calculations_system(
     mut recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    mut events: EventReader<EmitterChangedEvent>,
     mut emissions_grid: ResMut<EmissionsGrid>,
     obstacle_grid: Res<ObstacleGrid>,
     emitters_buildings: Query<(&EmitterEnergy, &Building, &GridCoords)>,
 ) {
-    if !recalculate_all.0 { return; }
-    recalculate_all.0 = false;
+    if recalculate_all.0 {
+        recalculate_all.0 = false;
 
-    emissions_grid.reset_energy_emissions();
-    for (emitter, building, coords) in emitters_buildings.iter() {
-        flood_emissions(
-            &mut emissions_grid,
-            &obstacle_grid,
-            &building.grid_imprint.covered_coords(*coords),
-            &vec![emitter.0.clone()],
+        emissions_grid.reset_energy_emissions();
+        for (emitter, building, coords) in emitters_buildings.iter() {
+            flood_emissions(
+                &mut emissions_grid,
+                &obstacle_grid,
+                &building.grid_imprint.covered_coords(*coords),
+                &vec![emitter.0.clone()],
 
-            false,
-            true,
-        );
+                false,
+                true,
+            );
+        }
+        // Clear events so they don't get processed again as we already recalculated all emissions
+        events.clear();
+    } else {
+        for event in events.read() {
+            flood_emissions(
+                &mut emissions_grid,
+                &obstacle_grid,
+                &event.coords,
+                &event.emissions_details,
+                false,
+                true,
+            );
+        }
     }
 }

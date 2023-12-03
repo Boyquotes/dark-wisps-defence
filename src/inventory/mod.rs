@@ -1,5 +1,5 @@
 pub mod resources;
-mod almanach;
+pub mod almanach;
 
 use bevy::prelude::*;
 

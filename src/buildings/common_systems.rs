@@ -8,6 +8,8 @@ use crate::grids::emissions::EmitterChangedEvent;
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, SupplierEnergy};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
+use crate::inventory::almanach::Almanach;
+use crate::inventory::resources::DarkOreStock;
 use crate::mouse::MouseInfo;
 use crate::search::targetfinding::target_find_closest_wisp;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -21,6 +23,8 @@ pub fn onclick_building_spawn_system(
     energy_supply_grid: Res<EnergySupplyGrid>,
     mouse: Res<Input<MouseButton>>,
     mouse_info: Res<MouseInfo>,
+    almanach: Res<Almanach>,
+    mut dark_ore_stock: ResMut<DarkOreStock>,
     grid_object_placer: Query<&GridObjectPlacer>,
     mut main_base: Query<(Entity, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
 ) {
@@ -29,6 +33,9 @@ pub fn onclick_building_spawn_system(
     match &*grid_object_placer.single() {
         GridObjectPlacer::Building(building) => {
             if !obstacle_grid.imprint_query_all(mouse_coords, building.grid_imprint, |field| field.is_empty()) { return; }
+            let dark_ore_price = almanach.get_building_cost(building.building_type);
+            if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
+            dark_ore_stock.amount -= dark_ore_price;
             match building.building_type {
                 BuildingType::EnergyRelay => {
                     super::energy_relay::create_energy_relay(
@@ -58,6 +65,9 @@ pub fn onclick_building_spawn_system(
         }
         GridObjectPlacer::MiningComplex => {
             if !obstacle_grid.imprint_query_all(mouse_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore()) { return; }
+            let dark_ore_price = almanach.get_building_cost(BuildingType::MiningComplex);
+            if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
+            dark_ore_stock.amount -= dark_ore_price;
             let Field::DarkOre(dark_ore) = obstacle_grid[mouse_coords] else { unreachable!() };
             super::mining_complex::create_mining_complex(&mut commands, &asset_server,&mut obstacle_grid, mouse_coords, dark_ore);
 

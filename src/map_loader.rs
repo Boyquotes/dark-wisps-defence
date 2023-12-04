@@ -71,7 +71,7 @@ pub fn apply_map(
                         create_tower_cannon(&mut commands, &asset_server, &mut obstacles_grid, &energy_supply_grid, building.coords);
                     },
                     TowerType::RocketLauncher => {
-                        create_tower_rocket_launcher(&mut commands, &mut obstacles_grid, &energy_supply_grid, building.coords);
+                        create_tower_rocket_launcher(&mut commands, &asset_server, &mut obstacles_grid, &energy_supply_grid, building.coords);
                     }
                 }
             }

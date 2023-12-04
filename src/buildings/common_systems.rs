@@ -49,7 +49,7 @@ pub fn onclick_building_spawn_system(
                     super::tower_cannon::create_tower_cannon(&mut commands, &asset_server, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
                 BuildingType::Tower(TowerType::RocketLauncher) => {
-                    super::tower_rocket_launcher::create_tower_rocket_launcher(&mut commands, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
+                    super::tower_rocket_launcher::create_tower_rocket_launcher(&mut commands, &asset_server,&mut obstacle_grid, &energy_supply_grid, mouse_coords);
                 },
                 BuildingType::MainBase => {
                     let (main_base_entity, mut main_base_coords, supplier_energy, mut transform) = main_base.single_mut();

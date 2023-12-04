@@ -11,17 +11,20 @@ use crate::wisps::components::{Target, Wisp};
 
 pub const TOWER_ROCKET_LAUNCHER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 
+pub const TOWER_ROCKET_LAUNCHER_BASE_IMAGE: &str = "buildings/tower_rocket_launcher.png";
+
 #[derive(Component)]
 pub struct MarkerTowerRocketLauncher;
 
 pub fn create_tower_rocket_launcher(
     commands: &mut Commands,
+    asset_server: &AssetServer,
     obstacle_grid: &mut ResMut<ObstacleGrid>,
     energy_supply_grid: &EnergySupplyGrid,
     grid_position: GridCoords,
 ) -> Entity {
     let building_entity = commands.spawn(
-        get_tower_rocket_launcher_sprite_bundle(grid_position)
+        get_tower_rocket_launcher_sprite_bundle(asset_server, grid_position)
     ).insert((
         MarkerTower,
         MarkerTowerRocketLauncher,
@@ -37,13 +40,13 @@ pub fn create_tower_rocket_launcher(
     building_entity
 }
 
-pub fn get_tower_rocket_launcher_sprite_bundle(coords: GridCoords) -> SpriteBundle {
+pub fn get_tower_rocket_launcher_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            color: Color::rgb_u8(80, 45, 104),
             custom_size: Some(TOWER_ROCKET_LAUNCHER_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
+        texture: asset_server.load(TOWER_ROCKET_LAUNCHER_BASE_IMAGE),
         transform: Transform::from_translation(coords.to_world_position_centered(TOWER_ROCKET_LAUNCHER_GRID_IMPRINT).extend(Z_BUILDING)),
         ..Default::default()
     }

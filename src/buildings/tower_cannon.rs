@@ -53,6 +53,7 @@ pub fn get_tower_cannon_sprite_bundle(coords: GridCoords, asset_server: &AssetSe
 
 pub fn shooting_system(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut tower_cannons: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget), With<MarkerTowerCannon>>,
     wisps: Query<(&Target, &GridCoords), With<Wisp>>,
 ) {
@@ -81,7 +82,7 @@ pub fn shooting_system(
                 }
             );
 
-        create_cannonball(&mut commands, transform.translation.xy(), target_world_position);
+        create_cannonball(&mut commands, &asset_server, transform.translation.xy(), target_world_position);
         timer.0.reset();
     }
 }

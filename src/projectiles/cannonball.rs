@@ -19,14 +19,14 @@ pub struct CannonballTarget{
     pub target_position: Vec2,
 }
 
-pub fn create_cannonball(commands: &mut Commands, world_position: Vec2, target_position: Vec2) -> Entity {
+pub fn create_cannonball(commands: &mut Commands, asset_server: &AssetServer, world_position: Vec2, target_position: Vec2) -> Entity {
     let entity = commands.spawn(
         SpriteBundle {
             sprite: Sprite {
-                color: Color::rgb(1.0, 0.0, 0.0),
                 custom_size: Some(Vec2::new(8.0, 8.0)),
                 ..Default::default()
             },
+            texture: asset_server.load("projectiles/cannonball.png"),
             transform: Transform {
                 translation: world_position.extend(Z_PROJECTILE),
                 ..Default::default()

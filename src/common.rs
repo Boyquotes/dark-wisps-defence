@@ -45,5 +45,6 @@ define_z_indexes!(
     Z_BUILDING,
     Z_WISP,
     Z_TOWER_TOP,
+    Z_PROJECTILE_UNDER,
     Z_PROJECTILE
 );

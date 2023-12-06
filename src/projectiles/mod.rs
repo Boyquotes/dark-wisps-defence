@@ -4,10 +4,17 @@ pub mod cannonball;
 pub mod rocket;
 
 use bevy::prelude::*;
+use crate::projectiles::rocket::ROCKET_BASE_IMAGE;
 
 pub struct ProjectilesPlugin;
 impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(
+            Startup,
+            (
+                rocket::load_assets_system,
+            )
+        );
         app.add_systems(
             Update,
             (
@@ -17,6 +24,7 @@ impl Plugin for ProjectilesPlugin {
                 cannonball::cannonball_hit_system,
                 rocket::rocket_move_system,
                 rocket::rocket_hit_system,
+                rocket::exhaust_blinking_system,
             )
         );
 

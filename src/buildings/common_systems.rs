@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerMainBase, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
 use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
+use crate::buildings::tower_blaster::MarkerTowerBlaster;
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmitterChangedEvent;
@@ -13,6 +14,8 @@ use crate::inventory::resources::DarkOreStock;
 use crate::mouse::MouseInfo;
 use crate::search::targetfinding::target_find_closest_wisp;
 use crate::ui::grid_object_placer::GridObjectPlacer;
+use crate::utils::math::angle_difference;
+use crate::wisps::components::Wisp;
 
 pub fn onclick_building_spawn_system(
     mut commands: Commands,
@@ -135,5 +138,24 @@ pub fn rotate_tower_top_system(
 
         // Offset due to image naturally pointing downwards
         tower_top_transform.rotation = Quat::from_rotation_z(tower_top_rotation.current_angle + std::f32::consts::PI / 2.0);
+    }
+}
+
+pub fn rotational_aiming_system(
+    time: Res<Time>,
+    mut towers: Query<(&mut TowerTopRotation, &TowerWispTarget, &Transform), Without<Wisp>>,
+    wisps: Query<&Transform, With<Wisp>>,
+) {
+    for (mut rotation, target, tower_transform) in towers.iter_mut() {
+        let TowerWispTarget::Wisp(target_wisp) = target else { continue; };
+        let Ok(wisp_position) = wisps.get(**target_wisp).map(|target| target.translation.xy()) else { continue; };
+
+        let direction_to_target = wisp_position - tower_transform.translation.xy();
+        let target_angle = direction_to_target.y.atan2(direction_to_target.x);
+
+        let angle_diff = angle_difference(target_angle, rotation.current_angle);
+
+        let rotation_delta = rotation.speed * time.delta_seconds();
+        rotation.current_angle += angle_diff.clamp(-rotation_delta, rotation_delta);
     }
 }

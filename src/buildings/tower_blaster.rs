@@ -107,22 +107,3 @@ pub fn shooting_system(
         timer.0.reset();
     }
 }
-
-pub fn rotating_system(
-    time: Res<Time>,
-    mut tower_blasters: Query<(&mut TowerTopRotation, &TowerWispTarget, &Transform), (With<MarkerTowerBlaster>, Without<Wisp>)>,
-    wisps: Query<&Transform, (With<Wisp>, Without<MarkerTowerBlaster>)>,
-) {
-    for (mut rotation, target, tower_transform) in tower_blasters.iter_mut() {
-        let TowerWispTarget::Wisp(target_wisp) = target else { continue; };
-        let Ok(wisp_position) = wisps.get(**target_wisp).map(|target| target.translation.xy()) else { continue; };
-
-        let direction_to_target = wisp_position - tower_transform.translation.xy();
-        let target_angle = direction_to_target.y.atan2(direction_to_target.x);
-
-        let angle_diff = angle_difference(target_angle, rotation.current_angle);
-
-        let rotation_delta = rotation.speed * time.delta_seconds();
-        rotation.current_angle += angle_diff.clamp(-rotation_delta, rotation_delta);
-    }
-}

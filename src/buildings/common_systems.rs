@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerMainBase, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
 use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
-use crate::buildings::tower_blaster::MarkerTowerBlaster;
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmitterChangedEvent;
@@ -137,7 +136,7 @@ pub fn rotate_tower_top_system(
         let tower_top_rotation = towers.get(*parent_building).unwrap();
 
         // Offset due to image naturally pointing downwards
-        tower_top_transform.rotation = Quat::from_rotation_z(tower_top_rotation.current_angle + std::f32::consts::PI / 2.0);
+        tower_top_transform.rotation = Quat::from_rotation_z(tower_top_rotation.current_angle);
     }
 }
 

@@ -64,7 +64,7 @@ pub fn get_tower_blaster_sprite_bundle(grid_position: GridCoords, asset_server: 
 
     let tower_top = SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(Vec2::new(world_size.x * 0.5, world_size.y * 1.52 * 0.5)),
+            custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
             ..Default::default()
         },
         texture: asset_server.load("buildings/tower_blaster_top.png"),

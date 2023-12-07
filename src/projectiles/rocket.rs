@@ -8,6 +8,7 @@ use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
 use crate::search::common::ALL_DIRECTIONS;
+use crate::utils::math::angle_difference;
 use crate::wisps::components::{Wisp, WispEntity};
 
 pub static ROCKET_BASE_IMAGE: OnceLock<Handle<Image>> = OnceLock::new();
@@ -24,7 +25,7 @@ pub struct MarkerRocketExhaust;
 #[derive(Component)]
 pub struct RocketTarget(pub WispEntity);
 
-pub fn create_rocket(commands: &mut Commands, world_position: Vec2, target_wisp: WispEntity) -> Entity {
+pub fn create_rocket(commands: &mut Commands, world_position: Vec2, rotation: Quat, target_wisp: WispEntity) -> Entity {
     let exhaust_entity = commands.spawn((
         SpriteBundle {
             sprite: Sprite {
@@ -50,6 +51,7 @@ pub fn create_rocket(commands: &mut Commands, world_position: Vec2, target_wisp:
             texture: ROCKET_BASE_IMAGE.get().unwrap().clone(),
             transform: Transform {
                 translation: world_position.extend(Z_PROJECTILE),
+                rotation,
                 ..Default::default()
             },
             ..Default::default()
@@ -83,13 +85,33 @@ pub fn rocket_move_system(
             })
         };
 
+        // Calculate the direction vector to the target
         let direction_vector = (target_position - transform.translation.xy()).normalize();
-        let move_distance = direction_vector * time.delta_seconds() * 200.;
 
-        // Move the rocket
-        transform.translation += move_distance.extend(0.);
-        // Rotate the rocket
-        transform.rotation = Quat::from_rotation_z(direction_vector.y.atan2(direction_vector.x));
+        // Calculate the current forward direction (assuming it's the local y-axis)
+        let current_direction = transform.local_x().xy();
+
+        // Move the entity forward (along the local y-axis)
+        transform.translation += (current_direction * time.delta_seconds() * 200.0).extend(0.0);
+
+        // Calculate the target angle
+        let target_angle = direction_vector.y.atan2(direction_vector.x);
+        let current_angle = current_direction.y.atan2(current_direction.x);
+
+        // Calculate the shortest rotation to the target angle
+        let mut angle_diff = target_angle - current_angle;
+        if angle_diff > std::f32::consts::PI {
+            angle_diff -= 2.0 * std::f32::consts::PI;
+        } else if angle_diff < -std::f32::consts::PI {
+            angle_diff += 2.0 * std::f32::consts::PI;
+        }
+
+        // Apply the rotation smoothly
+        let rotation_speed = 1.5; // radians per second
+        let max_rotation_speed = rotation_speed * time.delta_seconds();
+        let rotation_amount = angle_diff.clamp(-max_rotation_speed, max_rotation_speed);
+        transform.rotate(Quat::from_rotation_z(rotation_amount));
+
     }
 }
 
@@ -103,12 +125,12 @@ pub fn rocket_hit_system(
     for (entity, rocket_transform, target) in rockets.iter() {
         let rocket_coords = GridCoords::from_transform(&rocket_transform);
         if !rocket_coords.is_in_bounds(wisps_grid.bounds()) {
-            commands.entity(entity).despawn();
+            commands.entity(entity).despawn_recursive();
             continue;
         }
 
         let Ok(wisp_transform) = wisps_transforms.get(*target.0) else { continue };
-        if rocket_transform.translation.xy().distance(wisp_transform.translation.xy()) > 1. { continue; }
+        if rocket_transform.translation.xy().distance(wisp_transform.translation.xy()) > 6. { continue; }
 
         let coords = GridCoords::from_transform(&rocket_transform);
         for (dx, dy) in ALL_DIRECTIONS.iter().chain(&[(0, 0)]) {

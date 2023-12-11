@@ -4,11 +4,11 @@ use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use crate::common::{Z_PROJECTILE, Z_PROJECTILE_UNDER};
 use crate::common_components::{Health};
+use crate::effects::explosions::create_explosion;
 use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
 use crate::search::common::ALL_DIRECTIONS;
-use crate::utils::math::angle_difference;
 use crate::wisps::components::{Wisp, WispEntity};
 
 pub static ROCKET_BASE_IMAGE: OnceLock<Handle<Image>> = OnceLock::new();
@@ -136,6 +136,9 @@ pub fn rocket_hit_system(
         for (dx, dy) in ALL_DIRECTIONS.iter().chain(&[(0, 0)]) {
             let blast_zone_coords = coords.shifted((*dx, *dy));
             if !blast_zone_coords.is_in_bounds(wisps_grid.bounds()) { continue; }
+
+            create_explosion(&mut commands, blast_zone_coords);
+
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {
                 let Ok(mut health) = wisps_health.get_mut(**wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.

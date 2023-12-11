@@ -3,6 +3,7 @@ use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::common::Z_PROJECTILE;
 use crate::common_components::{Health};
+use crate::effects::explosions::create_explosion;
 use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
@@ -83,6 +84,9 @@ pub fn cannonball_hit_system(
         for (dx, dy) in ALL_DIRECTIONS.iter().chain(&[(0, 0)]) {
             let blast_zone_coords = coords.shifted((*dx, *dy));
             if !blast_zone_coords.is_in_bounds(wisps_grid.bounds()) { continue; }
+
+            create_explosion(&mut commands, blast_zone_coords);
+
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {
                 let Ok(mut health) = wisps.get_mut(**wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.

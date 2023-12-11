@@ -14,6 +14,7 @@ mod grids;
 mod search;
 mod overlays;
 mod inventory;
+mod effects;
 
 use bevy::prelude::*;
 use crate::grids::common::CELL_SIZE;
@@ -40,6 +41,7 @@ fn main() {
             projectiles::ProjectilesPlugin,
             overlays::OverlaysPlugin,
             inventory::InventoryPlugin,
+            effects::EffectsPlugin,
         ))
         .insert_resource(GameConfig{
             mode: GameMode::Editor,

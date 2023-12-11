@@ -44,6 +44,7 @@ define_z_indexes!(
     Z_OBSTACLE,
     Z_BUILDING,
     Z_WISP,
+    Z_GROUND_EFFECT,
     Z_TOWER_TOP,
     Z_PROJECTILE_UNDER,
     Z_PROJECTILE

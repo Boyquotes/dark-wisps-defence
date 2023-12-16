@@ -117,7 +117,6 @@ impl ConstructObjectButtonBundle {
                         TowerType::Blaster => Some(TOWER_BLASTER_BASE_IMAGE),
                         TowerType::Cannon => Some(TOWER_CANNON_BASE_IMAGE),
                         TowerType::RocketLauncher => Some(TOWER_ROCKET_LAUNCHER_BASE_IMAGE),
-                        _ => None,
                     }
                 },
                 BuildingType::MainBase => Some(MAIN_BASE_BASE_IMAGE),

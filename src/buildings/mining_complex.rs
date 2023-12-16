@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, MarkerMiningComplex, TechnicalState};
+use crate::buildings::tower_cannon::TOWER_CANNON_GRID_IMPRINT;
 use crate::common::Z_BUILDING;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
+use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::inventory::resources::DarkOreStock;
 
@@ -17,6 +19,7 @@ pub fn create_mining_complex(
     commands: &mut Commands,
     asset_server: &AssetServer,
     obstacle_grid: &mut ResMut<ObstacleGrid>,
+    energy_supply_grid: &EnergySupplyGrid,
     grid_position: GridCoords,
     dark_ore: Entity,
 ) -> Entity {
@@ -26,7 +29,7 @@ pub fn create_mining_complex(
         grid_position,
         Health(10000),
         Building::from(BuildingType::MiningComplex),
-        TechnicalState::default(),
+        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, MINING_COMPLEX_GRID_IMPRINT) },
         MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
     )).id();
     obstacle_grid.imprint(grid_position, Field::MiningComplex {dark_ore, mining_complex}, MINING_COMPLEX_GRID_IMPRINT);
@@ -51,7 +54,7 @@ pub fn mine_ore_system(
     time: Res<Time>,
 ) {
     for (mut timer, technical_state) in mining_complexes.iter_mut() {
-        if !technical_state.has_energy_supply { continue; }
+        if !technical_state.is_operational() { continue; }
         timer.0.tick(time.delta());
         if timer.0.just_finished() {
             dark_ore_stock.add(10);

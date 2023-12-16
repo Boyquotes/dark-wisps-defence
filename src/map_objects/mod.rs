@@ -1,5 +1,6 @@
 pub mod walls;
 pub mod dark_ore;
+pub mod quantum_field;
 
 use bevy::prelude::*;
 

@@ -6,6 +6,7 @@ use crate::grids::common::GridImprint;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{ObstacleGrid};
 use crate::map_objects::dark_ore::{DARK_ORE_GRID_IMPRINT};
+use crate::map_objects::quantum_field::QuantumField;
 use crate::map_objects::walls::WALL_GRID_IMPRINT;
 use crate::mouse::MouseInfo;
 use crate::ui::interaction_state::UiInteractionState;
@@ -22,6 +23,7 @@ pub enum GridObjectPlacer {
     Wall,
     DarkOre,
     MiningComplex,
+    QuantumField(QuantumField),
 }
 impl GridObjectPlacer {
     pub fn as_grid_imprint(&self) -> GridImprint {
@@ -30,6 +32,7 @@ impl GridObjectPlacer {
             GridObjectPlacer::Wall => WALL_GRID_IMPRINT,
             GridObjectPlacer::DarkOre => DARK_ORE_GRID_IMPRINT,
             GridObjectPlacer::MiningComplex => MINING_COMPLEX_GRID_IMPRINT,
+            GridObjectPlacer::QuantumField(quantum_field) => quantum_field.grid_imprint,
             GridObjectPlacer::None => unreachable!(),
         }
     }
@@ -144,10 +147,7 @@ pub fn on_request_grid_object_placer_system(
     *visibility = Visibility::Visible;
     *grid_object_placer = placer_request;
     sprite.custom_size = match &*grid_object_placer {
-        GridObjectPlacer::Building(building) => Some(building.grid_imprint.world_size()),
-        GridObjectPlacer::Wall => Some(WALL_GRID_IMPRINT.world_size()),
-        GridObjectPlacer::DarkOre => Some(DARK_ORE_GRID_IMPRINT.world_size()),
-        GridObjectPlacer::MiningComplex => Some(MINING_COMPLEX_GRID_IMPRINT.world_size()),
         GridObjectPlacer::None => None,
+        placer => Some(placer.as_grid_imprint().world_size()),
     }
 }

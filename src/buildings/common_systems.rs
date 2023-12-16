@@ -71,7 +71,7 @@ pub fn onclick_building_spawn_system(
             if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
             dark_ore_stock.amount -= dark_ore_price;
             let Field::DarkOre(dark_ore) = obstacle_grid[mouse_coords] else { unreachable!() };
-            super::mining_complex::create_mining_complex(&mut commands, &asset_server,&mut obstacle_grid, mouse_coords, dark_ore);
+            super::mining_complex::create_mining_complex(&mut commands, &asset_server,&mut obstacle_grid, &energy_supply_grid, mouse_coords, dark_ore);
 
         }
         _ => { return; }

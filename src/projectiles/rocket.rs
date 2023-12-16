@@ -75,11 +75,12 @@ pub fn rocket_move_system(
     time: Res<Time>,
     wisps: Query<(Entity, &Transform), (With<Wisp>, Without<MarkerRocket>, Without<MarkerRocketExhaust>)>,
 ) {
+    let mut wisps_iter = wisps.iter();
     for (mut transform, mut target, rocket) in rockets.iter_mut() {
         let target_position = if let Ok((_, wisp_transform)) = wisps.get(*target.0) {
             wisp_transform.translation.xy()
         } else {
-            wisps.iter().next().map_or(Vec2::ZERO, |(wisp_entity, wisp_transform)| {
+            wisps_iter.next().map_or(Vec2::ZERO, |(wisp_entity, wisp_transform)| {
                 target.0 = wisp_entity.into();
                 wisp_transform.translation.xy()
             })

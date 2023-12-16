@@ -76,7 +76,7 @@ pub fn apply_map(
                 }
             }
             BuildingType::MiningComplex => {
-                create_mining_complex(&mut commands, &asset_server, &mut obstacles_grid, building.coords, *dark_ores.get(&building.coords).unwrap());
+                create_mining_complex(&mut commands, &asset_server, &mut obstacles_grid, &energy_supply_grid, building.coords, *dark_ores.get(&building.coords).unwrap());
             }
         }
     });

@@ -22,10 +22,6 @@ pub fn create_dark_ore(
     obstacles_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) -> Entity {
-    if !obstacles_grid[grid_position].is_empty() {
-        panic!("Cannot place dark ore on a non-empty field");
-    }
-
     let entity = commands.spawn((
         get_dark_ore_sprite_bundle(grid_position, asset_server),
         grid_position,
@@ -71,7 +67,7 @@ pub fn onclick_spawn_system(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
-    mut obstacles_grid: ResMut<ObstacleGrid>,
+    mut obstacle_grid: ResMut<ObstacleGrid>,
     mouse: Res<Input<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Query<&GridObjectPlacer>,
@@ -79,18 +75,18 @@ pub fn onclick_spawn_system(
 ) {
     if !matches!(*grid_object_placer.single(), GridObjectPlacer::DarkOre) { return; }
     let mouse_coords = mouse_info.grid_coords;
-    if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacles_grid.bounds()) { return; }
+    if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {
         // Place a dark_ore
-        if obstacles_grid[mouse_coords].is_empty() {
-            create_dark_ore(&mut commands, &asset_server, &mut emissions_energy_recalculate_all, &mut obstacles_grid, mouse_coords);
+        if obstacle_grid.imprint_query_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| field.is_empty()) {
+            create_dark_ore(&mut commands, &asset_server, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a dark_ore
-        match obstacles_grid[mouse_coords] {
+        match obstacle_grid[mouse_coords] {
             Field::DarkOre(entity) => {
                 if let Ok(dark_ore_coords) = dark_ores_query.get(entity) {
-                    remove_dark_ore(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *dark_ore_coords);
+                    remove_dark_ore(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, *dark_ore_coords);
                 }
             },
             _ => {}

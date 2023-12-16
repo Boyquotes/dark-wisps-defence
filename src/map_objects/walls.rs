@@ -17,10 +17,6 @@ pub fn create_wall(
     obstacles_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) -> Entity {
-    if !obstacles_grid[grid_position].is_empty() {
-        panic!("Cannot place a wall on a non-empty field");
-    }
-
     let _color = Color::hsla(0., 0.5, 1.3, 0.8);
     let color = Color::GRAY;
 

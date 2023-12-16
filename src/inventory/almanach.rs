@@ -16,6 +16,7 @@ impl Almanach {
 impl Default for Almanach {
     fn default() -> Self {
         let mut building_costs = [
+            (BuildingType::MainBase, 0),
             (BuildingType::MiningComplex, 100),
             (BuildingType::EnergyRelay, 300),
             (BuildingType::Tower(TowerType::Blaster), 150),

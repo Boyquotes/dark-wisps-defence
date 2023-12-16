@@ -11,6 +11,7 @@ pub enum Field {
     Wall(Entity),
     DarkOre(Entity),
     MiningComplex{dark_ore: Entity, mining_complex: Entity},
+    QuantumField(Entity),
 }
 impl Field {
     pub fn is_empty(&self) -> bool {

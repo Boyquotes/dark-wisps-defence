@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, MarkerMainBase, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
+use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
+use crate::buildings::energy_relay::BundleEnergyRelay;
+use crate::buildings::main_base::MarkerMainBase;
 use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridCoords;
@@ -40,9 +42,7 @@ pub fn onclick_building_spawn_system(
             dark_ore_stock.amount -= dark_ore_price;
             match building.building_type {
                 BuildingType::EnergyRelay => {
-                    super::energy_relay::create_energy_relay(
-                        &mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacle_grid, mouse_coords
-                    );
+                    BundleEnergyRelay::new(mouse_coords).spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacle_grid);
                 }
                 BuildingType::Tower(TowerType::Blaster) => {
                     super::tower_blaster::create_tower_blaster(&mut commands, &asset_server, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
@@ -72,7 +72,6 @@ pub fn onclick_building_spawn_system(
             dark_ore_stock.amount -= dark_ore_price;
             let Field::DarkOre(dark_ore) = obstacle_grid[mouse_coords] else { unreachable!() };
             super::mining_complex::create_mining_complex(&mut commands, &asset_server,&mut obstacle_grid, &energy_supply_grid, mouse_coords, dark_ore);
-
         }
         _ => { return; }
     };

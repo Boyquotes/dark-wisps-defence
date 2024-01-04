@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, MarkerEnergyRelay, TechnicalState};
+use crate::buildings::common_components::{Building, TechnicalState};
 use crate::common::Z_BUILDING;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
@@ -11,42 +11,62 @@ use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, Fl
 
 pub const ENERGY_RELAY_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
-pub fn create_energy_relay(
-    commands: &mut Commands,
-    emitter_created_event_writer: &mut EventWriter<EmitterChangedEvent>,
-    supplier_created_event_writer: &mut EventWriter<SupplierChangedEvent>,
-    obstacles_grid: &mut ResMut<ObstacleGrid>,
-    grid_position: GridCoords,
-) -> Entity {
-    let energy_emissions_details = FloodEmissionsDetails {
-        emissions_type: EmissionsType::Energy,
-        range: usize::MAX,
-        evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
-        mode: FloodEmissionsMode::Increase,
-    };
-    let supplier_energy = SupplierEnergy { range: 15 };
-    let building_entity = commands.spawn((
-        get_energy_relay_sprite_bundle(grid_position),
-        MarkerEnergyRelay,
-        grid_position,
-        Health(10000),
-        Building::from(BuildingType::EnergyRelay),
-        EmitterEnergy(energy_emissions_details.clone()),
-        supplier_energy,
-        TechnicalState{ has_energy_supply: true },
-    )).id();
-    let covered_coords = ENERGY_RELAY_GRID_IMPRINT.covered_coords(grid_position);
-    emitter_created_event_writer.send(EmitterChangedEvent {
-        coords: covered_coords.clone(),
-        emissions_details: vec![energy_emissions_details],
-    });
-    supplier_created_event_writer.send(SupplierChangedEvent {
-        coords: covered_coords,
-        supplier: supplier_energy,
-        mode: FloodEnergySupplyMode::Increase,
-    });
-    obstacles_grid.imprint(grid_position, Field::Building(building_entity, BuildingType::EnergyRelay), ENERGY_RELAY_GRID_IMPRINT);
-    building_entity
+#[derive(Component)]
+pub struct MarkerEnergyRelay;
+
+#[derive(Bundle)]
+pub struct BundleEnergyRelay {
+    pub sprite_bundle: SpriteBundle,
+    pub marker_energy_relay: MarkerEnergyRelay,
+    pub grid_position: GridCoords,
+    pub health: Health,
+    pub building: Building,
+    pub emitter_energy: EmitterEnergy,
+    pub supplier_energy: SupplierEnergy,
+    pub technical_state: TechnicalState,
+}
+impl BundleEnergyRelay {
+    pub fn new(coords: GridCoords) -> Self {
+        Self {
+            sprite_bundle: get_energy_relay_sprite_bundle(coords),
+            marker_energy_relay: MarkerEnergyRelay,
+            grid_position: coords,
+            health: Health(10000),
+            building: Building::from(BuildingType::EnergyRelay),
+            emitter_energy: EmitterEnergy(FloodEmissionsDetails {
+                emissions_type: EmissionsType::Energy,
+                range: usize::MAX,
+                evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
+                mode: FloodEmissionsMode::Increase,
+            }),
+            supplier_energy: SupplierEnergy { range: 15 },
+            technical_state: TechnicalState{ has_energy_supply: true },
+        }
+    }
+    pub fn spawn(
+        self,
+        commands: &mut Commands,
+        emitter_created_event_writer: &mut EventWriter<EmitterChangedEvent>,
+        supplier_created_event_writer: &mut EventWriter<SupplierChangedEvent>,
+        obstacles_grid: &mut ResMut<ObstacleGrid>,
+    ) -> Entity {
+        let grid_position = self.grid_position;
+        let covered_coords = ENERGY_RELAY_GRID_IMPRINT.covered_coords(grid_position);
+        emitter_created_event_writer.send(EmitterChangedEvent {
+            coords: covered_coords.clone(),
+            emissions_details: vec![self.emitter_energy.0.clone()],
+        });
+        supplier_created_event_writer.send(SupplierChangedEvent {
+            coords: covered_coords,
+            supplier: self.supplier_energy.clone(),
+            mode: FloodEnergySupplyMode::Increase,
+        });
+
+        let entity = commands.spawn(self).id();
+
+        obstacles_grid.imprint(grid_position, Field::Building(entity, BuildingType::EnergyRelay), ENERGY_RELAY_GRID_IMPRINT);
+        entity
+    }
 }
 
 pub fn get_energy_relay_sprite_bundle(coords: GridCoords) -> SpriteBundle {

@@ -1,6 +1,6 @@
 use std::time::Duration;
 use bevy::prelude::*;
-use crate::buildings::common::{BuildingId, BuildingType, TowerType};
+use crate::buildings::common::{BuildingId, BuildingType};
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridImprint;
 use crate::wisps::components::WispEntity;
@@ -26,15 +26,8 @@ impl TechnicalState {
     }
 }
 
-// Building type markers
-#[derive(Component)]
-pub struct MarkerMainBase;
 #[derive(Component)]
 pub struct MarkerTower;
-#[derive(Component)]
-pub struct MarkerEnergyRelay;
-#[derive(Component)]
-pub struct MarkerMiningComplex;
 
 
 // Building sub-parts markers

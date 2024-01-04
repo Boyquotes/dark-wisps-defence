@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, MarkerMiningComplex, TechnicalState};
-use crate::buildings::tower_cannon::TOWER_CANNON_GRID_IMPRINT;
+use crate::buildings::common_components::{Building, TechnicalState};
 use crate::common::Z_BUILDING;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
@@ -11,6 +10,10 @@ use crate::inventory::resources::DarkOreStock;
 
 pub const MINING_COMPLEX_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 pub const MINING_COMPLEX_BASE_IMAGE: &str = "buildings/mining_complex.png";
+
+
+#[derive(Component)]
+pub struct MarkerMiningComplex;
 
 #[derive(Component)]
 pub struct MiningComplexDeliveryTimer(pub Timer);

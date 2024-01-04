@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, MarkerMainBase, TechnicalState};
+use crate::buildings::common_components::{Building, TechnicalState};
 use crate::common::Z_BUILDING;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
@@ -11,6 +11,9 @@ use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, Fl
 
 pub const MAIN_BASE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 6, height: 6 };
 pub const MAIN_BASE_BASE_IMAGE: &str = "buildings/main_base.png";
+
+#[derive(Component)]
+pub struct MarkerMainBase;
 
 pub fn create_main_base(
     commands: &mut Commands,

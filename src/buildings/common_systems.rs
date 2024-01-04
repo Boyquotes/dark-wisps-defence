@@ -4,6 +4,7 @@ use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRota
 use crate::buildings::energy_relay::BundleEnergyRelay;
 use crate::buildings::main_base::MarkerMainBase;
 use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
+use crate::buildings::tower_blaster::{BundleTowerBlaster, TOWER_BLASTER_GRID_IMPRINT};
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmitterChangedEvent;
@@ -45,7 +46,8 @@ pub fn onclick_building_spawn_system(
                     BundleEnergyRelay::new(mouse_coords).spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacle_grid);
                 }
                 BuildingType::Tower(TowerType::Blaster) => {
-                    super::tower_blaster::create_tower_blaster(&mut commands, &asset_server, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
+                    BundleTowerBlaster::new(mouse_coords, energy_supply_grid.is_imprint_suppliable(mouse_coords, TOWER_BLASTER_GRID_IMPRINT))
+                        .spawn(&mut commands, &mut obstacle_grid);
                 },
                 BuildingType::Tower(TowerType::Cannon) => {
                     super::tower_cannon::create_tower_cannon(&mut commands, &asset_server, &mut obstacle_grid, &energy_supply_grid, mouse_coords);

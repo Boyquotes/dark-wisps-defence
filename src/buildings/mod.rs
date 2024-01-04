@@ -9,10 +9,17 @@ pub mod tower_rocket_launcher;
 pub mod mining_complex;
 
 use bevy::prelude::*;
+use crate::projectiles::rocket;
 
 pub struct BuildingsPlugin;
 impl Plugin for BuildingsPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(
+            Startup,
+            (
+                tower_blaster::load_assets_system,
+            )
+        );
         app.add_systems(PreUpdate, common_systems::tick_shooting_timers_system);
         app.add_systems(
             Update,

@@ -6,7 +6,7 @@ use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::energy_relay::BundleEnergyRelay;
 use crate::buildings::main_base::create_main_base;
 use crate::buildings::mining_complex::create_mining_complex;
-use crate::buildings::tower_blaster::create_tower_blaster;
+use crate::buildings::tower_blaster::{BundleTowerBlaster, TOWER_BLASTER_GRID_IMPRINT};
 use crate::buildings::tower_cannon::create_tower_cannon;
 use crate::buildings::tower_rocket_launcher::create_tower_rocket_launcher;
 use crate::grids::common::GridCoords;
@@ -65,7 +65,8 @@ pub fn apply_map(
             BuildingType::Tower(tower_type) => {
                 match tower_type {
                     TowerType::Blaster => {
-                        create_tower_blaster(&mut commands, &asset_server, &mut obstacles_grid, &energy_supply_grid, building.coords);
+                        BundleTowerBlaster::new(building.coords, energy_supply_grid.is_imprint_suppliable(building.coords, TOWER_BLASTER_GRID_IMPRINT))
+                            .spawn(&mut commands, &mut obstacles_grid);
                     },
                     TowerType::Cannon => {
                         create_tower_cannon(&mut commands, &asset_server, &mut obstacles_grid, &energy_supply_grid, building.coords);

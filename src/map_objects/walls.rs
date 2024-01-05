@@ -11,36 +11,43 @@ pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, he
 #[derive(Component)]
 pub struct Wall;
 
-pub fn create_wall(
-    commands: &mut Commands,
-    emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
-    obstacles_grid: &mut ResMut<ObstacleGrid>,
+#[derive(Bundle)]
+pub struct BundleWall {
+    sprite: SpriteBundle,
     grid_position: GridCoords,
-) -> Entity {
-    let _color = Color::hsla(0., 0.5, 1.3, 0.8);
-    let color = Color::GRAY;
+    wall: Wall,
+}
 
-    let entity = commands.spawn(
-        SpriteBundle {
-            sprite: Sprite {
-                color,
-                custom_size: Some(WALL_GRID_IMPRINT.world_size()),
+impl BundleWall {
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self {
+            sprite: SpriteBundle {
+                sprite: Sprite {
+                    color: Color::GRAY, // Color::hsla(0., 0.5, 1.3, 0.8); for hdr
+                    custom_size: Some(WALL_GRID_IMPRINT.world_size()),
+                    ..Default::default()
+                },
+                transform: Transform::from_translation(
+                    grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(Z_OBSTACLE)
+                ),
                 ..Default::default()
             },
-            transform: Transform::from_translation(
-                grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(Z_OBSTACLE)
-            ),
-            ..Default::default()
+            grid_position,
+            wall: Wall,
         }
-    ).insert(
-        grid_position
-    ).insert(
-        Wall
-    ).id();
-
-    obstacles_grid.imprint(grid_position, Field::Wall(entity), WALL_GRID_IMPRINT);
-    emissions_energy_recalculate_all.0 = true;
-    entity
+    }
+    pub fn spawn(
+        self,
+        commands: &mut Commands,
+        emissions_energy_recalculate_all: &mut EmissionsEnergyRecalculateAll,
+        obstacles_grid: &mut ObstacleGrid
+    ) -> Entity {
+        let position = self.grid_position;
+        let entity = commands.spawn(self).id();
+        obstacles_grid.imprint(position, Field::Wall(entity), WALL_GRID_IMPRINT);
+        emissions_energy_recalculate_all.0 = true;
+        entity
+    }
 }
 
 pub fn remove_wall(
@@ -73,7 +80,7 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a wall
         if obstacle_grid[mouse_coords].is_empty() {
-            create_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
+            BundleWall::new(mouse_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a wall

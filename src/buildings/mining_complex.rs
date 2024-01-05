@@ -29,11 +29,11 @@ pub struct BundleMiningComplex {
     pub mining_complex_delivery_timer: MiningComplexDeliveryTimer,
 }
 impl BundleMiningComplex {
-    pub fn new(coords: GridCoords, asset_server: &AssetServer) -> Self {
+    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
         Self {
-            sprite: get_mining_complex_sprite_bundle(asset_server, coords),
+            sprite: get_mining_complex_sprite_bundle(asset_server, grid_position),
             marker_mining_complex: MarkerMiningComplex,
-            grid_position: coords,
+            grid_position,
             health: Health(10000),
             building: Building::from(BuildingType::MiningComplex),
             technical_state: TechnicalState::default(),
@@ -51,27 +51,6 @@ impl BundleMiningComplex {
         base_entity
     }
 }
-
-// pub fn create_mining_complex(
-//     commands: &mut Commands,
-//     asset_server: &AssetServer,
-//     obstacle_grid: &mut ResMut<ObstacleGrid>,
-//     energy_supply_grid: &EnergySupplyGrid,
-//     grid_position: GridCoords,
-//     dark_ore: Entity,
-// ) -> Entity {
-//     let mining_complex = commands.spawn((
-//         get_mining_complex_sprite_bundle(grid_position, asset_server),
-//         MarkerMiningComplex,
-//         grid_position,
-//         Health(10000),
-//         Building::from(BuildingType::MiningComplex),
-//         TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, MINING_COMPLEX_GRID_IMPRINT) },
-//         MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
-//     )).id();
-//     obstacle_grid.imprint(grid_position, Field::MiningComplex {dark_ore, mining_complex}, MINING_COMPLEX_GRID_IMPRINT);
-//     mining_complex
-// }
 
 pub fn get_mining_complex_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> SpriteBundle {
     SpriteBundle {

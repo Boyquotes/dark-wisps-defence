@@ -26,11 +26,11 @@ pub struct BundleEnergyRelay {
     pub technical_state: TechnicalState,
 }
 impl BundleEnergyRelay {
-    pub fn new(coords: GridCoords) -> Self {
+    pub fn new(grid_position: GridCoords) -> Self {
         Self {
-            sprite_bundle: get_energy_relay_sprite_bundle(coords),
+            sprite_bundle: get_energy_relay_sprite_bundle(grid_position),
             marker_energy_relay: MarkerEnergyRelay,
-            grid_position: coords,
+            grid_position,
             health: Health(10000),
             building: Building::from(BuildingType::EnergyRelay),
             emitter_energy: EmitterEnergy(FloodEmissionsDetails {

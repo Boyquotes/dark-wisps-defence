@@ -43,14 +43,14 @@ pub struct BundleTowerRocketLauncher {
     pub top: BundleTowerRocketLauncherTop,
 }
 impl BundleTowerRocketLauncher {
-    pub fn new(coords: GridCoords, asset_server: &AssetServer) -> Self {
-        let (tower_base, tower_top) = get_tower_rocket_launcher_sprite_bundle(asset_server, coords);
+    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
+        let (tower_base, tower_top) = get_tower_rocket_launcher_sprite_bundle(asset_server, grid_position);
         Self {
             base: BundleTowerRocketLauncherBase {
                 sprite: tower_base,
                 marker_tower: MarkerTower,
                 marker_tower_rocket_launcher: MarkerTowerRocketLauncher,
-                grid_position: coords,
+                grid_position,
                 health: Health(10000),
                 tower_range: TowerRange(30),
                 building: Building::from(BuildingType::Tower(TowerType::RocketLauncher)),

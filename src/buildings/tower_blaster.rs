@@ -12,8 +12,8 @@ use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
 
 pub const TOWER_BLASTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 2, height: 2 };
-pub static TOWER_BLASTER_BASE_IMAGE: &str = "buildings/tower_blaster.png";
-pub static TOWER_BLASTER_TOP_IMAGE: &str = "buildings/tower_blaster_top.png";
+pub const TOWER_BLASTER_BASE_IMAGE: &str = "buildings/tower_blaster.png";
+pub const TOWER_BLASTER_TOP_IMAGE: &str = "buildings/tower_blaster_top.png";
 
 #[derive(Component)]
 pub struct MarkerTowerBlaster;
@@ -42,14 +42,14 @@ pub struct BundleTowerBlaster {
     pub top: BundleTowerBlasterTop,
 }
 impl BundleTowerBlaster {
-    pub fn new(coords: GridCoords, asset_server: &AssetServer) -> Self {
-        let (tower_base, tower_top) = get_tower_blaster_sprite_bundle(asset_server, coords);
+    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
+        let (tower_base, tower_top) = get_tower_blaster_sprite_bundle(asset_server, grid_position);
         Self {
             base: BundleTowerBlasterBase {
                 sprite: tower_base,
                 marker_tower: MarkerTower,
                 marker_tower_blaster: MarkerTowerBlaster,
-                grid_position: coords,
+                grid_position,
                 health: Health(10000),
                 tower_range: TowerRange(15),
                 building: Building::from(BuildingType::Tower(TowerType::Blaster)),

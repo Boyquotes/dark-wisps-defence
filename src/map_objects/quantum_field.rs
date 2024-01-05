@@ -10,20 +10,27 @@ pub struct QuantumField {
     pub grid_imprint: GridImprint,
 }
 
-pub fn create_quantum_field(
-    commands: &mut Commands,
-    obstacles_grid: &mut ResMut<ObstacleGrid>,
+#[derive(Bundle)]
+pub struct BundleQuantumField {
+    sprite: SpriteBundle,
     grid_position: GridCoords,
-    grid_imprint: GridImprint,
-) -> Entity {
-    let entity = commands.spawn((
-        get_quantum_field_sprite_bundle(grid_position, grid_imprint),
-        grid_position,
-        QuantumField { grid_imprint },
-    )).id();
-
-    obstacles_grid.imprint(grid_position, Field::QuantumField(entity), grid_imprint);
-    entity
+    quantum_field: QuantumField,
+}
+impl BundleQuantumField {
+    pub fn new(grid_position: GridCoords, grid_imprint: GridImprint) -> Self {
+        Self {
+            sprite: get_quantum_field_sprite_bundle(grid_position, grid_imprint),
+            grid_position,
+            quantum_field: QuantumField { grid_imprint },
+        }
+    }
+    pub fn spawn(self, commands: &mut Commands, obstacles_grid: &mut ObstacleGrid) -> Entity {
+        let grid_position = self.grid_position;
+        let grid_imprint = self.quantum_field.grid_imprint;
+        let entity = commands.spawn(self).id();
+        obstacles_grid.imprint(grid_position, Field::QuantumField(entity), grid_imprint);
+        entity
+    }
 }
 
 pub fn get_quantum_field_sprite_bundle(grid_position: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
@@ -66,7 +73,8 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a quantum_field
         if obstacles_grid[mouse_coords].is_empty() {
-            create_quantum_field(&mut commands, &mut obstacles_grid, mouse_coords, quantum_field.grid_imprint);
+            BundleQuantumField::new(mouse_coords, quantum_field.grid_imprint)
+                .spawn(&mut commands, &mut obstacles_grid);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a quantum_field

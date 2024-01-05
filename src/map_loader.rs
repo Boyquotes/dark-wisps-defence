@@ -13,8 +13,8 @@ use crate::grids::common::GridCoords;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};
 use crate::grids::obstacles::ObstacleGrid;
-use crate::map_objects::dark_ore::create_dark_ore;
-use crate::map_objects::walls::create_wall;
+use crate::map_objects::dark_ore::{BundleDarkOre};
+use crate::map_objects::walls::BundleWall;
 
 /// Represents yaml content for a map
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -48,10 +48,11 @@ pub fn apply_map(
     energy_supply_grid: &EnergySupplyGrid,
 ) {
     map.walls.iter().for_each(|wall_coords| {
-        create_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *wall_coords);
+        BundleWall::new(*wall_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid);
     });
     let dark_ores = map.dark_ores.iter().map(|dark_ore_coords| {
-        let dark_ore_entity = create_dark_ore(&mut commands, &asset_server, &mut emissions_energy_recalculate_all, &mut obstacles_grid, *dark_ore_coords);
+        let dark_ore_entity = BundleDarkOre::new(*dark_ore_coords, &asset_server)
+            .spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid);
         (*dark_ore_coords, dark_ore_entity)
     }).collect::<HashMap<_,_>>();
     map.buildings.iter().for_each(|building| {

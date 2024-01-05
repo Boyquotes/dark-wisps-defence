@@ -15,22 +15,33 @@ pub struct DarkOre {
     grid_imprint: GridImprint,
 }
 
-pub fn create_dark_ore(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
-    obstacles_grid: &mut ResMut<ObstacleGrid>,
+#[derive(Bundle)]
+pub struct BundleDarkOre {
+    sprite: SpriteBundle,
     grid_position: GridCoords,
-) -> Entity {
-    let entity = commands.spawn((
-        get_dark_ore_sprite_bundle(grid_position, asset_server),
-        grid_position,
-        DarkOre { amount: 10000, grid_imprint: DARK_ORE_GRID_IMPRINT },
-    )).id();
+    dark_ore: DarkOre,
+}
 
-    obstacles_grid.imprint(grid_position, Field::DarkOre(entity), DARK_ORE_GRID_IMPRINT);
-    emissions_energy_recalculate_all.0 = true;
-    entity
+impl BundleDarkOre {
+    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
+        Self {
+            sprite: get_dark_ore_sprite_bundle(grid_position, asset_server),
+            grid_position,
+            dark_ore: DarkOre { amount: 10000, grid_imprint: DARK_ORE_GRID_IMPRINT },
+        }
+    }
+    pub fn spawn(
+        self,
+        commands: &mut Commands,
+        emissions_energy_recalculate_all: &mut EmissionsEnergyRecalculateAll,
+        obstacles_grid: &mut ObstacleGrid
+    ) -> Entity {
+        let position = self.grid_position;
+        let entity = commands.spawn(self).id();
+        obstacles_grid.imprint(position, Field::DarkOre(entity), DARK_ORE_GRID_IMPRINT);
+        emissions_energy_recalculate_all.0 = true;
+        entity
+    }
 }
 
 pub fn get_dark_ore_sprite_bundle(grid_position: GridCoords, asset_server: &AssetServer) -> SpriteBundle {
@@ -79,7 +90,8 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a dark_ore
         if obstacle_grid.imprint_query_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| field.is_empty()) {
-            create_dark_ore(&mut commands, &asset_server, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
+            BundleDarkOre::new(mouse_coords, &asset_server)
+                .spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a dark_ore

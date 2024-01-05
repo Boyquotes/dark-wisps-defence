@@ -4,6 +4,11 @@ use crate::grids::common::GridImprint;
 use crate::utils::id::Id;
 
 pub type BuildingId = Id<BuildingType, Entity>;
+impl Default for BuildingId {
+    fn default() -> Self {
+        Id::new(Entity::from_raw(0))
+    }
+}
 #[derive(Copy, Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash)]
 pub enum BuildingType {
     EnergyRelay,

@@ -3,8 +3,10 @@ use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
 use crate::buildings::energy_relay::BundleEnergyRelay;
 use crate::buildings::main_base::MarkerMainBase;
-use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
-use crate::buildings::tower_blaster::{BundleTowerBlaster, TOWER_BLASTER_GRID_IMPRINT};
+use crate::buildings::mining_complex::{BundleMiningComplex, MINING_COMPLEX_GRID_IMPRINT};
+use crate::buildings::tower_blaster::{BundleTowerBlaster};
+use crate::buildings::tower_cannon::BundleTowerCannon;
+use crate::buildings::tower_rocket_launcher::BundleTowerRocketLauncher;
 use crate::grids::base::GridVersion;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmitterChangedEvent;
@@ -46,14 +48,19 @@ pub fn onclick_building_spawn_system(
                     BundleEnergyRelay::new(mouse_coords).spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacle_grid);
                 }
                 BuildingType::Tower(TowerType::Blaster) => {
-                    BundleTowerBlaster::new(mouse_coords, energy_supply_grid.is_imprint_suppliable(mouse_coords, TOWER_BLASTER_GRID_IMPRINT))
+                    BundleTowerBlaster::new(mouse_coords, &asset_server)
+                        .update_energy_supply(&energy_supply_grid)
                         .spawn(&mut commands, &mut obstacle_grid);
                 },
                 BuildingType::Tower(TowerType::Cannon) => {
-                    super::tower_cannon::create_tower_cannon(&mut commands, &asset_server, &mut obstacle_grid, &energy_supply_grid, mouse_coords);
+                    BundleTowerCannon::new(mouse_coords, &asset_server)
+                        .update_energy_supply(&energy_supply_grid)
+                        .spawn(&mut commands, &mut obstacle_grid);
                 },
                 BuildingType::Tower(TowerType::RocketLauncher) => {
-                    super::tower_rocket_launcher::create_tower_rocket_launcher(&mut commands, &asset_server,&mut obstacle_grid, &energy_supply_grid, mouse_coords);
+                    BundleTowerRocketLauncher::new(mouse_coords, &asset_server)
+                        .update_energy_supply(&energy_supply_grid)
+                        .spawn(&mut commands, &mut obstacle_grid);
                 },
                 BuildingType::MainBase => {
                     let (main_base_entity, mut main_base_coords, supplier_energy, mut transform) = main_base.single_mut();
@@ -73,7 +80,9 @@ pub fn onclick_building_spawn_system(
             if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
             dark_ore_stock.amount -= dark_ore_price;
             let Field::DarkOre(dark_ore) = obstacle_grid[mouse_coords] else { unreachable!() };
-            super::mining_complex::create_mining_complex(&mut commands, &asset_server,&mut obstacle_grid, &energy_supply_grid, mouse_coords, dark_ore);
+            BundleMiningComplex::new(mouse_coords, &asset_server)
+                .update_energy_supply(&energy_supply_grid)
+                .spawn(&mut commands, &mut obstacle_grid, dark_ore);
         }
         _ => { return; }
     };

@@ -31,7 +31,7 @@ pub struct MarkerTower;
 
 
 // Building sub-parts markers
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct MarkerTowerRotationalTop(pub BuildingId);
 
 #[derive(Component)]

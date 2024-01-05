@@ -4,7 +4,6 @@ pub mod cannonball;
 pub mod rocket;
 
 use bevy::prelude::*;
-use crate::projectiles::rocket::ROCKET_BASE_IMAGE;
 
 pub struct ProjectilesPlugin;
 impl Plugin for ProjectilesPlugin {

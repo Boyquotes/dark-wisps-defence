@@ -10,36 +10,53 @@ use crate::projectiles::cannonball::create_cannonball;
 use crate::wisps::components::{Target, Wisp};
 use crate::wisps::spawning::WISP_GRID_IMPRINT;
 pub const TOWER_CANNON_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
-pub const TOWER_CANNON_BASE_IMAGE: &str = "buildings/tower_cannon.png";
+pub static TOWER_CANNON_BASE_IMAGE: &str = "buildings/tower_cannon.png";
 
 #[derive(Component)]
 pub struct MarkerTowerCannon;
 
-pub fn create_tower_cannon(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    obstacle_grid: &mut ResMut<ObstacleGrid>,
-    energy_supply_grid: &EnergySupplyGrid,
-    grid_position: GridCoords,
-) -> Entity {
-    let building_entity = commands.spawn(
-        get_tower_cannon_sprite_bundle(grid_position, asset_server),
-    ).insert((
-        MarkerTower,
-        MarkerTowerCannon,
-        grid_position,
-        Health(10000),
-        TowerRange(15),
-        Building::from(BuildingType::Tower(TowerType::Cannon)),
-        TowerShootingTimer::from_seconds(2.0),
-        TowerWispTarget::default(),
-        TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_CANNON_GRID_IMPRINT) },
-    )).id();
-    obstacle_grid.imprint(grid_position, Field::Building(building_entity, BuildingType::Tower(TowerType::Cannon)), TOWER_CANNON_GRID_IMPRINT);
-    building_entity
+#[derive(Bundle)]
+pub struct BundleTowerCannon {
+    pub sprite: SpriteBundle,
+    pub marker_tower: MarkerTower,
+    pub marker_tower_cannon: MarkerTowerCannon,
+    pub grid_position: GridCoords,
+    pub health: Health,
+    pub tower_range: TowerRange,
+    pub building: Building,
+    pub tower_shooting_timer: TowerShootingTimer,
+    pub tower_wisp_target: TowerWispTarget,
+    pub technical_state: TechnicalState,
 }
 
-pub fn get_tower_cannon_sprite_bundle(coords: GridCoords, asset_server: &AssetServer,) -> SpriteBundle {
+impl BundleTowerCannon {
+    pub fn new(coords: GridCoords, asset_server: &AssetServer) -> Self {
+        Self {
+            sprite: get_tower_cannon_sprite_bundle(asset_server, coords),
+            marker_tower: MarkerTower,
+            marker_tower_cannon: MarkerTowerCannon,
+            grid_position: coords,
+            health: Health(10000),
+            tower_range: TowerRange(15),
+            building: Building::from(BuildingType::Tower(TowerType::Cannon)),
+            tower_shooting_timer: TowerShootingTimer::from_seconds(2.0),
+            tower_wisp_target: TowerWispTarget::default(),
+            technical_state: TechnicalState::default(),
+        }
+    }
+    pub fn update_energy_supply(mut self, energy_supply_grid: &EnergySupplyGrid) -> Self {
+        self.technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(self.grid_position, TOWER_CANNON_GRID_IMPRINT);
+        self
+    }
+    pub fn spawn(self, commands: &mut Commands, obstacle_grid: &mut ObstacleGrid) -> Entity {
+        let grid_position = self.grid_position;
+        let base_entity = commands.spawn(self).id();
+        obstacle_grid.imprint(grid_position, Field::Building(base_entity, BuildingType::Tower(TowerType::Cannon)), TOWER_CANNON_GRID_IMPRINT);
+        base_entity
+    }
+}
+
+pub fn get_tower_cannon_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
             custom_size: Some(TOWER_CANNON_GRID_IMPRINT.world_size()),

@@ -111,19 +111,19 @@ impl ConstructObjectButtonBundle {
     }
     pub fn spawn(builder: &mut ChildBuilder, asset_server: &AssetServer, grid_object_placer: GridObjectPlacer) {
         let image_handle = match &grid_object_placer {
-            GridObjectPlacer::MiningComplex => Some(asset_server.load(MINING_COMPLEX_BASE_IMAGE)),
+            GridObjectPlacer::MiningComplex => Some(MINING_COMPLEX_BASE_IMAGE),
             GridObjectPlacer::Building(building) => match building.building_type {
                 BuildingType::Tower(tower_type) => {
                     match tower_type {
-                        TowerType::Blaster => Some(TOWER_BLASTER_BASE_IMAGE.get().unwrap().clone()),
-                        TowerType::Cannon => Some(asset_server.load(TOWER_CANNON_BASE_IMAGE)),
-                        TowerType::RocketLauncher => Some(asset_server.load(TOWER_ROCKET_LAUNCHER_BASE_IMAGE)),
+                        TowerType::Blaster => Some(TOWER_BLASTER_BASE_IMAGE),
+                        TowerType::Cannon => Some(TOWER_CANNON_BASE_IMAGE),
+                        TowerType::RocketLauncher => Some(TOWER_ROCKET_LAUNCHER_BASE_IMAGE),
                     }
                 },
-                BuildingType::MainBase => Some(asset_server.load(MAIN_BASE_BASE_IMAGE)),
+                BuildingType::MainBase => Some(MAIN_BASE_BASE_IMAGE),
                 _ => None,
             },
-            GridObjectPlacer::DarkOre => Some(asset_server.load(DARK_ORE_BASE_IMAGE)),
+            GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGE),
             _ => None,
         };
         builder.spawn(ConstructObjectButtonBundle::new(grid_object_placer)).with_children(|parent| {
@@ -138,7 +138,7 @@ impl ConstructObjectButtonBundle {
                         background_color: Color::WHITE.into(),
                         ..default()
                     },
-                    UiImage::new(image_handle),
+                    UiImage::new(asset_server.load(image_handle)),
                 ));
             }
         });

@@ -9,28 +9,55 @@ pub static EXPLOSION_ATLAS: OnceLock<Handle<TextureAtlas>> = OnceLock::new();
 #[derive(Component)]
 pub struct MarkerExplosion;
 
-pub fn create_explosion(
-    commands: &mut Commands,
-    grid_position: GridCoords,
-) -> Entity {
-    let explosion_entity = commands.spawn((
-        SpriteSheetBundle {
-            texture_atlas: EXPLOSION_ATLAS.get().unwrap().clone(),
-            sprite: TextureAtlasSprite::new(0),
-            transform: Transform {
-                translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        AnimationController::new(0, 3, 0.1, false),
-        MarkerExplosion,
-    )).id();
-    explosion_entity
+#[derive(Bundle)]
+pub struct BundleExplosion {
+    pub sprite: SpriteSheetBundle,
+    pub animation_controller: AnimationController,
+    pub marker_explosion: MarkerExplosion,
 }
 
+impl BundleExplosion {
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self {
+            sprite: SpriteSheetBundle {
+                texture_atlas: EXPLOSION_ATLAS.get().unwrap().clone(),
+                sprite: TextureAtlasSprite::new(0),
+                transform: Transform {
+                    translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            animation_controller: AnimationController::new(0, 3, 0.1, false),
+            marker_explosion: MarkerExplosion,
+        }
+    }
+    pub fn spawn(self, commands: &mut Commands) -> Entity {
+        commands.spawn(self).id()
+    }
+}
+
+// pub fn create_explosion(
+//     commands: &mut Commands,
+//     grid_position: GridCoords,
+// ) -> Entity {
+//     let explosion_entity = commands.spawn((
+//         SpriteSheetBundle {
+//             texture_atlas: EXPLOSION_ATLAS.get().unwrap().clone(),
+//             sprite: TextureAtlasSprite::new(0),
+//             transform: Transform {
+//                 translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
+//                 ..Default::default()
+//             },
+//             ..Default::default()
+//         },
+//         AnimationController::new(0, 3, 0.1, false),
+//         MarkerExplosion,
+//     )).id();
+//     explosion_entity
+// }
+
 pub fn load_assets_system(
-    mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
@@ -45,7 +72,6 @@ pub fn load_assets_system(
     );
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
     EXPLOSION_ATLAS.set(texture_atlas_handle).unwrap();
-    create_explosion(&mut commands, GridCoords { x: 0, y: 0 });
 }
 
 pub fn remove_explosions_system(

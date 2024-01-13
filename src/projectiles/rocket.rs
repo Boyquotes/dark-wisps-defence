@@ -1,15 +1,14 @@
-use std::sync::OnceLock;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use crate::common::{Z_PROJECTILE, Z_PROJECTILE_UNDER};
 use crate::common_components::{Health};
-use crate::effects::explosions::create_explosion;
 use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
 use crate::search::common::ALL_DIRECTIONS;
 use crate::wisps::components::{Wisp, WispEntity};
+use crate::effects::explosions::BundleExplosion;
 
 pub const ROCKET_BASE_IMAGE: &str = "projectiles/rocket.png";
 pub const ROCKET_EXHAUST_IMAGE: &str = "projectiles/rocket_exhaust.png";
@@ -89,46 +88,6 @@ impl BundleRocket {
     }
 }
 
-// pub fn create_rocket(commands: &mut Commands, asset_server: &AssetServer, world_position: Vec2, rotation: Quat, target_wisp: WispEntity) -> Entity {
-//     let exhaust_entity = commands.spawn((
-//         SpriteBundle {
-//             sprite: Sprite {
-//                 custom_size: Some(Vec2::new(10.0, 6.25)),
-//                 anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
-//                 ..Default::default()
-//             },
-//             texture: asset_server.load(ROCKET_EXHAUST_IMAGE),
-//             transform: Transform {
-//                 translation: Vec2::ZERO.extend(Z_PROJECTILE_UNDER),
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         },
-//         MarkerRocketExhaust,
-//     )).id();
-//     let rocket_entity = commands.spawn(
-//         SpriteBundle {
-//             sprite: Sprite {
-//                 custom_size: Some(Vec2::new(20.0, 10.0)),
-//                 ..Default::default()
-//             },
-//             texture: asset_server.load(ROCKET_BASE_IMAGE),
-//             transform: Transform {
-//                 translation: world_position.extend(Z_PROJECTILE),
-//                 rotation,
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         }
-//     ).insert((
-//         MarkerProjectile,
-//         MarkerRocket{ exhaust: exhaust_entity },
-//         RocketTarget(target_wisp),
-//     )).id();
-//     commands.entity(rocket_entity).add_child(exhaust_entity);
-//     rocket_entity
-// }
-
 pub fn rocket_move_system(
     mut rockets: Query<(&mut Transform, &mut RocketTarget, &MarkerRocket), Without<MarkerRocketExhaust>>,
     time: Res<Time>,
@@ -197,7 +156,7 @@ pub fn rocket_hit_system(
             let blast_zone_coords = coords.shifted((*dx, *dy));
             if !blast_zone_coords.is_in_bounds(wisps_grid.bounds()) { continue; }
 
-            create_explosion(&mut commands, blast_zone_coords);
+            BundleExplosion::new(blast_zone_coords).spawn(&mut commands);
 
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {

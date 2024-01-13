@@ -7,7 +7,7 @@ use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::projectiles::laser_dart::create_laser_dart;
+use crate::projectiles::laser_dart::BundleLaserDart;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
 
@@ -60,7 +60,7 @@ impl BundleTowerBlaster {
             },
             top: BundleTowerBlasterTop {
                 sprite: tower_top,
-                marker: MarkerTowerRotationalTop(Entity::from_raw(0).into()),
+                marker: MarkerTowerRotationalTop(Entity::PLACEHOLDER.into()),
             },
         }
     }
@@ -140,7 +140,7 @@ pub fn shooting_system(
         );
         let spawn_position = transform.translation.xy() + offset;
 
-        create_laser_dart(&mut commands, spawn_position, target_wisp, (wisp_position - spawn_position).normalize());
+        BundleLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize()).spawn(&mut commands);
         timer.0.reset();
     }
 }

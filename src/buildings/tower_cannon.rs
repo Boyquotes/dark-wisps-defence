@@ -6,7 +6,7 @@ use crate::common_components::{Health};
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::projectiles::cannonball::create_cannonball;
+use crate::projectiles::cannonball::BundleCannonball;
 use crate::wisps::components::{Target, Wisp};
 use crate::wisps::spawning::WISP_GRID_IMPRINT;
 pub const TOWER_CANNON_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
@@ -99,7 +99,7 @@ pub fn shooting_system(
                 }
             );
 
-        create_cannonball(&mut commands, &asset_server, transform.translation.xy(), target_world_position);
+        BundleCannonball::new(transform.translation.xy(), target_world_position, &asset_server).spawn(&mut commands);
         timer.0.reset();
     }
 }

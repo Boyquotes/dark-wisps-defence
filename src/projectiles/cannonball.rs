@@ -10,6 +10,8 @@ use crate::projectiles::components::MarkerProjectile;
 use crate::search::common::ALL_DIRECTIONS;
 use crate::wisps::components::{Wisp};
 
+pub const CANNONBALL_BASE_IMAGE: &str = "projectiles/cannonball.png";
+
 #[derive(Component)]
 pub struct MarkerCannonball;
 
@@ -20,29 +22,40 @@ pub struct CannonballTarget{
     pub target_position: Vec2,
 }
 
-pub fn create_cannonball(commands: &mut Commands, asset_server: &AssetServer, world_position: Vec2, target_position: Vec2) -> Entity {
-    let entity = commands.spawn(
-        SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(8.0, 8.0)),
+#[derive(Bundle)]
+pub struct BundleCannonball {
+    pub sprite: SpriteBundle,
+    pub marker_projectile: MarkerProjectile,
+    pub marker_cannonball: MarkerCannonball,
+    pub cannonball_target: CannonballTarget,
+}
+
+impl BundleCannonball {
+    pub fn new(world_position: Vec2, target_position: Vec2, asset_server: &AssetServer) -> Self {
+        Self {
+            sprite: SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(8.0, 8.0)),
+                    ..Default::default()
+                },
+                texture: asset_server.load(CANNONBALL_BASE_IMAGE),
+                transform: Transform {
+                    translation: world_position.extend(Z_PROJECTILE),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            texture: asset_server.load("projectiles/cannonball.png"),
-            transform: Transform {
-                translation: world_position.extend(Z_PROJECTILE),
-                ..Default::default()
+            marker_projectile: MarkerProjectile,
+            marker_cannonball: MarkerCannonball,
+            cannonball_target: CannonballTarget {
+                initial_distance: world_position.distance(target_position),
+                target_position,
             },
-            ..Default::default()
         }
-    ).insert(
-        (MarkerProjectile, MarkerCannonball)
-    ).insert(
-        CannonballTarget{
-            initial_distance: world_position.distance(target_position),
-            target_position,
-        }
-    ).id();
-    entity
+    }
+    pub fn spawn(self, commands: &mut Commands) -> Entity {
+        commands.spawn(self).id()
+    }
 }
 
 pub fn cannonball_move_system(

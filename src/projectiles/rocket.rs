@@ -11,8 +11,8 @@ use crate::projectiles::components::MarkerProjectile;
 use crate::search::common::ALL_DIRECTIONS;
 use crate::wisps::components::{Wisp, WispEntity};
 
-pub static ROCKET_BASE_IMAGE: OnceLock<Handle<Image>> = OnceLock::new();
-pub static ROCKET_EXHAUST_IMAGE: OnceLock<Handle<Image>> = OnceLock::new();
+pub const ROCKET_BASE_IMAGE: &str = "projectiles/rocket.png";
+pub const ROCKET_EXHAUST_IMAGE: &str = "projectiles/rocket_exhaust.png";
 
 #[derive(Component)]
 pub struct MarkerRocket {
@@ -25,50 +25,109 @@ pub struct MarkerRocketExhaust;
 #[derive(Component)]
 pub struct RocketTarget(pub WispEntity);
 
-pub fn create_rocket(commands: &mut Commands, world_position: Vec2, rotation: Quat, target_wisp: WispEntity) -> Entity {
-    let exhaust_entity = commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(10.0, 6.25)),
-                anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
-                ..Default::default()
-            },
-            texture: ROCKET_EXHAUST_IMAGE.get().unwrap().clone(),
-            transform: Transform {
-                translation: Vec2::ZERO.extend(Z_PROJECTILE_UNDER),
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        MarkerRocketExhaust,
-    )).id();
-    let rocket_entity = commands.spawn(
-        SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(20.0, 10.0)),
-                ..Default::default()
-            },
-            texture: ROCKET_BASE_IMAGE.get().unwrap().clone(),
-            transform: Transform {
-                translation: world_position.extend(Z_PROJECTILE),
-                rotation,
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    ).insert((
-        MarkerProjectile,
-        MarkerRocket{ exhaust: exhaust_entity },
-        RocketTarget(target_wisp),
-    )).id();
-    commands.entity(rocket_entity).add_child(exhaust_entity);
-    rocket_entity
+#[derive(Bundle)]
+struct BundleRocketExhaust {
+    pub sprite: SpriteBundle,
+    pub marker_rocket_exhaust: MarkerRocketExhaust,
+}
+#[derive(Bundle)]
+struct BundleRocketBase {
+    pub sprite: SpriteBundle,
+    pub marker_projectile: MarkerProjectile,
+    pub marker_rocket: MarkerRocket,
+    pub rocket_target: RocketTarget,
+}
+pub struct BundleRocket {
+    exhaust: BundleRocketExhaust,
+    base: BundleRocketBase,
 }
 
-pub fn load_assets_system(asset_server: Res<AssetServer>) {
-    ROCKET_BASE_IMAGE.set(asset_server.load("projectiles/rocket.png")).unwrap();
-    ROCKET_EXHAUST_IMAGE.set(asset_server.load("projectiles/rocket_exhaust.png")).unwrap();
+impl BundleRocket {
+    pub fn new(world_position: Vec2, rotation: Quat, target_wisp: WispEntity, asset_server: &AssetServer) -> Self {
+        let exhaust = BundleRocketExhaust {
+            sprite: SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(10.0, 6.25)),
+                    anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
+                    ..Default::default()
+                },
+                texture: asset_server.load(ROCKET_EXHAUST_IMAGE),
+                transform: Transform {
+                    translation: Vec2::ZERO.extend(Z_PROJECTILE_UNDER),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            marker_rocket_exhaust: MarkerRocketExhaust,
+        };
+        let base = BundleRocketBase {
+            sprite: SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(20.0, 10.0)),
+                    ..Default::default()
+                },
+                texture: asset_server.load(ROCKET_BASE_IMAGE),
+                transform: Transform {
+                    translation: world_position.extend(Z_PROJECTILE),
+                    rotation,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            marker_projectile: MarkerProjectile,
+            marker_rocket:  MarkerRocket{ exhaust: Entity::PLACEHOLDER },
+            rocket_target: RocketTarget(target_wisp),
+        };
+        Self { exhaust, base }
+    }
+    pub fn spawn(self, commands: &mut Commands) -> Entity {
+        let Self { exhaust, mut base } = self;
+        let exhaust_entity = commands.spawn(exhaust).id();
+
+        base.marker_rocket.exhaust = exhaust_entity;
+        commands.spawn(base).add_child(exhaust_entity).id()
+    }
 }
+
+// pub fn create_rocket(commands: &mut Commands, asset_server: &AssetServer, world_position: Vec2, rotation: Quat, target_wisp: WispEntity) -> Entity {
+//     let exhaust_entity = commands.spawn((
+//         SpriteBundle {
+//             sprite: Sprite {
+//                 custom_size: Some(Vec2::new(10.0, 6.25)),
+//                 anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
+//                 ..Default::default()
+//             },
+//             texture: asset_server.load(ROCKET_EXHAUST_IMAGE),
+//             transform: Transform {
+//                 translation: Vec2::ZERO.extend(Z_PROJECTILE_UNDER),
+//                 ..Default::default()
+//             },
+//             ..Default::default()
+//         },
+//         MarkerRocketExhaust,
+//     )).id();
+//     let rocket_entity = commands.spawn(
+//         SpriteBundle {
+//             sprite: Sprite {
+//                 custom_size: Some(Vec2::new(20.0, 10.0)),
+//                 ..Default::default()
+//             },
+//             texture: asset_server.load(ROCKET_BASE_IMAGE),
+//             transform: Transform {
+//                 translation: world_position.extend(Z_PROJECTILE),
+//                 rotation,
+//                 ..Default::default()
+//             },
+//             ..Default::default()
+//         }
+//     ).insert((
+//         MarkerProjectile,
+//         MarkerRocket{ exhaust: exhaust_entity },
+//         RocketTarget(target_wisp),
+//     )).id();
+//     commands.entity(rocket_entity).add_child(exhaust_entity);
+//     rocket_entity
+// }
 
 pub fn rocket_move_system(
     mut rockets: Query<(&mut Transform, &mut RocketTarget, &MarkerRocket), Without<MarkerRocketExhaust>>,

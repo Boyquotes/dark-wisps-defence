@@ -9,12 +9,6 @@ pub struct ProjectilesPlugin;
 impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            Startup,
-            (
-                rocket::load_assets_system,
-            )
-        );
-        app.add_systems(
             Update,
             (
                 laser_dart::laser_dart_move_system,

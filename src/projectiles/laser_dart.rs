@@ -17,28 +17,61 @@ pub struct LaserDartTarget {
     pub target_vector: Vec2,
 }
 
-pub fn create_laser_dart(commands: &mut Commands, world_position: Vec2, target_wisp: WispEntity, target_vector: Vec2) -> Entity {
-    let entity = commands.spawn(
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::rgb(1.0, 0.0, 0.0),
-                custom_size: Some(Vec2::new(7.0, 1.0)),
-                ..Default::default()
-            },
-            transform: Transform {
-                translation: world_position.extend(Z_PROJECTILE),
-                rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    ).insert(
-        (MarkerProjectile, MarkerLaserDart)
-    ).insert(
-        LaserDartTarget{ target_wisp: Some(target_wisp), target_vector }
-    ).id();
-    entity
+#[derive(Bundle)]
+pub struct BundleLaserDart {
+    pub sprite: SpriteBundle,
+    pub marker_projectile: MarkerProjectile,
+    pub marker_laser_dart: MarkerLaserDart,
+    pub laser_dart_target: LaserDartTarget,
 }
+impl BundleLaserDart {
+    pub fn new(world_position: Vec2, target_wisp: WispEntity, target_vector: Vec2) -> Self {
+        Self {
+            sprite: SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb(1.0, 0.0, 0.0),
+                    custom_size: Some(Vec2::new(7.0, 1.0)),
+                    ..Default::default()
+                },
+                transform: Transform {
+                    translation: world_position.extend(Z_PROJECTILE),
+                    rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            marker_projectile: MarkerProjectile,
+            marker_laser_dart: MarkerLaserDart,
+            laser_dart_target: LaserDartTarget{ target_wisp: Some(target_wisp), target_vector },
+        }
+    }
+    pub fn spawn(self, commands: &mut Commands) -> Entity {
+        commands.spawn(self).id()
+    }
+}
+
+// pub fn create_laser_dart(commands: &mut Commands, world_position: Vec2, target_wisp: WispEntity, target_vector: Vec2) -> Entity {
+//     let entity = commands.spawn(
+//         SpriteBundle {
+//             sprite: Sprite {
+//                 color: Color::rgb(1.0, 0.0, 0.0),
+//                 custom_size: Some(Vec2::new(7.0, 1.0)),
+//                 ..Default::default()
+//             },
+//             transform: Transform {
+//                 translation: world_position.extend(Z_PROJECTILE),
+//                 rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
+//                 ..Default::default()
+//             },
+//             ..Default::default()
+//         }
+//     ).insert(
+//         (MarkerProjectile, MarkerLaserDart)
+//     ).insert(
+//         LaserDartTarget{ target_wisp: Some(target_wisp), target_vector }
+//     ).id();
+//     entity
+// }
 
 pub fn laser_dart_move_system(
     mut laser_darts: Query<(&mut Transform, &mut LaserDartTarget), With<MarkerLaserDart>>,

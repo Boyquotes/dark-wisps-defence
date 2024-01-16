@@ -116,6 +116,8 @@ pub fn keyboard_input_system(
             GridObjectPlacer::Wall
         } else if keys.just_pressed(KeyCode::O) {
             GridObjectPlacer::DarkOre
+        } else if keys.just_pressed(KeyCode::Q) {
+            GridObjectPlacer::QuantumField(QuantumField{ grid_imprint: GridImprint::Rectangle { width: 3, height: 3 }})
         } else if keys.just_pressed(KeyCode::M) {
             GridObjectPlacer::MiningComplex
         }else if keys.just_pressed(KeyCode::E) {

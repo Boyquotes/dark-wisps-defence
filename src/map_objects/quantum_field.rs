@@ -72,7 +72,7 @@ pub fn onclick_spawn_system(
     if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacles_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {
         // Place a quantum_field
-        if obstacles_grid[mouse_coords].is_empty() {
+        if obstacles_grid.imprint_query_all(mouse_coords, quantum_field.grid_imprint, |field| field.is_empty()) {
             BundleQuantumField::new(mouse_coords, quantum_field.grid_imprint)
                 .spawn(&mut commands, &mut obstacles_grid);
         }

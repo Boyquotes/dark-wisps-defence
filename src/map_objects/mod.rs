@@ -8,6 +8,9 @@ use bevy::prelude::*;
 pub struct MapObjectsPlugin;
 impl Plugin for MapObjectsPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(Startup, (
+            quantum_field::create_grid_placer_ui_for_quantum_field,
+        ));
         app.add_systems(Update, (
             walls::onclick_spawn_system,
             walls::color_rotation_system,

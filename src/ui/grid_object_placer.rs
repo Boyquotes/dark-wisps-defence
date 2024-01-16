@@ -48,11 +48,10 @@ impl From<BuildingType> for GridObjectPlacer {
 }
 
 pub fn create_grid_object_placer_system(mut commands: Commands) {
-    commands.spawn(
-        GridObjectPlacer::default()
-    ).insert(
+    commands.spawn((
+        GridObjectPlacer::default(),
         SpriteBundle::default()
-    );
+    ));
 }
 
 pub fn update_grid_object_placer_system(
@@ -117,7 +116,7 @@ pub fn keyboard_input_system(
         } else if keys.just_pressed(KeyCode::O) {
             GridObjectPlacer::DarkOre
         } else if keys.just_pressed(KeyCode::Q) {
-            GridObjectPlacer::QuantumField(QuantumField{ grid_imprint: GridImprint::Rectangle { width: 3, height: 3 }})
+            GridObjectPlacer::QuantumField(QuantumField::default())
         } else if keys.just_pressed(KeyCode::M) {
             GridObjectPlacer::MiningComplex
         }else if keys.just_pressed(KeyCode::E) {

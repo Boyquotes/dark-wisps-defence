@@ -9,6 +9,11 @@ use crate::ui::grid_object_placer::GridObjectPlacer;
 pub struct QuantumField {
     pub grid_imprint: GridImprint,
 }
+impl Default for QuantumField {
+    fn default() -> Self {
+        Self { grid_imprint: GridImprint::Rectangle { width: 3, height: 3 } }
+    }
+}
 
 #[derive(Bundle)]
 pub struct BundleQuantumField {
@@ -87,4 +92,76 @@ pub fn onclick_spawn_system(
             _ => {}
         }
     }
+}
+
+/// Widget for selecting QuantumField grid imprint size during construction
+/// The widget consists of one horizontal layer containing left arrow button, text label specifying the imprint size and right arrow button
+#[derive(Component)]
+struct GridPlacerUiForQuantumField;
+#[derive(Component)]
+enum ArrowButton {
+    Decrease,
+    Increase,
+}
+impl ArrowButton {
+    fn text(&self) -> &str {
+        match self {
+            ArrowButton::Decrease => "<",
+            ArrowButton::Increase => ">",
+        }
+    }
+}
+
+pub fn create_grid_placer_ui_for_quantum_field(
+    mut commands: Commands,
+) {
+    struct ArrowButtonBundle {
+        button: ButtonBundle,
+        text: TextBundle,
+        arrow_button: ArrowButton,
+    }
+    impl ArrowButtonBundle {
+        fn new(arrow_button: ArrowButton) -> Self {
+            Self {
+                button: ButtonBundle {
+                    style: Style {
+                        width: Val::Px(16.),
+                        height: Val::Px(16.),
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    background_color: Color::BLACK.into(),
+                    z_index: ZIndex::Global(-1),
+                    ..Default::default()
+                },
+                text: TextBundle::from_section(arrow_button.text(), TextStyle::default()),
+                arrow_button,
+            }
+        }
+        pub fn spawn(self, builder: &mut ChildBuilder) {
+            builder.spawn((self.button, self.arrow_button)).with_children(|parent| {
+                parent.spawn(self.text);
+            });
+        }
+    }
+
+    let grid_placer_ui = commands.spawn((
+        NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                top: Val::Px(5.0),
+                left: Val::Percent(50.0),
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(2.5),
+                ..default()
+            },
+            ..default()
+        },
+        GridPlacerUiForQuantumField
+    )).with_children(|parent| {
+        ArrowButtonBundle::new(ArrowButton::Decrease).spawn(parent);
+        parent.spawn(TextBundle::from_section("QuantumField 3x3", TextStyle::default()));
+        ArrowButtonBundle::new(ArrowButton::Increase).spawn(parent);
+    }).id();
 }

@@ -23,7 +23,7 @@ pub struct MouseInfo {
 pub fn update_mouse_info_system(
     window: Query<&Window, With<PrimaryWindow>>,
     camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-    ui_nodes: Query<&Interaction, (Changed<Interaction>, With<Node>)>,
+    ui_nodes: Query<&Interaction, With<Node>>,
     mut mouse_info: ResMut<MouseInfo>,
 ) {
     let window = window.single();

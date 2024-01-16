@@ -200,6 +200,7 @@ pub fn create_construct_menu(
                 ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::MainBase.into());
                 ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::DarkOre);
                 ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::Wall);
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::QuantumField(QuantumField::default()));
             });
         });
     }).id();

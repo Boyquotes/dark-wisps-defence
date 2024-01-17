@@ -3,15 +3,24 @@ use crate::common::Z_OBSTACLE;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
-use crate::ui::grid_object_placer::GridObjectPlacer;
+use crate::ui::common::AdvancedInteraction;
+use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
+
+pub const QUANTUM_FIELD_MIN_IMPRINT_SIZE: i32 = 3;
+pub const QUANTUM_FIELD_MAX_IMPRINT_SIZE: i32 = 6;
 
 #[derive(Component, Clone, Debug)]
 pub struct QuantumField {
     pub grid_imprint: GridImprint,
 }
+impl QuantumField {
+    fn from_size(size: i32) -> Self {
+        Self { grid_imprint: GridImprint::Rectangle { width: size, height: size } }
+    }
+}
 impl Default for QuantumField {
     fn default() -> Self {
-        Self { grid_imprint: GridImprint::Rectangle { width: 3, height: 3 } }
+        Self { grid_imprint: GridImprint::Rectangle { width: QUANTUM_FIELD_MIN_IMPRINT_SIZE, height: QUANTUM_FIELD_MIN_IMPRINT_SIZE } }
     }
 }
 
@@ -97,9 +106,16 @@ pub fn onclick_spawn_system(
 /// Widget for selecting QuantumField grid imprint size during construction
 /// The widget consists of one horizontal layer containing left arrow button, text label specifying the imprint size and right arrow button
 #[derive(Component)]
-struct GridPlacerUiForQuantumField;
+pub struct GridPlacerUiForQuantumField {
+    pub imprint_size: i32,
+}
+impl GridPlacerUiForQuantumField {
+    pub fn imprint_str(&self) -> String {
+        format!("Quantum Field {}x{}", self.imprint_size, self.imprint_size)
+    }
+}
 #[derive(Component)]
-enum ArrowButton {
+pub enum ArrowButton {
     Decrease,
     Increase,
 }
@@ -112,13 +128,14 @@ impl ArrowButton {
     }
 }
 
-pub fn create_grid_placer_ui_for_quantum_field(
+pub fn create_grid_placer_ui_for_quantum_field_system(
     mut commands: Commands,
 ) {
     struct ArrowButtonBundle {
         button: ButtonBundle,
         text: TextBundle,
         arrow_button: ArrowButton,
+        advanced_interaction: AdvancedInteraction,
     }
     impl ArrowButtonBundle {
         fn new(arrow_button: ArrowButton) -> Self {
@@ -136,16 +153,19 @@ pub fn create_grid_placer_ui_for_quantum_field(
                 },
                 text: TextBundle::from_section(arrow_button.text(), TextStyle::default()),
                 arrow_button,
+                advanced_interaction: Default::default(),
             }
         }
         pub fn spawn(self, builder: &mut ChildBuilder) {
-            builder.spawn((self.button, self.arrow_button)).with_children(|parent| {
+            builder.spawn((self.button, self.arrow_button, self.advanced_interaction)).with_children(|parent| {
                 parent.spawn(self.text);
             });
         }
     }
 
-    let grid_placer_ui = commands.spawn((
+    let grid_placer_ui_for_quantum_field = GridPlacerUiForQuantumField{ imprint_size: QUANTUM_FIELD_MIN_IMPRINT_SIZE };
+    let ui_text = grid_placer_ui_for_quantum_field.imprint_str();
+    commands.spawn((
         NodeBundle {
             style: Style {
                 position_type: PositionType::Absolute,
@@ -158,10 +178,46 @@ pub fn create_grid_placer_ui_for_quantum_field(
             },
             ..default()
         },
-        GridPlacerUiForQuantumField
+        grid_placer_ui_for_quantum_field,
     )).with_children(|parent| {
         ArrowButtonBundle::new(ArrowButton::Decrease).spawn(parent);
-        parent.spawn(TextBundle::from_section("QuantumField 3x3", TextStyle::default()));
+        parent.spawn(TextBundle::from_section(ui_text, TextStyle::default()));
         ArrowButtonBundle::new(ArrowButton::Increase).spawn(parent);
-    }).id();
+    });
+}
+
+pub fn operate_arrows_for_grid_placer_ui_for_quantum_field_system(
+    mut ui: Query<(&mut Visibility, &Children, &mut GridPlacerUiForQuantumField)>,
+    mut arrows: Query<(&ArrowButton, &AdvancedInteraction)>,
+    mut texts: Query<&mut Text>,
+    grid_object_placer: Query<&GridObjectPlacer>,
+    mut placer_request: ResMut<GridObjectPlacerRequest>,
+) {
+    let (mut visibility, ui_children, mut grid_placer_ui) = ui.single_mut();
+    let GridObjectPlacer::QuantumField(_) = grid_object_placer.single() else {
+        *visibility = Visibility::Hidden;
+        return;
+    };
+    *visibility = Visibility::Inherited;
+
+    for (arrow_button, advanced_interaction) in arrows.iter_mut() {
+        if advanced_interaction.was_just_released {
+            match arrow_button {
+                ArrowButton::Decrease => {
+                    if grid_placer_ui.imprint_size > QUANTUM_FIELD_MIN_IMPRINT_SIZE {
+                        grid_placer_ui.imprint_size -= 1;
+                    }
+                },
+                ArrowButton::Increase => {
+                    if grid_placer_ui.imprint_size < QUANTUM_FIELD_MAX_IMPRINT_SIZE {
+                        grid_placer_ui.imprint_size += 1;
+                    }
+                },
+            }
+
+            let ui_text = grid_placer_ui.imprint_str();
+            texts.get_mut(ui_children[1]).unwrap().sections[0].value = ui_text;
+            placer_request.set(GridObjectPlacer::QuantumField(QuantumField::from_size(grid_placer_ui.imprint_size)));
+        }
+    }
 }

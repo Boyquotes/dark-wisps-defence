@@ -238,7 +238,7 @@ pub fn construct_building_on_click_system(
 ) {
     for (advanced_interaction, button) in menu_buttons.iter_mut() {
         if advanced_interaction.was_just_released {
-            grid_object_placer_request.0 = Some(button.object_type.clone());
+            grid_object_placer_request.set(button.object_type.clone());
             list_pickers.for_each_mut(|(mut interaction, mut visibility)| { *visibility = Visibility::Hidden; *interaction = Interaction::None; });
         }
     }

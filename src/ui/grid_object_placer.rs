@@ -14,6 +14,10 @@ use crate::ui::interaction_state::UiInteractionState;
 
 #[derive(Resource, Default)]
 pub struct GridObjectPlacerRequest(pub Option<GridObjectPlacer>);
+impl GridObjectPlacerRequest {
+    pub fn set(&mut self, request: GridObjectPlacer) { self.0 = Some(request); }
+    pub fn clear(&mut self) { self.0 = None; }
+}
 
 #[derive(Component, Default, Clone, Debug)]
 pub enum GridObjectPlacer {
@@ -131,7 +135,7 @@ pub fn keyboard_input_system(
             return
         }
     };
-    grid_object_placer_request.0 = Some(placer_request);
+    grid_object_placer_request.set(placer_request);
 }
 
 pub fn on_request_grid_object_placer_system(

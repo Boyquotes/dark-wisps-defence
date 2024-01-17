@@ -4,7 +4,7 @@ pub mod grid_object_placer;
 pub mod display_building_info;
 pub mod badges;
 mod construction_menu;
-mod common;
+pub mod common;
 
 use bevy::prelude::*;
 

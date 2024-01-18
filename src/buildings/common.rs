@@ -11,6 +11,7 @@ pub enum BuildingType {
     MainBase,
     Tower(TowerType),
     MiningComplex,
+    ExplorationCenter,
 }
 impl BuildingType {
     pub fn is_energy_rich(&self) -> bool {
@@ -28,6 +29,7 @@ impl BuildingType {
                 }
             },
             BuildingType::MiningComplex => super::mining_complex::MINING_COMPLEX_GRID_IMPRINT,
+            BuildingType::ExplorationCenter => super::exploration_center::EXPLORATION_CENTER_GRID_IMPRINT,
         }
     }
 }

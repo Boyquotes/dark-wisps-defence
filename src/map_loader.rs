@@ -4,6 +4,7 @@ use bevy::utils::HashMap;
 use serde::{Deserialize, Serialize};
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::energy_relay::BundleEnergyRelay;
+use crate::buildings::exploration_center::BundleExplorationCenter;
 use crate::buildings::main_base::{BundleMainBase};
 use crate::buildings::mining_complex::{BundleMiningComplex};
 use crate::buildings::tower_blaster::{BundleTowerBlaster};
@@ -64,6 +65,11 @@ pub fn apply_map(
             BuildingType::EnergyRelay => {
                 BundleEnergyRelay::new(building.coords)
                     .spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacles_grid);
+            }
+            BuildingType::ExplorationCenter => {
+                BundleExplorationCenter::new(building.coords, &asset_server)
+                    .update_energy_supply(&energy_supply_grid)
+                    .spawn(&mut commands, &mut obstacles_grid);
             }
             BuildingType::Tower(tower_type) => {
                 match tower_type {

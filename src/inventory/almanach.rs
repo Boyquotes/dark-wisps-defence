@@ -19,6 +19,7 @@ impl Default for Almanach {
             (BuildingType::MainBase, 0),
             (BuildingType::MiningComplex, 100),
             (BuildingType::EnergyRelay, 300),
+            (BuildingType::ExplorationCenter, 500),
             (BuildingType::Tower(TowerType::Blaster), 150),
             (BuildingType::Tower(TowerType::Cannon), 250),
             (BuildingType::Tower(TowerType::RocketLauncher), 350),

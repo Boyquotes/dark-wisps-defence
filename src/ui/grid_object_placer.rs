@@ -90,7 +90,7 @@ pub fn update_grid_object_placer_system(
     };
     let (needs_energy_supply, is_imprint_suppliable) = match &*grid_object_placer {
         GridObjectPlacer::Building(building) => match building.building_type {
-            BuildingType::Tower(_) => {
+            BuildingType::Tower(_) | BuildingType::ExplorationCenter => {
                 (true, energy_supply_grid.is_imprint_suppliable(mouse_info.grid_coords, building.grid_imprint))
             },
             _ => (false, false)
@@ -123,8 +123,10 @@ pub fn keyboard_input_system(
             GridObjectPlacer::QuantumField(QuantumField::default())
         } else if keys.just_pressed(KeyCode::M) {
             GridObjectPlacer::MiningComplex
-        }else if keys.just_pressed(KeyCode::E) {
+        } else if keys.just_pressed(KeyCode::E) {
             GridObjectPlacer::Building(BuildingType::EnergyRelay.into())
+        } else if keys.just_pressed(KeyCode::X) {
+            GridObjectPlacer::Building((BuildingType::ExplorationCenter).into())
         } else if keys.just_pressed(KeyCode::Key1) {
             GridObjectPlacer::Building(BuildingType::Tower(TowerType::Blaster).into())
         } else if keys.just_pressed(KeyCode::Key2) {

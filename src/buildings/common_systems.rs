@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
 use crate::buildings::energy_relay::BundleEnergyRelay;
+use crate::buildings::exploration_center::BundleExplorationCenter;
 use crate::buildings::main_base::MarkerMainBase;
 use crate::buildings::mining_complex::{BundleMiningComplex, MINING_COMPLEX_GRID_IMPRINT};
 use crate::buildings::tower_blaster::{BundleTowerBlaster};
@@ -36,7 +37,7 @@ pub fn onclick_building_spawn_system(
     mut main_base: Query<(Entity, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
 ) {
     let mouse_coords = mouse_info.grid_coords;
-    if mouse_info.is_over_ui || !mouse.pressed(MouseButton::Left) || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
+    if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     match &*grid_object_placer.single() {
         GridObjectPlacer::Building(building) => {
             if !obstacle_grid.imprint_query_all(mouse_coords, building.grid_imprint, |field| field.is_empty()) { return; }
@@ -46,6 +47,11 @@ pub fn onclick_building_spawn_system(
             match building.building_type {
                 BuildingType::EnergyRelay => {
                     BundleEnergyRelay::new(mouse_coords).spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacle_grid);
+                }
+                BuildingType::ExplorationCenter => {
+                    BundleExplorationCenter::new(mouse_coords, &asset_server)
+                        .update_energy_supply(&energy_supply_grid)
+                        .spawn(&mut commands, &mut obstacle_grid);
                 }
                 BuildingType::Tower(TowerType::Blaster) => {
                     BundleTowerBlaster::new(mouse_coords, &asset_server)

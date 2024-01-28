@@ -50,29 +50,6 @@ impl BundleLaserDart {
     }
 }
 
-// pub fn create_laser_dart(commands: &mut Commands, world_position: Vec2, target_wisp: WispEntity, target_vector: Vec2) -> Entity {
-//     let entity = commands.spawn(
-//         SpriteBundle {
-//             sprite: Sprite {
-//                 color: Color::rgb(1.0, 0.0, 0.0),
-//                 custom_size: Some(Vec2::new(7.0, 1.0)),
-//                 ..Default::default()
-//             },
-//             transform: Transform {
-//                 translation: world_position.extend(Z_PROJECTILE),
-//                 rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         }
-//     ).insert(
-//         (MarkerProjectile, MarkerLaserDart)
-//     ).insert(
-//         LaserDartTarget{ target_wisp: Some(target_wisp), target_vector }
-//     ).id();
-//     entity
-// }
-
 pub fn laser_dart_move_system(
     mut laser_darts: Query<(&mut Transform, &mut LaserDartTarget), With<MarkerLaserDart>>,
     wisps: Query<&Transform, (With<Wisp>, Without<MarkerLaserDart>)>,

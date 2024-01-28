@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use crate::common::Z_OBSTACLE;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::obstacles::{Field, ObstacleGrid};
+use crate::map_objects::common::{ExpeditionTargetMarker, ExpeditionZone};
 use crate::mouse::MouseInfo;
 use crate::ui::common::AdvancedInteraction;
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
@@ -29,6 +30,7 @@ pub struct BundleQuantumField {
     sprite: SpriteBundle,
     grid_position: GridCoords,
     quantum_field: QuantumField,
+    expedition_zone: ExpeditionZone,
 }
 impl BundleQuantumField {
     pub fn new(grid_position: GridCoords, grid_imprint: GridImprint) -> Self {
@@ -36,12 +38,14 @@ impl BundleQuantumField {
             sprite: get_quantum_field_sprite_bundle(grid_position, grid_imprint),
             grid_position,
             quantum_field: QuantumField { grid_imprint },
+            expedition_zone: ExpeditionZone::default(),
         }
     }
     pub fn spawn(self, commands: &mut Commands, obstacles_grid: &mut ObstacleGrid) -> Entity {
         let grid_position = self.grid_position;
         let grid_imprint = self.quantum_field.grid_imprint;
-        let entity = commands.spawn(self).id();
+        // TODO: Remove ExpeditionTargetMarker as users should set targets themselves
+        let entity = commands.spawn(self).insert(ExpeditionTargetMarker).id();
         obstacles_grid.imprint(grid_position, Field::QuantumField(entity), grid_imprint);
         entity
     }

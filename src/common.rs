@@ -47,5 +47,6 @@ define_z_indexes!(
     Z_GROUND_EFFECT,
     Z_TOWER_TOP,
     Z_PROJECTILE_UNDER,
-    Z_PROJECTILE
+    Z_PROJECTILE,
+    Z_AERIAL_UNIT
 );

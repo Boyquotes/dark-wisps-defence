@@ -6,6 +6,8 @@ use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
+use crate::map_objects::common::ExpeditionZone;
+use crate::units::expedition_drone::BundleExpeditionDrone;
 
 pub const EXPLORATION_CENTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 4, height: 4 };
 pub const EXPLORATION_CENTER_BASE_IMAGE: &str = "buildings/exploration_center.png";
@@ -15,7 +17,7 @@ pub const EXPLORATION_CENTER_BASE_IMAGE: &str = "buildings/exploration_center.pn
 pub struct MarkerExplorationCenter;
 
 #[derive(Component)]
-pub struct ExplorationCenterDeliveryTimer(pub Timer);
+pub struct ExplorationCenterNewExpeditionTimer(pub Timer);
 
 #[derive(Bundle)]
 pub struct BundleExplorationCenter {
@@ -25,7 +27,7 @@ pub struct BundleExplorationCenter {
     pub health: Health,
     pub building: Building,
     pub technical_state: TechnicalState,
-    pub exploration_center_delivery_timer: ExplorationCenterDeliveryTimer,
+    pub exploration_center_delivery_timer: ExplorationCenterNewExpeditionTimer,
 }
 impl BundleExplorationCenter {
     pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
@@ -36,7 +38,7 @@ impl BundleExplorationCenter {
             health: Health(10000),
             building: Building::from(BuildingType::ExplorationCenter),
             technical_state: TechnicalState::default(),
-            exploration_center_delivery_timer: ExplorationCenterDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
+            exploration_center_delivery_timer: ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
         }
     }
     pub fn update_energy_supply(mut self, energy_supply_grid: &EnergySupplyGrid) -> Self {
@@ -63,16 +65,32 @@ pub fn get_exploration_center_sprite_bundle(asset_server: &AssetServer, coords: 
     }
 }
 
-// pub fn mine_ore_system(
-//     mut dark_ore_stock: ResMut<DarkOreStock>,
-//     mut exploration_centeres: Query<(&mut ExplorationCenterDeliveryTimer, &TechnicalState), With<MarkerExplorationCenter>>,
-//     time: Res<Time>,
-// ) {
-//     for (mut timer, technical_state) in exploration_centeres.iter_mut() {
-//         if !technical_state.is_operational() { continue; }
-//         timer.0.tick(time.delta());
-//         if timer.0.just_finished() {
-//             dark_ore_stock.add(10);
-//         }
-//     }
-// }
+pub fn create_expedition_system(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    //mut dark_ore_stock: ResMut<DarkOreStock>,
+    mut exploration_centres: Query<(&mut ExplorationCenterNewExpeditionTimer, &TechnicalState, &Transform), With<MarkerExplorationCenter>>,
+    expedition_zones: Query<(Entity, &Transform), With<ExpeditionZone>>,
+    time: Res<Time>,
+) {
+    let mut zones_positions = None;
+    for (mut timer, technical_state, exploration_center_transform) in exploration_centres.iter_mut() {
+        if !technical_state.is_operational() { continue; }
+        timer.0.tick(time.delta());
+        if timer.0.just_finished() {
+            // Just caching to avoid recomputing every frame when there is no expeditions to create
+            if zones_positions.is_none() {
+                zones_positions = Some(expedition_zones.iter().map(|(entity, transform)| (entity, transform.translation.xy())).collect::<Vec<_>>());
+            }
+            let center_position = exploration_center_transform.translation.xy();
+            let closest_zone = zones_positions.as_ref().unwrap().iter().min_by(|a, b| {
+                a.1.distance_squared(center_position).total_cmp(&b.1.distance_squared(center_position))
+            });
+            if let Some((zone_entity, zone_position)) = closest_zone {
+                BundleExpeditionDrone::new(center_position, &asset_server)
+                    .with_target(*zone_entity, *zone_position)
+                    .spawn(&mut commands);
+            }
+        }
+    }
+}

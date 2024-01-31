@@ -18,11 +18,7 @@ impl BundleExpeditionDrone {
     pub fn new(world_position: Vec2, asset_server: &AssetServer) -> Self {
         BundleExpeditionDrone {
             sprite: SpriteBundle {
-                sprite: Sprite {
-                    color: Color::TOMATO,
-                    custom_size: Some(Vec2::new(16., 16.)),
-                    ..Default::default()
-                },
+                texture: asset_server.load("units/expedition_drone.png"),
                 transform: Transform::from_translation(world_position.extend(Z_AERIAL_UNIT)),
                 ..Default::default()
             },
@@ -31,6 +27,8 @@ impl BundleExpeditionDrone {
     }
     pub fn with_target(mut self, target: Entity, target_world_position: Vec2) -> Self {
         self.expedition_drone = Some(ExpeditionDrone { target, target_world_position });
+        let target_vector = target_world_position - self.sprite.transform.translation.xy();
+        self.sprite.transform.rotation = Quat::from_rotation_z(target_vector.y.atan2(target_vector.x));
         self
     }
     pub fn spawn(self, commands: &mut Commands) -> Entity {

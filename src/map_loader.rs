@@ -10,11 +10,12 @@ use crate::buildings::mining_complex::{BundleMiningComplex};
 use crate::buildings::tower_blaster::{BundleTowerBlaster};
 use crate::buildings::tower_cannon::BundleTowerCannon;
 use crate::buildings::tower_rocket_launcher::{BundleTowerRocketLauncher};
-use crate::grids::common::GridCoords;
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::dark_ore::{BundleDarkOre};
+use crate::map_objects::quantum_field::BundleQuantumField;
 use crate::map_objects::walls::BundleWall;
 
 /// Represents yaml content for a map
@@ -25,6 +26,7 @@ pub struct Map {
     pub buildings: Vec<MapBuilding>,
     pub walls: Vec<GridCoords>,
     pub dark_ores: Vec<GridCoords>,
+    pub quantum_fields: Vec<MapQuantumField>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -32,6 +34,14 @@ pub struct MapBuilding {
     pub building_type: BuildingType,
     pub coords: GridCoords,
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct MapQuantumField {
+    pub coords: GridCoords,
+    pub size: i32,
+}
+
+
 /// Load a map from a yaml file in the maps directory into a Map struct.
 pub fn load_map(map_name: &str) -> Map {
     serde_yaml::from_reader(File::open(format!("maps/{map_name}.yaml")).unwrap()).unwrap()
@@ -97,4 +107,8 @@ pub fn apply_map(
             }
         }
     });
+    map.quantum_fields.iter().for_each(|quantum_field| {
+        BundleQuantumField::new(quantum_field.coords, GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size })
+            .spawn(&mut commands, &mut obstacles_grid);
+    })
 }

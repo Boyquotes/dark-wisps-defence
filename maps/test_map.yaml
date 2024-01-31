@@ -1135,3 +1135,8 @@ dark_ores:
   y: 54
 - x: 24
   y: 83
+quantum_fields:
+- coords:
+    x: 66
+    y: 84
+  size: 4

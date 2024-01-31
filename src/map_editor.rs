@@ -3,10 +3,11 @@ use bevy::prelude::*;
 use bevy::utils::HashSet;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::buildings::common_components::Building;
-use crate::grids::common::GridCoords;
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::map_loader;
-use crate::map_loader::MapBuilding;
+use crate::map_loader::{MapBuilding, MapQuantumField};
 use crate::map_objects::dark_ore::DarkOre;
+use crate::map_objects::quantum_field::QuantumField;
 
 pub struct MapEditorPlugin;
 impl Plugin for MapEditorPlugin {
@@ -38,12 +39,14 @@ pub fn save_map_system(
     keys: Res<Input<KeyCode>>,
     buildings_query: Query<(&Building, &GridCoords)>,
     dark_ores_query: Query<(&DarkOre, &GridCoords)>,
+    quantum_fields_query: Query<(&GridCoords, &QuantumField)>,
 ) {
     if !keys.just_pressed(KeyCode::S) { return; }
     let mut processed_entities = HashSet::new();
     let mut walls = Vec::new();
     let mut dark_ores = Vec::new();
     let mut buildings = Vec::new();
+    let mut quantum_fields = Vec::new();
     // Iterate over grid collecting entities
     for y in 0..grid.height {
         for x in 0..grid.width {
@@ -69,6 +72,14 @@ pub fn save_map_system(
                         );
                     }
                 }
+                Field::QuantumField(entity) => {
+                    if processed_entities.insert(entity) {
+                        let (quantum_field_coords, quantum_field) = quantum_fields_query.get(entity).unwrap();
+                        if let GridImprint::Rectangle { width, .. } = quantum_field.grid_imprint {
+                            quantum_fields.push(MapQuantumField { coords: *quantum_field_coords, size: width });
+                        } else { panic!("Quantum field imprint size is not a rectangle"); }
+                    }
+                }
                 _ => {}
             }
         }
@@ -80,6 +91,7 @@ pub fn save_map_system(
         buildings,
         walls,
         dark_ores,
+        quantum_fields,
     };
     // Save yaml file
     serde_yaml::to_writer(File::create(format!("maps/{}.yaml", map_info.name)).unwrap(), &map).unwrap();

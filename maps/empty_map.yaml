@@ -5,4 +5,5 @@ buildings:
     coords: { x: 30, y: 30 }
 walls: []
 dark_ore: []
+quantum_fields: []
 

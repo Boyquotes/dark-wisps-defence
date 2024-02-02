@@ -17,7 +17,7 @@ pub struct MarkerMainBase;
 
 
 #[derive(Bundle)]
-pub struct BundleMainBase {
+pub struct BuilderMainBase {
     pub sprite_bundle: SpriteBundle,
     pub marker_main_base: MarkerMainBase,
     pub grid_position: GridCoords,
@@ -27,7 +27,7 @@ pub struct BundleMainBase {
     pub supplier_energy: SupplierEnergy,
     pub technical_state: TechnicalState,
 }
-impl BundleMainBase {
+impl BuilderMainBase {
     pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
         Self {
             sprite_bundle: get_main_base_sprite_bundle(grid_position, asset_server),

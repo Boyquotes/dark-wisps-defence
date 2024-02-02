@@ -18,13 +18,13 @@ pub struct LaserDartTarget {
 }
 
 #[derive(Bundle)]
-pub struct BundleLaserDart {
+pub struct BuilderLaserDart {
     pub sprite: SpriteBundle,
     pub marker_projectile: MarkerProjectile,
     pub marker_laser_dart: MarkerLaserDart,
     pub laser_dart_target: LaserDartTarget,
 }
-impl BundleLaserDart {
+impl BuilderLaserDart {
     pub fn new(world_position: Vec2, target_wisp: WispEntity, target_vector: Vec2) -> Self {
         Self {
             sprite: SpriteBundle {

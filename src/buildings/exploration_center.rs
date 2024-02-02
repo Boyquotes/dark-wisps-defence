@@ -7,7 +7,7 @@ use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::map_objects::common::ExpeditionZone;
-use crate::units::expedition_drone::BundleExpeditionDrone;
+use crate::units::expedition_drone::BuilderExpeditionDrone;
 
 pub const EXPLORATION_CENTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 4, height: 4 };
 pub const EXPLORATION_CENTER_BASE_IMAGE: &str = "buildings/exploration_center.png";
@@ -20,7 +20,7 @@ pub struct MarkerExplorationCenter;
 pub struct ExplorationCenterNewExpeditionTimer(pub Timer);
 
 #[derive(Bundle)]
-pub struct BundleExplorationCenter {
+pub struct BuilderExplorationCenter {
     pub sprite: SpriteBundle,
     pub marker_exploration_center: MarkerExplorationCenter,
     pub grid_position: GridCoords,
@@ -29,7 +29,7 @@ pub struct BundleExplorationCenter {
     pub technical_state: TechnicalState,
     pub exploration_center_delivery_timer: ExplorationCenterNewExpeditionTimer,
 }
-impl BundleExplorationCenter {
+impl BuilderExplorationCenter {
     pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
         Self {
             sprite: get_exploration_center_sprite_bundle(asset_server, grid_position),
@@ -87,7 +87,7 @@ pub fn create_expedition_system(
                 a.1.distance_squared(center_position).total_cmp(&b.1.distance_squared(center_position))
             });
             if let Some((zone_entity, zone_position)) = closest_zone {
-                BundleExpeditionDrone::new(center_position, &asset_server)
+                BuilderExpeditionDrone::new(center_position, &asset_server)
                     .with_target(*zone_entity, *zone_position)
                     .spawn(&mut commands);
             }

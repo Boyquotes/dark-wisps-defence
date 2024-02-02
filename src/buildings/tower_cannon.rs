@@ -6,7 +6,7 @@ use crate::common_components::{Health};
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::projectiles::cannonball::BundleCannonball;
+use crate::projectiles::cannonball::BuilderCannonball;
 use crate::wisps::components::{Target, Wisp};
 use crate::wisps::spawning::WISP_GRID_IMPRINT;
 pub const TOWER_CANNON_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
@@ -16,7 +16,7 @@ pub const TOWER_CANNON_BASE_IMAGE: &str = "buildings/tower_cannon.png";
 pub struct MarkerTowerCannon;
 
 #[derive(Bundle)]
-pub struct BundleTowerCannon {
+pub struct BuilderTowerCannon {
     pub sprite: SpriteBundle,
     pub marker_tower: MarkerTower,
     pub marker_tower_cannon: MarkerTowerCannon,
@@ -29,7 +29,7 @@ pub struct BundleTowerCannon {
     pub technical_state: TechnicalState,
 }
 
-impl BundleTowerCannon {
+impl BuilderTowerCannon {
     pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
         Self {
             sprite: get_tower_cannon_sprite_bundle(asset_server, grid_position),
@@ -99,7 +99,7 @@ pub fn shooting_system(
                 }
             );
 
-        BundleCannonball::new(transform.translation.xy(), target_world_position, &asset_server).spawn(&mut commands);
+        BuilderCannonball::new(transform.translation.xy(), target_world_position, &asset_server).spawn(&mut commands);
         timer.0.reset();
     }
 }

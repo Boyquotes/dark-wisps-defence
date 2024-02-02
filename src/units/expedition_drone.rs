@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use crate::common::Z_AERIAL_UNIT;
 use crate::map_objects::common::ExpeditionZone;
 
+pub const EXPEDITION_DRONE_BASE_IMAGE: &str = "units/expedition_drone.png";
+
 #[derive(Component)]
 pub struct ExpeditionDrone {
     target: Entity, // Entity having ExpeditionZone component
@@ -9,16 +11,16 @@ pub struct ExpeditionDrone {
 }
 
 #[derive(Default)]
-pub struct BundleExpeditionDrone {
+pub struct BuilderExpeditionDrone {
     pub sprite: SpriteBundle,
     pub expedition_drone: Option<ExpeditionDrone>,
 }
 
-impl BundleExpeditionDrone {
+impl BuilderExpeditionDrone {
     pub fn new(world_position: Vec2, asset_server: &AssetServer) -> Self {
-        BundleExpeditionDrone {
+        BuilderExpeditionDrone {
             sprite: SpriteBundle {
-                texture: asset_server.load("units/expedition_drone.png"),
+                texture: asset_server.load(EXPEDITION_DRONE_BASE_IMAGE),
                 transform: Transform::from_translation(world_position.extend(Z_AERIAL_UNIT)),
                 ..Default::default()
             },

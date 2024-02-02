@@ -16,13 +16,13 @@ pub struct DarkOre {
 }
 
 #[derive(Bundle)]
-pub struct BundleDarkOre {
+pub struct BuilderDarkOre {
     sprite: SpriteBundle,
     grid_position: GridCoords,
     dark_ore: DarkOre,
 }
 
-impl BundleDarkOre {
+impl BuilderDarkOre {
     pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
         Self {
             sprite: get_dark_ore_sprite_bundle(grid_position, asset_server),
@@ -90,7 +90,7 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a dark_ore
         if obstacle_grid.imprint_query_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| field.is_empty()) {
-            BundleDarkOre::new(mouse_coords, &asset_server)
+            BuilderDarkOre::new(mouse_coords, &asset_server)
                 .spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
         }
     } else if mouse.pressed(MouseButton::Right) {

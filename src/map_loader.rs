@@ -3,20 +3,20 @@ use bevy::prelude::*;
 use bevy::utils::HashMap;
 use serde::{Deserialize, Serialize};
 use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::energy_relay::BundleEnergyRelay;
-use crate::buildings::exploration_center::BundleExplorationCenter;
-use crate::buildings::main_base::{BundleMainBase};
-use crate::buildings::mining_complex::{BundleMiningComplex};
-use crate::buildings::tower_blaster::{BundleTowerBlaster};
-use crate::buildings::tower_cannon::BundleTowerCannon;
-use crate::buildings::tower_rocket_launcher::{BundleTowerRocketLauncher};
+use crate::buildings::energy_relay::BuilderEnergyRelay;
+use crate::buildings::exploration_center::BuilderExplorationCenter;
+use crate::buildings::main_base::{BuilderMainBase};
+use crate::buildings::mining_complex::{BuilderMiningComplex};
+use crate::buildings::tower_blaster::{BuilderTowerBlaster};
+use crate::buildings::tower_cannon::BuilderTowerCannon;
+use crate::buildings::tower_rocket_launcher::{BuilderTowerRocketLauncher};
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};
 use crate::grids::obstacles::ObstacleGrid;
-use crate::map_objects::dark_ore::{BundleDarkOre};
-use crate::map_objects::quantum_field::BundleQuantumField;
-use crate::map_objects::walls::BundleWall;
+use crate::map_objects::dark_ore::{BuilderDarkOre};
+use crate::map_objects::quantum_field::BuilderQuantumField;
+use crate::map_objects::walls::BuilderWall;
 
 /// Represents yaml content for a map
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -59,56 +59,56 @@ pub fn apply_map(
     energy_supply_grid: &EnergySupplyGrid,
 ) {
     map.walls.iter().for_each(|wall_coords| {
-        BundleWall::new(*wall_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid);
+        BuilderWall::new(*wall_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid);
     });
     let dark_ores = map.dark_ores.iter().map(|dark_ore_coords| {
-        let dark_ore_entity = BundleDarkOre::new(*dark_ore_coords, &asset_server)
+        let dark_ore_entity = BuilderDarkOre::new(*dark_ore_coords, &asset_server)
             .spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacles_grid);
         (*dark_ore_coords, dark_ore_entity)
     }).collect::<HashMap<_,_>>();
     map.buildings.iter().for_each(|building| {
         match building.building_type {
             BuildingType::MainBase => {
-                BundleMainBase::new(building.coords, &asset_server)
+                BuilderMainBase::new(building.coords, &asset_server)
                     .spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacles_grid);
             }
             BuildingType::EnergyRelay => {
-                BundleEnergyRelay::new(building.coords)
+                BuilderEnergyRelay::new(building.coords)
                     .spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacles_grid);
             }
             BuildingType::ExplorationCenter => {
-                BundleExplorationCenter::new(building.coords, &asset_server)
+                BuilderExplorationCenter::new(building.coords, &asset_server)
                     .update_energy_supply(&energy_supply_grid)
                     .spawn(&mut commands, &mut obstacles_grid);
             }
             BuildingType::Tower(tower_type) => {
                 match tower_type {
                     TowerType::Blaster => {
-                        BundleTowerBlaster::new(building.coords, &asset_server)
+                        BuilderTowerBlaster::new(building.coords, &asset_server)
                             .update_energy_supply(&energy_supply_grid)
                             .spawn(&mut commands, &mut obstacles_grid);
                     },
                     TowerType::Cannon => {
-                        BundleTowerCannon::new(building.coords, asset_server)
+                        BuilderTowerCannon::new(building.coords, asset_server)
                             .update_energy_supply(&energy_supply_grid)
                             .spawn(&mut commands, &mut obstacles_grid);
                     },
                     TowerType::RocketLauncher => {
-                        BundleTowerRocketLauncher::new(building.coords, asset_server)
+                        BuilderTowerRocketLauncher::new(building.coords, asset_server)
                             .update_energy_supply(&energy_supply_grid)
                             .spawn(&mut commands,&mut obstacles_grid);
                     }
                 }
             }
             BuildingType::MiningComplex => {
-                BundleMiningComplex::new(building.coords, &asset_server)
+                BuilderMiningComplex::new(building.coords, &asset_server)
                     .update_energy_supply(&energy_supply_grid)
                     .spawn(&mut commands, &mut obstacles_grid, *dark_ores.get(&building.coords).unwrap());
             }
         }
     });
     map.quantum_fields.iter().for_each(|quantum_field| {
-        BundleQuantumField::new(quantum_field.coords, GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size })
+        BuilderQuantumField::new(quantum_field.coords, GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size })
             .spawn(&mut commands, &mut obstacles_grid);
     })
 }

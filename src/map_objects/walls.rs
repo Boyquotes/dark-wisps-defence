@@ -12,13 +12,13 @@ pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, he
 pub struct Wall;
 
 #[derive(Bundle)]
-pub struct BundleWall {
+pub struct BuilderWall {
     sprite: SpriteBundle,
     grid_position: GridCoords,
     wall: Wall,
 }
 
-impl BundleWall {
+impl BuilderWall {
     pub fn new(grid_position: GridCoords) -> Self {
         Self {
             sprite: SpriteBundle {
@@ -80,7 +80,7 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a wall
         if obstacle_grid[mouse_coords].is_empty() {
-            BundleWall::new(mouse_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
+            BuilderWall::new(mouse_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a wall

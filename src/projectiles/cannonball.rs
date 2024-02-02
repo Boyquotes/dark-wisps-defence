@@ -3,7 +3,7 @@ use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::common::Z_PROJECTILE;
 use crate::common_components::{Health};
-use crate::effects::explosions::BundleExplosion;
+use crate::effects::explosions::BuilderExplosion;
 use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
@@ -23,14 +23,14 @@ pub struct CannonballTarget{
 }
 
 #[derive(Bundle)]
-pub struct BundleCannonball {
+pub struct BuilderCannonball {
     pub sprite: SpriteBundle,
     pub marker_projectile: MarkerProjectile,
     pub marker_cannonball: MarkerCannonball,
     pub cannonball_target: CannonballTarget,
 }
 
-impl BundleCannonball {
+impl BuilderCannonball {
     pub fn new(world_position: Vec2, target_position: Vec2, asset_server: &AssetServer) -> Self {
         Self {
             sprite: SpriteBundle {
@@ -98,7 +98,7 @@ pub fn cannonball_hit_system(
             let blast_zone_coords = coords.shifted((*dx, *dy));
             if !blast_zone_coords.is_in_bounds(wisps_grid.bounds()) { continue; }
 
-            BundleExplosion::new(blast_zone_coords).spawn(&mut commands);
+            BuilderExplosion::new(blast_zone_coords).spawn(&mut commands);
 
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {

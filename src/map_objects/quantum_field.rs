@@ -26,13 +26,13 @@ impl Default for QuantumField {
 }
 
 #[derive(Bundle)]
-pub struct BundleQuantumField {
+pub struct BuilderQuantumField {
     sprite: SpriteBundle,
     grid_position: GridCoords,
     quantum_field: QuantumField,
     expedition_zone: ExpeditionZone,
 }
-impl BundleQuantumField {
+impl BuilderQuantumField {
     pub fn new(grid_position: GridCoords, grid_imprint: GridImprint) -> Self {
         Self {
             sprite: get_quantum_field_sprite_bundle(grid_position, grid_imprint),
@@ -91,7 +91,7 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a quantum_field
         if obstacles_grid.imprint_query_all(mouse_coords, quantum_field.grid_imprint, |field| field.is_empty()) {
-            BundleQuantumField::new(mouse_coords, quantum_field.grid_imprint)
+            BuilderQuantumField::new(mouse_coords, quantum_field.grid_imprint)
                 .spawn(&mut commands, &mut obstacles_grid);
         }
     } else if mouse.pressed(MouseButton::Right) {

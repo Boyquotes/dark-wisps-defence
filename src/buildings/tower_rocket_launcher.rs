@@ -8,7 +8,7 @@ use crate::common_components::{Health};
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::projectiles::rocket::BundleRocket;
+use crate::projectiles::rocket::BuilderRocket;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::{Wisp};
 
@@ -20,7 +20,7 @@ pub const TOWER_ROCKET_LAUNCHER_BASE_IMAGE: &str = "buildings/tower_rocket_launc
 pub struct MarkerTowerRocketLauncher;
 
 #[derive(Bundle)]
-pub struct BundleTowerRocketLauncherBase {
+struct BundleTowerRocketLauncherBase {
     pub sprite: SpriteBundle,
     pub marker_tower: MarkerTower,
     pub marker_tower_rocket_launcher: MarkerTowerRocketLauncher,
@@ -34,15 +34,15 @@ pub struct BundleTowerRocketLauncherBase {
     pub tower_top_rotation: TowerTopRotation,
 }
 #[derive(Bundle)]
-pub struct BundleTowerRocketLauncherTop {
+struct BundleTowerRocketLauncherTop {
     pub sprite: SpriteBundle,
     pub marker: MarkerTowerRotationalTop,
 }
-pub struct BundleTowerRocketLauncher {
-    pub base: BundleTowerRocketLauncherBase,
-    pub top: BundleTowerRocketLauncherTop,
+pub struct BuilderTowerRocketLauncher {
+    base: BundleTowerRocketLauncherBase,
+    top: BundleTowerRocketLauncherTop,
 }
-impl BundleTowerRocketLauncher {
+impl BuilderTowerRocketLauncher {
     pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
         let (tower_base, tower_top) = get_tower_rocket_launcher_sprite_bundle(asset_server, grid_position);
         Self {
@@ -71,7 +71,7 @@ impl BundleTowerRocketLauncher {
     }
     pub fn spawn(self, commands: &mut Commands, obstacle_grid: &mut ResMut<ObstacleGrid>, ) -> Entity {
         let grid_position = self.base.grid_position;
-        let BundleTowerRocketLauncher{ base, mut top } = self;
+        let BuilderTowerRocketLauncher { base, mut top } = self;
         let base_entity = commands.spawn(base).id();
         top.marker.0 = base_entity.into(); // Set parent reference
         let _ = commands.spawn(top).id();
@@ -137,7 +137,7 @@ pub fn shooting_system(
         let spawn_position = transform.translation.xy() + offset;
 
         let rocket_angle = Quat::from_rotation_z(top_rotation.current_angle);
-        BundleRocket::new(spawn_position, rocket_angle, target_wisp, &asset_server).spawn(&mut commands);
+        BuilderRocket::new(spawn_position, rocket_angle, target_wisp, &asset_server).spawn(&mut commands);
         timer.0.reset();
     }
 }

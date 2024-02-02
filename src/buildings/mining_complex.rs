@@ -19,7 +19,7 @@ pub struct MarkerMiningComplex;
 pub struct MiningComplexDeliveryTimer(pub Timer);
 
 #[derive(Bundle)]
-pub struct BundleMiningComplex {
+pub struct BuilderMiningComplex {
     pub sprite: SpriteBundle,
     pub marker_mining_complex: MarkerMiningComplex,
     pub grid_position: GridCoords,
@@ -28,7 +28,7 @@ pub struct BundleMiningComplex {
     pub technical_state: TechnicalState,
     pub mining_complex_delivery_timer: MiningComplexDeliveryTimer,
 }
-impl BundleMiningComplex {
+impl BuilderMiningComplex {
     pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
         Self {
             sprite: get_mining_complex_sprite_bundle(asset_server, grid_position),

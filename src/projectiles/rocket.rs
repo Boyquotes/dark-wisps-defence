@@ -8,7 +8,7 @@ use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
 use crate::search::common::ALL_DIRECTIONS;
 use crate::wisps::components::{Wisp, WispEntity};
-use crate::effects::explosions::BundleExplosion;
+use crate::effects::explosions::BuilderExplosion;
 
 pub const ROCKET_BASE_IMAGE: &str = "projectiles/rocket.png";
 pub const ROCKET_EXHAUST_IMAGE: &str = "projectiles/rocket_exhaust.png";
@@ -36,12 +36,12 @@ struct BundleRocketBase {
     pub marker_rocket: MarkerRocket,
     pub rocket_target: RocketTarget,
 }
-pub struct BundleRocket {
+pub struct BuilderRocket {
     exhaust: BundleRocketExhaust,
     base: BundleRocketBase,
 }
 
-impl BundleRocket {
+impl BuilderRocket {
     pub fn new(world_position: Vec2, rotation: Quat, target_wisp: WispEntity, asset_server: &AssetServer) -> Self {
         let exhaust = BundleRocketExhaust {
             sprite: SpriteBundle {
@@ -156,7 +156,7 @@ pub fn rocket_hit_system(
             let blast_zone_coords = coords.shifted((*dx, *dy));
             if !blast_zone_coords.is_in_bounds(wisps_grid.bounds()) { continue; }
 
-            BundleExplosion::new(blast_zone_coords).spawn(&mut commands);
+            BuilderExplosion::new(blast_zone_coords).spawn(&mut commands);
 
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {

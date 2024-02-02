@@ -7,7 +7,7 @@ use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::projectiles::laser_dart::BundleLaserDart;
+use crate::projectiles::laser_dart::BuilderLaserDart;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
 
@@ -19,7 +19,7 @@ pub const TOWER_BLASTER_TOP_IMAGE: &str = "buildings/tower_blaster_top.png";
 pub struct MarkerTowerBlaster;
 
 #[derive(Bundle)]
-pub struct BundleTowerBlasterBase {
+struct BundleTowerBlasterBase {
     pub sprite: SpriteBundle,
     pub marker_tower: MarkerTower,
     pub marker_tower_blaster: MarkerTowerBlaster,
@@ -33,15 +33,15 @@ pub struct BundleTowerBlasterBase {
     pub tower_top_rotation: TowerTopRotation,
 }
 #[derive(Bundle)]
-pub struct BundleTowerBlasterTop {
+struct BundleTowerBlasterTop {
     pub sprite: SpriteBundle,
     pub marker: MarkerTowerRotationalTop,
 }
-pub struct BundleTowerBlaster {
-    pub base: BundleTowerBlasterBase,
-    pub top: BundleTowerBlasterTop,
+pub struct BuilderTowerBlaster {
+    base: BundleTowerBlasterBase,
+    top: BundleTowerBlasterTop,
 }
-impl BundleTowerBlaster {
+impl BuilderTowerBlaster {
     pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
         let (tower_base, tower_top) = get_tower_blaster_sprite_bundle(asset_server, grid_position);
         Self {
@@ -73,7 +73,7 @@ impl BundleTowerBlaster {
         commands: &mut Commands,
         obstacle_grid: &mut ObstacleGrid,
     ) -> Entity {
-        let BundleTowerBlaster{ base, mut top } = self;
+        let BuilderTowerBlaster { base, mut top } = self;
         let grid_position = base.grid_position;
         let base_entity = commands.spawn(base).id();
 
@@ -140,7 +140,7 @@ pub fn shooting_system(
         );
         let spawn_position = transform.translation.xy() + offset;
 
-        BundleLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize()).spawn(&mut commands);
+        BuilderLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize()).spawn(&mut commands);
         timer.0.reset();
     }
 }

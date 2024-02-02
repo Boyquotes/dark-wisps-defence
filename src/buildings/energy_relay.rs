@@ -15,7 +15,7 @@ pub const ENERGY_RELAY_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { widt
 pub struct MarkerEnergyRelay;
 
 #[derive(Bundle)]
-pub struct BundleEnergyRelay {
+pub struct BuilderEnergyRelay {
     pub sprite_bundle: SpriteBundle,
     pub marker_energy_relay: MarkerEnergyRelay,
     pub grid_position: GridCoords,
@@ -25,7 +25,7 @@ pub struct BundleEnergyRelay {
     pub supplier_energy: SupplierEnergy,
     pub technical_state: TechnicalState,
 }
-impl BundleEnergyRelay {
+impl BuilderEnergyRelay {
     pub fn new(grid_position: GridCoords) -> Self {
         Self {
             sprite_bundle: get_energy_relay_sprite_bundle(grid_position),

@@ -46,7 +46,7 @@ pub fn onclick_building_spawn_system(
             dark_ore_stock.amount -= dark_ore_price;
             match building.building_type {
                 BuildingType::EnergyRelay => {
-                    BuilderEnergyRelay::new(mouse_coords).spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacle_grid);
+                    BuilderEnergyRelay::new(mouse_coords, &asset_server).spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacle_grid);
                 }
                 BuildingType::ExplorationCenter => {
                     BuilderExplorationCenter::new(mouse_coords, &asset_server)

@@ -73,7 +73,7 @@ pub fn apply_map(
                     .spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacles_grid);
             }
             BuildingType::EnergyRelay => {
-                BuilderEnergyRelay::new(building.coords)
+                BuilderEnergyRelay::new(building.coords, &asset_server)
                     .spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacles_grid);
             }
             BuildingType::ExplorationCenter => {

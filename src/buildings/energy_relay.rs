@@ -2,14 +2,15 @@ use bevy::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, TechnicalState};
 use crate::common::Z_BUILDING;
-use crate::common_components::Health;
+use crate::common_components::{ColorPulsation, Health};
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsType, EmitterChangedEvent, EmitterEnergy};
 use crate::grids::energy_supply::{SupplierChangedEvent, SupplierEnergy};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode, FloodEnergySupplyMode};
 
-pub const ENERGY_RELAY_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
+pub const ENERGY_RELAY_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 2, height: 2 };
+pub const ENERGY_RELAY_BASE_IMAGE: &str = "buildings/energy_relay.png";
 
 #[derive(Component)]
 pub struct MarkerEnergyRelay;
@@ -24,11 +25,12 @@ pub struct BuilderEnergyRelay {
     pub emitter_energy: EmitterEnergy,
     pub supplier_energy: SupplierEnergy,
     pub technical_state: TechnicalState,
+    pub color_pulsation: ColorPulsation,
 }
 impl BuilderEnergyRelay {
-    pub fn new(grid_position: GridCoords) -> Self {
+    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
         Self {
-            sprite_bundle: get_energy_relay_sprite_bundle(grid_position),
+            sprite_bundle: get_energy_relay_sprite_bundle(grid_position, asset_server),
             marker_energy_relay: MarkerEnergyRelay,
             grid_position,
             health: Health(10000),
@@ -41,6 +43,7 @@ impl BuilderEnergyRelay {
             }),
             supplier_energy: SupplierEnergy { range: 15 },
             technical_state: TechnicalState{ has_energy_supply: true },
+            color_pulsation: ColorPulsation::new(1.0, 1.8, 3.0),
         }
     }
     pub fn spawn(
@@ -69,12 +72,14 @@ impl BuilderEnergyRelay {
     }
 }
 
-pub fn get_energy_relay_sprite_bundle(coords: GridCoords) -> SpriteBundle {
+pub fn get_energy_relay_sprite_bundle(coords: GridCoords, asset_server: &AssetServer) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
             custom_size: Some(ENERGY_RELAY_GRID_IMPRINT.world_size()),
+            color: Color::hsla(0., 0.2, 1.0, 1.0), // 1.6 is good value if pulsation is off.
             ..Default::default()
         },
+        texture: asset_server.load(ENERGY_RELAY_BASE_IMAGE),
         transform: Transform::from_translation(coords.to_world_position_centered(ENERGY_RELAY_GRID_IMPRINT).extend(Z_BUILDING)),
         ..Default::default()
     }

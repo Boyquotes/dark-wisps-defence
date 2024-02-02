@@ -16,6 +16,7 @@ mod overlays;
 mod inventory;
 mod effects;
 mod units;
+mod common_systems;
 
 use bevy::prelude::*;
 use crate::grids::common::CELL_SIZE;
@@ -49,6 +50,7 @@ fn main() {
             mode: GameMode::Editor,
         })
         .add_systems(Startup, generate_default_map)
+        .add_systems(Update, common_systems::pulsate_sprites_system)
         .run();
 }
 

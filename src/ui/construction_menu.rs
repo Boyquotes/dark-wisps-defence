@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use crate::buildings::common::{BuildingType, TowerType};
+use crate::buildings::energy_relay::ENERGY_RELAY_BASE_IMAGE;
 use crate::buildings::exploration_center::EXPLORATION_CENTER_BASE_IMAGE;
 use crate::buildings::main_base::MAIN_BASE_BASE_IMAGE;
 use crate::buildings::mining_complex::MINING_COMPLEX_BASE_IMAGE;
@@ -122,6 +123,7 @@ impl ConstructObjectButtonBundle {
                     }
                 },
                 BuildingType::MainBase => Some(MAIN_BASE_BASE_IMAGE),
+                BuildingType::EnergyRelay => Some(ENERGY_RELAY_BASE_IMAGE),
                 BuildingType::ExplorationCenter => Some(EXPLORATION_CENTER_BASE_IMAGE),
                 _ => None,
             },

@@ -76,7 +76,7 @@ pub fn get_energy_relay_sprite_bundle(coords: GridCoords, asset_server: &AssetSe
     SpriteBundle {
         sprite: Sprite {
             custom_size: Some(ENERGY_RELAY_GRID_IMPRINT.world_size()),
-            color: Color::hsla(0., 0.2, 1.0, 1.0), // 1.6 is good value if pulsation is off.
+            color: Color::hsla(0., 0.2, 1.0, 1.0), // 1.6 is a good value if the pulsation is off.
             ..Default::default()
         },
         texture: asset_server.load(ENERGY_RELAY_BASE_IMAGE),

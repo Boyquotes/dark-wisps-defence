@@ -60,7 +60,7 @@ pub fn target_wisps(
     obstacle_grid: Res<ObstacleGrid>,
     emissions_grid: Res<EmissionsGrid>,
 ) {
-    for (mut target, grid_coords) in wisps_query.iter_mut() {
+    wisps_query.par_iter_mut().for_each(|(mut target, grid_coords)| {
         // First check if there was anything that would invalidate existing targeting.
         match target.target_type {
             TargetType::None | TargetType::DynamicObject(_) => {},
@@ -80,7 +80,7 @@ pub fn target_wisps(
             }
         }
         // Then check if the wisp is eligible for new targeting.
-        if target.is_on_its_path() || target.is_at_destination() || target.is_unreachable() { continue; }
+        if target.is_on_its_path() || target.is_at_destination() || target.is_unreachable() { return; }
 
         if let Some(path) = path_find_energy_beckon(&obstacle_grid, &emissions_grid, *grid_coords) {
             target.target_type = TargetType::Field{coords: *path.last().unwrap(), grid_version: obstacle_grid.version};
@@ -89,7 +89,7 @@ pub fn target_wisps(
             target.target_type = TargetType::Unreachable {grid_type: GridType::Obstacles, grid_version: obstacle_grid.version};
             target.grid_path = Some(Vec::new());
         }
-    }
+    });
 }
 
 pub fn remove_dead_wisps(

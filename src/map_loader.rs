@@ -14,6 +14,7 @@ use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};
 use crate::grids::obstacles::ObstacleGrid;
+use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails, ObjectivesCheckInactiveFlag};
 use crate::map_objects::dark_ore::{BuilderDarkOre};
 use crate::map_objects::quantum_field::BuilderQuantumField;
 use crate::map_objects::walls::BuilderWall;
@@ -27,6 +28,7 @@ pub struct Map {
     pub walls: Vec<GridCoords>,
     pub dark_ores: Vec<GridCoords>,
     pub quantum_fields: Vec<MapQuantumField>,
+    pub objectives: Vec<ObjectiveDetails>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -42,6 +44,7 @@ pub struct MapQuantumField {
 }
 
 
+
 /// Load a map from a yaml file in the maps directory into a Map struct.
 pub fn load_map(map_name: &str) -> Map {
     serde_yaml::from_reader(File::open(format!("maps/{map_name}.yaml")).unwrap()).unwrap()
@@ -52,10 +55,11 @@ pub fn apply_map(
     map: Map,
     mut commands: &mut Commands,
     asset_server: &AssetServer,
-    mut emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
+    mut objectives_check_inactive_flag: &mut ObjectivesCheckInactiveFlag,
+    mut emissions_energy_recalculate_all: &mut EmissionsEnergyRecalculateAll,
     mut emitter_created_event_writer: &mut EventWriter<EmitterChangedEvent>,
     mut supplier_created_event_writer: &mut EventWriter<SupplierChangedEvent>,
-    mut obstacles_grid: &mut ResMut<ObstacleGrid>,
+    mut obstacles_grid: &mut ObstacleGrid,
     energy_supply_grid: &EnergySupplyGrid,
 ) {
     map.walls.iter().for_each(|wall_coords| {
@@ -110,5 +114,9 @@ pub fn apply_map(
     map.quantum_fields.iter().for_each(|quantum_field| {
         BuilderQuantumField::new(quantum_field.coords, GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size })
             .spawn(&mut commands, &mut obstacles_grid);
-    })
+    });
+    map.objectives.into_iter().for_each(|objective_details| {
+       BuilderObjective::new(objective_details)
+           .spawn(&mut commands, &mut objectives_check_inactive_flag);
+    });
 }

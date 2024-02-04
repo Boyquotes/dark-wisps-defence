@@ -69,7 +69,7 @@ impl BuilderTowerRocketLauncher {
         self.base.technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(self.base.grid_position, TOWER_ROCKET_LAUNCHER_GRID_IMPRINT);
         self
     }
-    pub fn spawn(self, commands: &mut Commands, obstacle_grid: &mut ResMut<ObstacleGrid>, ) -> Entity {
+    pub fn spawn(self, commands: &mut Commands, obstacle_grid: &mut ObstacleGrid) -> Entity {
         let grid_position = self.base.grid_position;
         let BuilderTowerRocketLauncher { base, mut top } = self;
         let base_entity = commands.spawn(base).id();

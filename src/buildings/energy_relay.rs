@@ -51,7 +51,7 @@ impl BuilderEnergyRelay {
         commands: &mut Commands,
         emitter_created_event_writer: &mut EventWriter<EmitterChangedEvent>,
         supplier_created_event_writer: &mut EventWriter<SupplierChangedEvent>,
-        obstacles_grid: &mut ResMut<ObstacleGrid>,
+        obstacles_grid: &mut ObstacleGrid,
     ) -> Entity {
         let grid_position = self.grid_position;
         let covered_coords = ENERGY_RELAY_GRID_IMPRINT.covered_coords(grid_position);

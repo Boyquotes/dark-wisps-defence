@@ -4,6 +4,7 @@ use bevy::utils::HashSet;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::buildings::common_components::Building;
 use crate::grids::common::{GridCoords, GridImprint};
+use crate::inventory::objectives::Objective;
 use crate::map_loader;
 use crate::map_loader::{MapBuilding, MapQuantumField};
 use crate::map_objects::dark_ore::DarkOre;
@@ -37,6 +38,7 @@ pub fn save_map_system(
     map_info: Res<MapInfo>,
     grid: Res<ObstacleGrid>,
     keys: Res<Input<KeyCode>>,
+    objectives: Query<&Objective>,
     buildings_query: Query<(&Building, &GridCoords)>,
     dark_ores_query: Query<(&DarkOre, &GridCoords)>,
     quantum_fields_query: Query<(&GridCoords, &QuantumField)>,
@@ -92,6 +94,7 @@ pub fn save_map_system(
         walls,
         dark_ores,
         quantum_fields,
+        objectives: objectives.iter().map(|objective| objective.details.clone()).collect(),
     };
     // Save yaml file
     serde_yaml::to_writer(File::create(format!("maps/{}.yaml", map_info.name)).unwrap(), &map).unwrap();

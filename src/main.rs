@@ -23,6 +23,7 @@ use crate::grids::common::CELL_SIZE;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};
 use crate::grids::obstacles::{ObstacleGrid};
+use crate::inventory::objectives::{ObjectivesCheckInactiveFlag};
 use crate::map_editor::MapInfo;
 
 fn main() {
@@ -77,6 +78,7 @@ pub fn is_game_mode(config: Res<GameConfig>) -> bool {
 pub fn generate_default_map(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut objectives_check_inactive_flag: ResMut<ObjectivesCheckInactiveFlag>,
     mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
     mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
     mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
@@ -93,6 +95,7 @@ pub fn generate_default_map(
     map_loader::apply_map(
         map,
         &mut commands, &asset_server,
+        &mut objectives_check_inactive_flag,
         &mut emissions_energy_recalculate_all,
         &mut emitter_created_event_writer,
         &mut supplier_created_event_writer,

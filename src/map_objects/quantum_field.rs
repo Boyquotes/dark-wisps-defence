@@ -80,7 +80,7 @@ pub fn remove_quantum_field(
 pub fn onclick_spawn_system(
     mut commands: Commands,
     mut obstacles_grid: ResMut<ObstacleGrid>,
-    mouse: Res<Input<MouseButton>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Query<&GridObjectPlacer>,
     quantum_fields_query: Query<&GridCoords, With<QuantumField>>,

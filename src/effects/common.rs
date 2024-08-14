@@ -24,12 +24,12 @@ impl AnimationController {
 
 pub fn animate_sprite_system(
     time: Res<Time>,
-    mut animations: Query<(&mut AnimationController, &mut TextureAtlasSprite)>,
+    mut animations: Query<(&mut AnimationController, &mut TextureAtlas)>,
 ) {
-    for (mut controller, mut sprite) in &mut animations {
+    for (mut controller, mut atlas) in &mut animations {
         controller.timer.tick(time.delta());
         if controller.timer.just_finished() {
-            sprite.index = if sprite.index == controller.atlas_last_frame {
+            atlas.index = if atlas.index == controller.atlas_last_frame {
                 if controller.repeating {
                     controller.atlas_first_frame
                 } else {
@@ -37,7 +37,7 @@ pub fn animate_sprite_system(
                     controller.atlas_last_frame
                 }
             } else {
-                sprite.index + 1
+                atlas.index + 1
             };
         }
     }

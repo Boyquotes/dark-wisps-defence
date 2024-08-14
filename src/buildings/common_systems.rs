@@ -29,7 +29,7 @@ pub fn onclick_building_spawn_system(
     mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     energy_supply_grid: Res<EnergySupplyGrid>,
-    mouse: Res<Input<MouseButton>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     almanach: Res<Almanach>,
     mut dark_ore_stock: ResMut<DarkOreStock>,

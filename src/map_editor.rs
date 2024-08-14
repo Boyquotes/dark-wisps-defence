@@ -37,13 +37,13 @@ impl MapInfo {
 pub fn save_map_system(
     map_info: Res<MapInfo>,
     grid: Res<ObstacleGrid>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     objectives: Query<&Objective>,
     buildings_query: Query<(&Building, &GridCoords)>,
     dark_ores_query: Query<(&DarkOre, &GridCoords)>,
     quantum_fields_query: Query<(&GridCoords, &QuantumField)>,
 ) {
-    if !keys.just_pressed(KeyCode::S) { return; }
+    if !keys.just_pressed(KeyCode::KeyS) { return; }
     let mut processed_entities = HashSet::new();
     let mut walls = Vec::new();
     let mut dark_ores = Vec::new();

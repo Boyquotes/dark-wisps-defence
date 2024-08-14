@@ -79,7 +79,7 @@ pub fn onclick_spawn_system(
     asset_server: Res<AssetServer>,
     mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
-    mouse: Res<Input<MouseButton>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Query<&GridObjectPlacer>,
     dark_ores_query: Query<&GridCoords, With<DarkOre>>,

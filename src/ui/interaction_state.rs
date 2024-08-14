@@ -10,7 +10,7 @@ pub enum UiInteractionState {
 }
 
 pub fn keyboard_input_system(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut ui_interaction_state: ResMut<UiInteractionState>,
 ) {
     if keys.just_pressed(KeyCode::Escape) {

@@ -27,7 +27,7 @@ pub fn spawn_wisp(
             grid_coords,
             health: Health(10),
             display: MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Circle::new(6.).into()).into(),
+                mesh: meshes.add(Circle::new(6.)).into(),
                 material: materials.add(ColorMaterial::from(Color::PURPLE)),
                 transform: Transform::from_translation(
                     grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP)

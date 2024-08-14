@@ -112,26 +112,26 @@ pub fn update_grid_object_placer_system(
 
 pub fn keyboard_input_system(
     mut grid_object_placer_request: ResMut<GridObjectPlacerRequest>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
 ) {
     let placer_request = {
-        if keys.just_pressed(KeyCode::W) {
+        if keys.just_pressed(KeyCode::KeyW) {
             GridObjectPlacer::Wall
-        } else if keys.just_pressed(KeyCode::O) {
+        } else if keys.just_pressed(KeyCode::KeyO) {
             GridObjectPlacer::DarkOre
-        } else if keys.just_pressed(KeyCode::Q) {
+        } else if keys.just_pressed(KeyCode::KeyQ) {
             GridObjectPlacer::QuantumField(QuantumField::default())
-        } else if keys.just_pressed(KeyCode::M) {
+        } else if keys.just_pressed(KeyCode::KeyM) {
             GridObjectPlacer::MiningComplex
-        } else if keys.just_pressed(KeyCode::E) {
+        } else if keys.just_pressed(KeyCode::KeyE) {
             GridObjectPlacer::Building(BuildingType::EnergyRelay.into())
-        } else if keys.just_pressed(KeyCode::X) {
+        } else if keys.just_pressed(KeyCode::KeyX) {
             GridObjectPlacer::Building((BuildingType::ExplorationCenter).into())
-        } else if keys.just_pressed(KeyCode::Key1) {
+        } else if keys.just_pressed(KeyCode::Digit1) {
             GridObjectPlacer::Building(BuildingType::Tower(TowerType::Blaster).into())
-        } else if keys.just_pressed(KeyCode::Key2) {
+        } else if keys.just_pressed(KeyCode::Digit2) {
             GridObjectPlacer::Building(BuildingType::Tower(TowerType::Cannon).into())
-        } else if keys.just_pressed(KeyCode::Key3) {
+        } else if keys.just_pressed(KeyCode::Digit3) {
             GridObjectPlacer::Building(BuildingType::Tower(TowerType::RocketLauncher).into())
         } else {
             return

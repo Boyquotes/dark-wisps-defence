@@ -3,8 +3,8 @@ use crate::grids::common::CELL_SIZE;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::ui::UiConfig;
 
-pub fn show_hide_grid_system(mut ui_config: ResMut<UiConfig>, keys: Res<Input<KeyCode>>) {
-    if keys.just_pressed(KeyCode::G) {
+pub fn show_hide_grid_system(mut ui_config: ResMut<UiConfig>, keys: Res<ButtonInput<KeyCode>>) {
+    if keys.just_pressed(KeyCode::KeyG) {
         ui_config.show_grid = !ui_config.show_grid;
     }
 }

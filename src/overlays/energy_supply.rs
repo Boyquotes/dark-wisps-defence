@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::reflect::{TypePath};
+use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 use crate::buildings::common::BuildingId;
@@ -39,6 +40,7 @@ pub fn create_energy_supply_overlay_startup_system(
             TextureDimension::D2,
             &[255, 255, 0, 127],
             TextureFormat::Rgba8Unorm,
+            RenderAssetUsages::default(),
         )
     );
 
@@ -46,8 +48,10 @@ pub fn create_energy_supply_overlay_startup_system(
     let full_world_size = 100. * CELL_SIZE;
     commands.spawn(
         MaterialMesh2dBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::flipped(-Vec2::new(1.0, 1.0)))).into(),
-            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 10.).with_scale(Vec3::splat(full_world_size)),
+            // TODO: MIGRATION TODO, was: mesh: meshes.add(Mesh::from(shape::Quad::flipped(-Vec2::new(1.0, 1.0)))).into(),
+            //mesh: meshes.add(Mesh::from(shape::Quad::flipped(-Vec2::new(1.0, 1.0)))).into(),
+            mesh: meshes.add(Rectangle::new(1.0, 1.0)).into(),
+            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 10.).with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)),// .with_scale(Vec3::splat(full_world_size)),
             material: materials.add(EnergySupplyHeatmapMaterial {
                 heatmap: image,
             }),
@@ -66,10 +70,10 @@ pub enum EnergySupplyOverlayMode {
 
 pub fn manage_energy_supply_overlay_mode_system(
     mut emissions_overlay_mode: ResMut<EnergySupplyOverlayMode>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut emission_material_visibility: Query<&mut Visibility, With<EnergySupplyOverlay>>,
 ) {
-    if keys.just_pressed(KeyCode::Y) {
+    if keys.just_pressed(KeyCode::KeyY) {
         let mut visibility = emission_material_visibility.single_mut();
         match *visibility {
             Visibility::Hidden => {

@@ -56,29 +56,29 @@ fn camera_zoom(
 
 
 fn camera_movement(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query_camera: Query<&mut Transform, With<MainCamera>>,
     time: Res<Time>
 ) {
     let mut translation = Vec3::ZERO;
 
     // 'i' moves the camera up
-    if keyboard_input.pressed(KeyCode::I) {
+    if keyboard_input.pressed(KeyCode::KeyI) {
         translation.y += 1.0;
     }
 
     // 'k' moves the camera down
-    if keyboard_input.pressed(KeyCode::K) {
+    if keyboard_input.pressed(KeyCode::KeyK) {
         translation.y -= 1.0;
     }
 
     // 'j' moves the camera to the left
-    if keyboard_input.pressed(KeyCode::J) {
+    if keyboard_input.pressed(KeyCode::KeyJ) {
         translation.x -= 1.0;
     }
 
     // 'l' moves the camera to the right
-    if keyboard_input.pressed(KeyCode::L) {
+    if keyboard_input.pressed(KeyCode::KeyL) {
         translation.x += 1.0;
     }
 

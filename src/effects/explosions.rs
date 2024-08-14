@@ -4,7 +4,14 @@ use crate::common::Z_GROUND_EFFECT;
 use crate::effects::common::{AnimationController};
 use crate::grids::common::{GridCoords, GridImprint};
 
-pub static EXPLOSION_ATLAS: OnceLock<Handle<TextureAtlas>> = OnceLock::new();
+pub static EXPLOSION_ATLAS: OnceLock<ExplosionAtlas> = OnceLock::new();
+// TODO: Get rid of OnceLock
+
+#[derive(Debug)]
+pub struct ExplosionAtlas {
+    pub atlas_handle: Handle<TextureAtlasLayout>,
+    pub texture_handle: Handle<Image>,
+}
 
 #[derive(Component)]
 pub struct MarkerExplosion;
@@ -18,13 +25,17 @@ pub struct BuilderExplosion {
 
 impl BuilderExplosion {
     pub fn new(grid_position: GridCoords) -> Self {
+        let explosion_atlas = EXPLOSION_ATLAS.get().unwrap();
         Self {
             sprite: SpriteSheetBundle {
-                texture_atlas: EXPLOSION_ATLAS.get().unwrap().clone(),
-                sprite: TextureAtlasSprite::new(0),
                 transform: Transform {
                     translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
                     ..Default::default()
+                },
+                texture: explosion_atlas.texture_handle.clone(),
+                atlas: TextureAtlas {
+                    layout: explosion_atlas.atlas_handle.clone(),
+                    index: 0,
                 },
                 ..Default::default()
             },
@@ -39,11 +50,10 @@ impl BuilderExplosion {
 
 pub fn load_assets_system(
     asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let texture_handle = asset_server.load("effects/explosion.png");
-    let texture_atlas = TextureAtlas::from_grid(
-        texture_handle,
+    let texture_atlas = TextureAtlasLayout::from_grid(
         Vec2::new(16.0, 18.0),
         4,
         1,
@@ -51,7 +61,11 @@ pub fn load_assets_system(
         None,
     );
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
-    EXPLOSION_ATLAS.set(texture_atlas_handle).unwrap();
+    let expolsion_atlas = ExplosionAtlas {
+        atlas_handle: texture_atlas_handle,
+        texture_handle,
+    };
+    EXPLOSION_ATLAS.set(expolsion_atlas).unwrap();
 }
 
 pub fn remove_explosions_system(

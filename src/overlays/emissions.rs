@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::reflect::{TypePath};
+use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 use crate::grids::base::GridVersion;
@@ -38,6 +39,7 @@ pub fn create_emissions_overlay_startup_system(
             TextureDimension::D2,
             &[255, 0, 0, 127],
             TextureFormat::Rgba8Unorm,
+            RenderAssetUsages::default()
         )
     );
 
@@ -64,14 +66,14 @@ pub enum EmissionsOverlayMode {
 
 pub fn manage_emissions_overlay_mode_system(
     mut emissions_overlay_mode: ResMut<EmissionsOverlayMode>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut emission_material_visibility: Query<&mut Visibility, With<EmissionsOverlay>>,
 ) {
     let mut visibility = emission_material_visibility.single_mut();
-    if keys.just_pressed(KeyCode::Key6) {
+    if keys.just_pressed(KeyCode::Digit6) {
         *emissions_overlay_mode = EmissionsOverlayMode::None;
         *visibility = Visibility::Hidden;
-    } else if keys.just_pressed(KeyCode::Key7) {
+    } else if keys.just_pressed(KeyCode::Digit7) {
         if !matches!(*emissions_overlay_mode, EmissionsOverlayMode::Energy(_)) {
             *emissions_overlay_mode = EmissionsOverlayMode::Energy(GridVersion::default());
         }

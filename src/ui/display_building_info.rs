@@ -8,7 +8,7 @@ use crate::ui::interaction_state::UiInteractionState;
 
 pub fn on_click_building_display_info_system(
     mut ui_interaction_state: ResMut<UiInteractionState>,
-    mouse: Res<Input<MouseButton>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     obstacle_grid: Res<ObstacleGrid>,
 ) {

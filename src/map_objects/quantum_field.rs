@@ -1,3 +1,4 @@
+use bevy::color::palettes::css::INDIGO;
 use bevy::prelude::*;
 use crate::common::Z_OBSTACLE;
 use crate::grids::common::{GridCoords, GridImprint};
@@ -55,7 +56,7 @@ pub fn get_quantum_field_sprite_bundle(grid_position: GridCoords, grid_imprint: 
     SpriteBundle {
         sprite: Sprite {
             custom_size: Some(grid_imprint.world_size()),
-            color: Color::INDIGO,
+            color: INDIGO.into(),
             ..Default::default()
         },
         transform: Transform::from_translation(

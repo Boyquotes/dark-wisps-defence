@@ -1,3 +1,4 @@
+use bevy::color::palettes::css::GRAY;
 use bevy::prelude::*;
 use crate::common::Z_OBSTACLE;
 use crate::grids::common::{GridCoords, GridImprint};
@@ -23,7 +24,7 @@ impl BuilderWall {
         Self {
             sprite: SpriteBundle {
                 sprite: Sprite {
-                    color: Color::GRAY, // Color::hsla(0., 0.5, 1.3, 0.8); for hdr
+                    color: GRAY.into(), // Color::hsla(0., 0.5, 1.3, 0.8); for hdr
                     custom_size: Some(WALL_GRID_IMPRINT.world_size()),
                     ..Default::default()
                 },
@@ -96,7 +97,7 @@ pub fn color_rotation_system(
     time: Res<Time>,
 ) {
     for mut sprite in query.iter_mut() {
-        if let Color::Hsla{hue, ..} = &mut sprite.color {
+        if let Color::Hsla(Hsla{hue, ..}) = &mut sprite.color {
             *hue += time.delta_seconds() * 100.;
             if *hue > 360. {
                 *hue = 0.;

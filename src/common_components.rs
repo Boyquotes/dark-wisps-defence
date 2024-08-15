@@ -34,7 +34,7 @@ impl ColorPulsation {
     }
     pub fn pulsate_sprite(&mut self, sprite: &mut Sprite, delta_time: f32) {
         match &mut sprite.color {
-            Color::Hsla { lightness, .. } => {
+            Color::Hsla(Hsla {lightness, .. }) => {
                 if self.is_increasing && *lightness > self.max_brightness {
                     self.is_increasing = false;
                 } else if !self.is_increasing && *lightness < self.min_brightness {

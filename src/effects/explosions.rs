@@ -54,7 +54,7 @@ pub fn load_assets_system(
 ) {
     let texture_handle = asset_server.load("effects/explosion.png");
     let texture_atlas = TextureAtlasLayout::from_grid(
-        Vec2::new(16.0, 18.0),
+        UVec2::new(16, 18),
         4,
         1,
         None,

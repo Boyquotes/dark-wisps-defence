@@ -20,14 +20,13 @@ pub fn create_dark_ore_badge(
                 height: Val::Px(115.),
                 ..Default::default()
             },
-            background_color: Color::WHITE.into(),
             ..Default::default()
         },
         UiImage::new(asset_server.load("ui/dark_ore_badge.png")),
     )).with_children(|parent| {
         parent.spawn((
             TextBundle {
-                text: Text::from_section("####", TextStyle::default()),
+                text: Text::from_section("####", TextStyle { font_size: 12., ..default() }),
                 style: Style {
                     top: Val::Px(83.),
                     left: Val::Px(39.),

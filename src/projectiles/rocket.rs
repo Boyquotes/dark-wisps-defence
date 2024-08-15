@@ -173,6 +173,6 @@ pub fn exhaust_blinking_system(
     mut query: Query<(&mut Sprite, &MarkerRocketExhaust)>,
 ) {
     for (mut sprite, _) in query.iter_mut() {
-        sprite.color.set_a(if time.elapsed_seconds() % 1. < 0.85 { 1. } else { 0.0 });
+        sprite.color.set_alpha(if time.elapsed_seconds() % 1. < 0.85 { 1. } else { 0.0 });
     }
 }

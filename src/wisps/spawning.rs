@@ -1,3 +1,4 @@
+use bevy::color::palettes::css::PURPLE;
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 use crate::common::Z_WISP;
@@ -28,7 +29,7 @@ pub fn spawn_wisp(
             health: Health(10),
             display: MaterialMesh2dBundle {
                 mesh: meshes.add(Circle::new(6.)).into(),
-                material: materials.add(ColorMaterial::from(Color::PURPLE)),
+                material: materials.add(ColorMaterial::from_color(PURPLE)),
                 transform: Transform::from_translation(
                     grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP)
                 ),

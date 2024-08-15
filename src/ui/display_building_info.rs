@@ -1,3 +1,4 @@
+use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
 use crate::buildings::common_components::{Building};
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
@@ -48,7 +49,7 @@ pub fn display_building_info_system(
         gizmos.circle_2d(
             position,
             energy_provider.range as f32 * CELL_SIZE,
-            Color::YELLOW,
+            YELLOW,
         );
 
     }

@@ -45,16 +45,15 @@ pub fn create_emissions_overlay_startup_system(
 
 
     let full_world_size = 100. * CELL_SIZE;
-    commands.spawn(
-        MaterialMesh2dBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::flipped(-Vec2::new(1.0, 1.0)))).into(),
-            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 0.).with_scale(Vec3::splat(full_world_size)),
-            material: materials.add(EmissionHeatmapMaterial {
-                heatmap: image,
-            }),
-            ..Default::default()
-        }
-    ).insert(EmissionsOverlay);
+    commands.spawn(MaterialMesh2dBundle {
+        mesh: meshes.add(Rectangle::new(1.0, 1.0)).into(),
+        transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 0.)
+            .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
+        material: materials.add(EmissionHeatmapMaterial {
+            heatmap: image,
+        }),
+        ..Default::default()
+    }).insert(EmissionsOverlay);
 }
 
 /// Keep tracks of which version does the overlay use

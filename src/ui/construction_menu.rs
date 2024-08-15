@@ -1,3 +1,4 @@
+use bevy::color::palettes::css::{TURQUOISE, WHITE};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use crate::buildings::common::{BuildingType, TowerType};
@@ -33,8 +34,7 @@ impl ConstructButtonBundle {
                     height: Val::Px(64.),
                     ..Default::default()
                 },
-                background_color: (*Color::WHITE.set_a(NOT_HOVERED_ALPHA)).into(),
-                image: UiImage::new(image),
+                image: UiImage::new(image).with_color(WHITE.with_alpha(NOT_HOVERED_ALPHA).into()),
                 ..Default::default()
             },
             construct_menu_button: ConstructMenuButton::default(),
@@ -101,7 +101,7 @@ impl ConstructObjectButtonBundle {
                     },
                     ..Default::default()
                 },
-                background_color: Color::TURQUOISE.into(),
+                background_color: TURQUOISE.into(),
                 focus_policy: FocusPolicy::Pass,
                 ..Default::default()
             },
@@ -139,7 +139,6 @@ impl ConstructObjectButtonBundle {
                             height: Val::Px(48.0),
                             ..default()
                         },
-                        background_color: Color::WHITE.into(),
                         ..default()
                     },
                     UiImage::new(asset_server.load(image_handle)),
@@ -220,17 +219,17 @@ pub fn initialize_construction_menu_system(
 }
 
 pub fn menu_activation_system(
-    mut menu_buttons: Query<(&Interaction, &mut BackgroundColor, &Children), With<ConstructMenuButton>>,
+    mut menu_buttons: Query<(&Interaction, &mut UiImage, &Children), With<ConstructMenuButton>>,
     mut list_pickers: Query<(&Interaction, &mut Visibility), With<ConstructMenuListPicker>>,
 ) {
-    for (menu_interaction, mut background, children) in menu_buttons.iter_mut() {
+    for (menu_interaction, mut ui_image, children) in menu_buttons.iter_mut() {
         let list_picker_entity = children.get(0).unwrap();
         let (list_picker_interaction, mut list_picker_visibility) = list_pickers.get_mut(*list_picker_entity).unwrap();
         if !matches!(menu_interaction, Interaction::None) || !matches!(list_picker_interaction, Interaction::None) {
-            background.0.set_a(1.);
+            ui_image.color.set_alpha(1.);
             *list_picker_visibility = Visibility::Inherited;
         } else {
-            background.0.set_a(NOT_HOVERED_ALPHA);
+            ui_image.color.set_alpha(NOT_HOVERED_ALPHA);
             *list_picker_visibility = Visibility::Hidden;
         }
     }
@@ -244,7 +243,7 @@ pub fn construct_building_on_click_system(
     for (advanced_interaction, button) in menu_buttons.iter_mut() {
         if advanced_interaction.was_just_released {
             grid_object_placer_request.set(button.object_type.clone());
-            list_pickers.for_each_mut(|(mut interaction, mut visibility)| { *visibility = Visibility::Hidden; *interaction = Interaction::None; });
+            list_pickers.iter_mut().for_each(|(mut interaction, mut visibility)| { *visibility = Visibility::Hidden; *interaction = Interaction::None; });
         }
     }
 }

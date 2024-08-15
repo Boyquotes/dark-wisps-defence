@@ -44,14 +44,12 @@ pub fn create_energy_supply_overlay_startup_system(
         )
     );
 
-
     let full_world_size = 100. * CELL_SIZE;
     commands.spawn(
         MaterialMesh2dBundle {
-            // TODO: MIGRATION TODO, was: mesh: meshes.add(Mesh::from(shape::Quad::flipped(-Vec2::new(1.0, 1.0)))).into(),
-            //mesh: meshes.add(Mesh::from(shape::Quad::flipped(-Vec2::new(1.0, 1.0)))).into(),
             mesh: meshes.add(Rectangle::new(1.0, 1.0)).into(),
-            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 10.).with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)),// .with_scale(Vec3::splat(full_world_size)),
+            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 10.)
+                .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
             material: materials.add(EnergySupplyHeatmapMaterial {
                 heatmap: image,
             }),

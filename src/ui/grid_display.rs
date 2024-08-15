@@ -1,3 +1,4 @@
+use bevy::color::palettes::css::GRAY;
 use bevy::prelude::*;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::obstacles::ObstacleGrid;
@@ -19,13 +20,13 @@ pub fn draw_grid_system(grid: Res<ObstacleGrid>, ui_config: Res<UiConfig>, mut g
     for y in 0..=grid.height {
         let start = Vec2::new(0.0, y as f32 * CELL_SIZE);
         let end = Vec2::new(total_width, y as f32 * CELL_SIZE);
-        gizmos.line_2d(start, end, Color::GRAY);
+        gizmos.line_2d(start, end, GRAY);
     }
 
     // Vertical lines
     for x in 0..=grid.width {
         let start = Vec2::new(x as f32 * CELL_SIZE, 0.0);
         let end = Vec2::new(x as f32 * CELL_SIZE, total_height);
-        gizmos.line_2d(start, end, Color::GRAY);
+        gizmos.line_2d(start, end, GRAY);
     }
 }

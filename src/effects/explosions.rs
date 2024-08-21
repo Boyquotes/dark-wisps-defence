@@ -1,7 +1,7 @@
 use std::sync::OnceLock;
 use bevy::prelude::*;
 use crate::common::Z_GROUND_EFFECT;
-use crate::effects::common::{AnimationController};
+use crate::effects::common::AnimationController;
 use crate::grids::common::{GridCoords, GridImprint};
 
 pub static EXPLOSION_ATLAS: OnceLock<ExplosionAtlas> = OnceLock::new();

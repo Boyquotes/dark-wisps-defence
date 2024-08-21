@@ -1,3 +1,4 @@
+use bevy::ecs::world::Command;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::common::Z_PROJECTILE;
@@ -6,6 +7,20 @@ use crate::grids::common::GridCoords;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
 use crate::wisps::components::{Wisp, WispEntity};
+
+pub struct LaserDartPlugin;
+impl Plugin for LaserDartPlugin {
+    fn build(&self, app: &mut App) {
+        app.
+            add_event::<BuilderLaserDart>()
+            .add_systems(Update, (
+                laser_dart_move_system,
+                laser_dart_hit_system,
+            )).add_systems(PostUpdate, (
+                BuilderLaserDart::spawn_system,
+            ));
+    }
+}
 
 #[derive(Component)]
 pub struct MarkerLaserDart;
@@ -17,36 +32,50 @@ pub struct LaserDartTarget {
     pub target_vector: Vec2,
 }
 
-#[derive(Bundle)]
+#[derive(Event)]
 pub struct BuilderLaserDart {
-    pub sprite: SpriteBundle,
-    pub marker_projectile: MarkerProjectile,
-    pub marker_laser_dart: MarkerLaserDart,
-    pub laser_dart_target: LaserDartTarget,
+    world_position: Vec2,
+    target_wisp: WispEntity,
+    target_vector: Vec2,
 }
 impl BuilderLaserDart {
     pub fn new(world_position: Vec2, target_wisp: WispEntity, target_vector: Vec2) -> Self {
         Self {
-            sprite: SpriteBundle {
-                sprite: Sprite {
-                    color: Color::srgb(1.0, 0.0, 0.0),
-                    custom_size: Some(Vec2::new(7.0, 1.0)),
-                    ..Default::default()
-                },
-                transform: Transform {
-                    translation: world_position.extend(Z_PROJECTILE),
-                    rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            marker_projectile: MarkerProjectile,
-            marker_laser_dart: MarkerLaserDart,
-            laser_dart_target: LaserDartTarget{ target_wisp: Some(target_wisp), target_vector },
+            world_position,
+            target_wisp,
+            target_vector,
         }
     }
-    pub fn spawn(self, commands: &mut Commands) -> Entity {
-        commands.spawn(self).id()
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderLaserDart>,
+    ) {
+        for BuilderLaserDart{ world_position, target_wisp, target_vector } in events.read() {
+            commands.spawn((
+                SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::srgb(1.0, 0.0, 0.0),
+                        custom_size: Some(Vec2::new(7.0, 1.0)),
+                        ..Default::default()
+                    },
+                    transform: Transform {
+                        translation: world_position.extend(Z_PROJECTILE),
+                        rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                MarkerProjectile,
+                MarkerLaserDart,
+                LaserDartTarget{ target_wisp: Some(*target_wisp), target_vector: *target_vector },
+            ));
+        }
+    }
+    
+}
+impl Command for BuilderLaserDart {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
 }
 

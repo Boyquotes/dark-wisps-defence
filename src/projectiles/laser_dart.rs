@@ -29,7 +29,7 @@ impl BuilderLaserDart {
         Self {
             sprite: SpriteBundle {
                 sprite: Sprite {
-                    color: Color::rgb(1.0, 0.0, 0.0),
+                    color: Color::srgb(1.0, 0.0, 0.0),
                     custom_size: Some(Vec2::new(7.0, 1.0)),
                     ..Default::default()
                 },

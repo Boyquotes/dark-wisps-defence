@@ -104,7 +104,7 @@ pub fn update_energy_supply_overlay_system(
                 energy_supply_grid.imprint_into_heatmap(&mut heatmap_image.data);
             }
         }
-        EnergySupplyOverlayMode::Single(id) => {
+        EnergySupplyOverlayMode::Single(_id) => {
             todo!();
         }
     }

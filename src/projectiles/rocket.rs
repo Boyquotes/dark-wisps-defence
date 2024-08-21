@@ -89,12 +89,12 @@ impl BuilderRocket {
 }
 
 pub fn rocket_move_system(
-    mut rockets: Query<(&mut Transform, &mut RocketTarget, &MarkerRocket), Without<MarkerRocketExhaust>>,
+    mut rockets: Query<(&mut Transform, &mut RocketTarget), With<MarkerRocket>>,
     time: Res<Time>,
-    wisps: Query<(Entity, &Transform), (With<Wisp>, Without<MarkerRocket>, Without<MarkerRocketExhaust>)>,
+    wisps: Query<(Entity, &Transform), (With<Wisp>, Without<MarkerRocket>)>,
 ) {
     let mut wisps_iter = wisps.iter();
-    for (mut transform, mut target, rocket) in rockets.iter_mut() {
+    for (mut transform, mut target) in rockets.iter_mut() {
         let target_position = if let Ok((_, wisp_transform)) = wisps.get(*target.0) {
             wisp_transform.translation.xy()
         } else {

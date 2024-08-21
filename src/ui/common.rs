@@ -7,7 +7,7 @@ pub struct AdvancedInteraction {
 }
 
 pub fn mouse_release_system(
-    mut mouse_button_input: ResMut<ButtonInput<MouseButton>>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut advanced_interaction: Query<(&Interaction, &mut AdvancedInteraction)>,
 ) {
     let was_mouse_just_released = mouse_button_input.just_released(MouseButton::Left);

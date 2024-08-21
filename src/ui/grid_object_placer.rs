@@ -101,12 +101,12 @@ pub fn update_grid_object_placer_system(
 
     sprite.color = if is_imprint_placable {
         if needs_energy_supply && !is_imprint_suppliable {
-            Color::rgba(1.0, 1.0, 0.0, 0.2)
+            Color::srgba(1.0, 1.0, 0.0, 0.2)
         } else {
-            Color::rgba(0.0, 1.0, 0.0, 0.2)
+            Color::srgba(0.0, 1.0, 0.0, 0.2)
         }
     } else {
-        Color::rgba(1.0, 0.0, 0.0, 0.2)
+        Color::srgba(1.0, 0.0, 0.0, 0.2)
     };
 }
 

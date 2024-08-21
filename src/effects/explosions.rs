@@ -18,7 +18,8 @@ pub struct MarkerExplosion;
 
 #[derive(Bundle)]
 pub struct BuilderExplosion {
-    pub sprite: SpriteSheetBundle,
+    pub sprite_bundle: SpriteBundle,
+    pub texture_atlas: TextureAtlas,
     pub animation_controller: AnimationController,
     pub marker_explosion: MarkerExplosion,
 }
@@ -27,16 +28,17 @@ impl BuilderExplosion {
     pub fn new(grid_position: GridCoords) -> Self {
         let explosion_atlas = EXPLOSION_ATLAS.get().unwrap();
         Self {
-            sprite: SpriteSheetBundle {
+            sprite_bundle: SpriteBundle {
                 transform: Transform {
                     translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
                     ..Default::default()
                 },
                 texture: explosion_atlas.texture_handle.clone(),
-                atlas: TextureAtlas {
-                    layout: explosion_atlas.atlas_handle.clone(),
-                    index: 0,
-                },
+                ..default()
+            },
+            texture_atlas: TextureAtlas {
+                layout: explosion_atlas.atlas_handle.clone(),
+                index: 0,
                 ..Default::default()
             },
             animation_controller: AnimationController::new(0, 3, 0.1, false),

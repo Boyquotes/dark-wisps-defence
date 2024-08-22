@@ -1,4 +1,5 @@
 use std::f32::consts::PI;
+use bevy::ecs::world::Command;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use crate::common::Z_PROJECTILE;
@@ -9,6 +10,22 @@ use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
 use crate::search::common::ALL_DIRECTIONS;
 use crate::wisps::components::{Wisp};
+
+
+pub struct CannonballPlugin;
+impl Plugin for CannonballPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_event::<BuilderCannonball>()
+            .add_systems(Update, (
+                cannonball_move_system,
+                cannonball_hit_system,
+            ))
+            .add_systems(PostUpdate, (
+                BuilderCannonball::spawn_system,
+            ));
+    }
+}
 
 pub const CANNONBALL_BASE_IMAGE: &str = "projectiles/cannonball.png";
 
@@ -22,39 +39,51 @@ pub struct CannonballTarget{
     pub target_position: Vec2,
 }
 
-#[derive(Bundle)]
+#[derive(Event)]
 pub struct BuilderCannonball {
-    pub sprite: SpriteBundle,
-    pub marker_projectile: MarkerProjectile,
-    pub marker_cannonball: MarkerCannonball,
-    pub cannonball_target: CannonballTarget,
+    world_position: Vec2,
+    target_position: Vec2,
 }
 
 impl BuilderCannonball {
-    pub fn new(world_position: Vec2, target_position: Vec2, asset_server: &AssetServer) -> Self {
+    pub fn new(world_position: Vec2, target_position: Vec2) -> Self {
         Self {
-            sprite: SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(8.0, 8.0)),
-                    ..Default::default()
-                },
-                texture: asset_server.load(CANNONBALL_BASE_IMAGE),
-                transform: Transform {
-                    translation: world_position.extend(Z_PROJECTILE),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            marker_projectile: MarkerProjectile,
-            marker_cannonball: MarkerCannonball,
-            cannonball_target: CannonballTarget {
-                initial_distance: world_position.distance(target_position),
-                target_position,
-            },
+            world_position,
+            target_position,
         }
     }
-    pub fn spawn(self, commands: &mut Commands) -> Entity {
-        commands.spawn(self).id()
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderCannonball>,
+        asset_server: Res<AssetServer>,
+    ) {
+        for &BuilderCannonball{ world_position, target_position } in events.read() {
+            commands.spawn((
+                SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(8.0, 8.0)),
+                        ..Default::default()
+                    },
+                    texture: asset_server.load(CANNONBALL_BASE_IMAGE),
+                    transform: Transform {
+                        translation: world_position.extend(Z_PROJECTILE),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                MarkerProjectile,
+                MarkerCannonball,
+                CannonballTarget {
+                    initial_distance: world_position.distance(target_position),
+                    target_position,
+                },
+            ));
+        }
+    }
+}
+impl Command for BuilderCannonball {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
 }
 
@@ -91,7 +120,7 @@ pub fn cannonball_hit_system(
     mut wisps: Query<&mut Health, With<Wisp>>,
 ) {
     for (entity, cannonball_transform, target) in cannonballs.iter() {
-        if cannonball_transform.translation.xy().distance(target.target_position) > 1. { continue; }
+        if cannonball_transform.translation.xy().distance(target.target_position) > 4. { continue; } // TODO: 1. and 2. are causing cannonballs jitters at landing. Investigate.
 
         let coords = GridCoords::from_transform(&cannonball_transform);
         for (dx, dy) in ALL_DIRECTIONS.iter().chain(&[(0, 0)]) {

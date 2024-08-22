@@ -99,7 +99,7 @@ pub fn shooting_system(
                 }
             );
 
-        BuilderCannonball::new(transform.translation.xy(), target_world_position, &asset_server).spawn(&mut commands);
+        commands.add(BuilderCannonball::new(transform.translation.xy(), target_world_position));
         timer.0.reset();
     }
 }

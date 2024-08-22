@@ -50,7 +50,7 @@ impl BuilderLaserDart {
         mut commands: Commands,
         mut events: EventReader<BuilderLaserDart>,
     ) {
-        for BuilderLaserDart{ world_position, target_wisp, target_vector } in events.read() {
+        for &BuilderLaserDart{ world_position, target_wisp, target_vector } in events.read() {
             commands.spawn((
                 SpriteBundle {
                     sprite: Sprite {
@@ -67,7 +67,7 @@ impl BuilderLaserDart {
                 },
                 MarkerProjectile,
                 MarkerLaserDart,
-                LaserDartTarget{ target_wisp: Some(*target_wisp), target_vector: *target_vector },
+                LaserDartTarget{ target_wisp: Some(target_wisp), target_vector },
             ));
         }
     }

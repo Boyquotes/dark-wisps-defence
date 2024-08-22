@@ -11,12 +11,11 @@ impl Plugin for ProjectilesPlugin {
         app
             .add_plugins((
                 laser_dart::LaserDartPlugin,
+                cannonball::CannonballPlugin,
             ))
             .add_systems(
             Update,
             (
-                cannonball::cannonball_move_system,
-                cannonball::cannonball_hit_system,
                 rocket::rocket_move_system,
                 rocket::rocket_hit_system,
                 rocket::exhaust_blinking_system,

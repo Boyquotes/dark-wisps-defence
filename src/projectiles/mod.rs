@@ -12,15 +12,8 @@ impl Plugin for ProjectilesPlugin {
             .add_plugins((
                 laser_dart::LaserDartPlugin,
                 cannonball::CannonballPlugin,
-            ))
-            .add_systems(
-            Update,
-            (
-                rocket::rocket_move_system,
-                rocket::rocket_hit_system,
-                rocket::exhaust_blinking_system,
-            )
-        );
+                rocket::RocketPlugin,
+            ));
 
     }
 }

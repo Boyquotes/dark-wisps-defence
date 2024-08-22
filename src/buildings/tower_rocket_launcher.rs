@@ -108,7 +108,6 @@ pub fn get_tower_rocket_launcher_sprite_bundle(asset_server: &AssetServer, coord
 
 pub fn shooting_system(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut tower_rocket_launchers: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), (With<MarkerTowerRocketLauncher>, Without<Wisp>)>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
@@ -137,7 +136,7 @@ pub fn shooting_system(
         let spawn_position = transform.translation.xy() + offset;
 
         let rocket_angle = Quat::from_rotation_z(top_rotation.current_angle);
-        BuilderRocket::new(spawn_position, rocket_angle, target_wisp, &asset_server).spawn(&mut commands);
+        commands.add(BuilderRocket::new(spawn_position, rocket_angle, target_wisp));
         timer.0.reset();
     }
 }

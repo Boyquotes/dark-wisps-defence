@@ -70,7 +70,6 @@ pub fn get_tower_cannon_sprite_bundle(asset_server: &AssetServer, coords: GridCo
 
 pub fn shooting_system(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut tower_cannons: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget), With<MarkerTowerCannon>>,
     wisps: Query<(&Target, &GridCoords), With<Wisp>>,
 ) {

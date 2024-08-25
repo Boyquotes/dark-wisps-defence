@@ -1,5 +1,5 @@
+use crate::prelude::*;
 use crate::grids::base::{BaseGrid, GridVersion};
-use crate::grids::common::GridCoords;
 
 pub type VisitedGrid = BaseGrid<bool, GridVersion>;
 impl VisitedGrid {

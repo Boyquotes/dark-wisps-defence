@@ -1,6 +1,4 @@
-use bevy::prelude::*;
-use crate::common::Z_OBSTACLE;
-use crate::grids::common::{GridCoords, GridImprint};
+use crate::prelude::*;
 use crate::grids::emissions::EmissionsEnergyRecalculateAll;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;

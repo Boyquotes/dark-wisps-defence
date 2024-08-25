@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::prelude::*;
 use nanorand::Rng;
 use crate::buildings::common_components::Building;
 use crate::common::TargetType;
@@ -63,7 +63,7 @@ pub fn target_wisps(
     wisps_query.par_iter_mut().for_each(|(mut target, grid_coords)| {
         // First check if there was anything that would invalidate existing targeting.
         match target.target_type {
-            TargetType::None | TargetType::DynamicObject(_) => {},
+            TargetType::None => {},
             TargetType::Field{grid_version, ..} => {
                 if grid_version != obstacle_grid.version {
                     target.target_type = TargetType::None;

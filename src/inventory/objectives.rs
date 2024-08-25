@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Defines what must happen for an objective to become active

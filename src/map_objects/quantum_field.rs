@@ -1,7 +1,5 @@
 use bevy::color::palettes::css::INDIGO;
-use bevy::prelude::*;
-use crate::common::Z_OBSTACLE;
-use crate::grids::common::{GridCoords, GridImprint};
+use crate::prelude::*;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::map_objects::common::{ExpeditionTargetMarker, ExpeditionZone};
 use crate::mouse::MouseInfo;

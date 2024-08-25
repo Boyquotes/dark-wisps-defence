@@ -1,5 +1,5 @@
 use bevy::color::palettes::css::YELLOW;
-use bevy::prelude::*;
+use crate::prelude::*;
 use crate::buildings::common_components::{Building};
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::energy_supply::SupplierEnergy;

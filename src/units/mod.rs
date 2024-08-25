@@ -1,6 +1,6 @@
 pub mod expedition_drone;
 
-use bevy::prelude::*;
+use crate::prelude::*;
 
 pub struct UnitsPlugin;
 impl Plugin for UnitsPlugin {

@@ -2,7 +2,7 @@ pub mod resources;
 pub mod almanach;
 pub mod objectives;
 
-use bevy::prelude::*;
+use crate::prelude::*;
 
 pub struct InventoryPlugin;
 impl Plugin for InventoryPlugin {

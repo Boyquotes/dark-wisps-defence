@@ -1,4 +1,8 @@
-use bevy::prelude::*;
+use crate::prelude::*;
+
+pub mod prelude {
+    pub use super::*;
+}
 
 #[derive(Component, Default)]
 pub struct Health(pub i32);

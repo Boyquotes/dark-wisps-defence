@@ -3,7 +3,7 @@ pub mod components;
 pub mod cannonball;
 pub mod rocket;
 
-use bevy::prelude::*;
+use crate::prelude::*;
 
 pub struct ProjectilesPlugin;
 impl Plugin for ProjectilesPlugin {

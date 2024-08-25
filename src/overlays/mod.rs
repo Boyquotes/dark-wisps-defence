@@ -1,7 +1,7 @@
 pub mod emissions;
 pub mod energy_supply;
 
-use bevy::prelude::*;
+use crate::prelude::*;
 use bevy::sprite::Material2dPlugin;
 
 pub struct OverlaysPlugin;

@@ -17,8 +17,9 @@ mod inventory;
 mod effects;
 mod units;
 mod common_systems;
+mod prelude;
 
-use bevy::prelude::*;
+use crate::prelude::*;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};

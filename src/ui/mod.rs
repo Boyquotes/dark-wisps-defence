@@ -6,7 +6,7 @@ pub mod badges;
 mod construction_menu;
 pub mod common;
 
-use bevy::prelude::*;
+use crate::prelude::*;
 
 pub struct UiPlugin;
 impl Plugin for UiPlugin {

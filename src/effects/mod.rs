@@ -1,7 +1,7 @@
 pub mod explosions;
 pub mod common;
 
-use bevy::prelude::*;
+use crate::prelude::*;
 
 pub struct EffectsPlugin;
 impl Plugin for EffectsPlugin {

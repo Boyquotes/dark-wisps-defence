@@ -1,9 +1,6 @@
 use bevy::ecs::world::Command;
 use bevy::math::Vec3Swizzles;
-use bevy::prelude::*;
-use crate::common::Z_PROJECTILE;
-use crate::common_components::{Health};
-use crate::grids::common::GridCoords;
+use crate::prelude::*;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
 use crate::wisps::components::{Wisp, WispEntity};

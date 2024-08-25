@@ -1,7 +1,7 @@
 use bevy::core_pipeline::bloom::BloomSettings;
 //use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::input::mouse::MouseWheel;
-use bevy::prelude::*;
+use crate::prelude::*;
 
 const ZOOM_MIN: f32 = 1.;
 const ZOOM_MAX: f32 = 4.;

@@ -1,11 +1,10 @@
-use bevy::prelude::*;
-use bevy::reflect::{TypePath};
+use crate::prelude::*;
+use bevy::reflect::TypePath;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 use crate::buildings::common::BuildingId;
 use crate::grids::base::GridVersion;
-use crate::grids::common::CELL_SIZE;
 use crate::grids::energy_supply::EnergySupplyGrid;
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]

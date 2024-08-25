@@ -1,5 +1,5 @@
 use bevy::color::palettes::css::GRAY;
-use bevy::prelude::*;
+use crate::prelude::*;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::ui::UiConfig;

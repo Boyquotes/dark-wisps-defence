@@ -1,6 +1,5 @@
-use bevy::prelude::*;
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::grids::common::GridImprint;
 use crate::utils::id::Id;
 
 pub type BuildingId = Id<BuildingType, Entity>;

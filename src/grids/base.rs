@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
-use bevy::prelude::*;
-use crate::grids::common::GridCoords;
+use crate::prelude::*;
 
 pub type GridVersion = u32;
 

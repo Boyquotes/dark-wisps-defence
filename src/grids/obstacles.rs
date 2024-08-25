@@ -1,7 +1,6 @@
-use bevy::prelude::*;
+use crate::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::grids::base::{BaseGrid, GridVersion};
-use crate::grids::common::{ GridCoords, GridImprint};
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Field {

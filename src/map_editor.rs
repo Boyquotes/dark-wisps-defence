@@ -1,5 +1,5 @@
 use std::fs::File;
-use bevy::prelude::*;
+use crate::prelude::*;
 use bevy::utils::HashSet;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::buildings::common_components::Building;

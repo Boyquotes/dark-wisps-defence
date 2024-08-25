@@ -6,7 +6,7 @@ pub mod visited;
 pub mod emissions;
 pub mod energy_supply;
 
-use bevy::prelude::*;
+use crate::prelude::*;
 
 pub struct GridsPlugin;
 impl Plugin for GridsPlugin {

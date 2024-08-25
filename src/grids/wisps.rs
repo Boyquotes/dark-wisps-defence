@@ -1,5 +1,5 @@
+use crate::prelude::*;
 use crate::grids::base::{BaseGrid, GridVersion};
-use crate::grids::common::{GridCoords};
 use crate::wisps::components::WispEntity;
 
 pub type WispsGrid = BaseGrid<Vec<WispEntity>, GridVersion>;

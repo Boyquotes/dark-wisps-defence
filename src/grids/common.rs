@@ -1,5 +1,9 @@
-use bevy::prelude::*;
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
+
+pub mod prelude {
+    pub use super::*;
+}
 
 pub const CELL_SIZE: f32 = 16.;
 

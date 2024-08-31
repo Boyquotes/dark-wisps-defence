@@ -5,17 +5,17 @@ use serde::{Deserialize, Serialize};
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::energy_relay::BuilderEnergyRelay;
 use crate::buildings::exploration_center::BuilderExplorationCenter;
-use crate::buildings::main_base::{BuilderMainBase};
-use crate::buildings::mining_complex::{BuilderMiningComplex};
-use crate::buildings::tower_blaster::{BuilderTowerBlaster};
+use crate::buildings::main_base::BuilderMainBase;
+use crate::buildings::mining_complex::BuilderMiningComplex;
+use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
-use crate::buildings::tower_rocket_launcher::{BuilderTowerRocketLauncher};
+use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::grids::common::{GridCoords, GridImprint};
-use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
-use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};
+use crate::grids::emissions::EmissionsEnergyRecalculateAll;
+use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails, ObjectivesCheckInactiveFlag};
-use crate::map_objects::dark_ore::{BuilderDarkOre};
+use crate::map_objects::dark_ore::BuilderDarkOre;
 use crate::map_objects::quantum_field::BuilderQuantumField;
 use crate::map_objects::walls::BuilderWall;
 
@@ -57,10 +57,7 @@ pub fn apply_map(
     asset_server: &AssetServer,
     mut objectives_check_inactive_flag: &mut ObjectivesCheckInactiveFlag,
     mut emissions_energy_recalculate_all: &mut EmissionsEnergyRecalculateAll,
-    mut emitter_created_event_writer: &mut EventWriter<EmitterChangedEvent>,
-    mut supplier_created_event_writer: &mut EventWriter<SupplierChangedEvent>,
     mut obstacle_grid: &mut ObstacleGrid,
-    energy_supply_grid: &EnergySupplyGrid,
 ) {
     map.walls.iter().for_each(|wall_coords| {
         BuilderWall::new(*wall_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
@@ -93,26 +90,31 @@ pub fn apply_map(
             BuildingType::Tower(tower_type) => {
                 match tower_type {
                     TowerType::Blaster => {
-                        BuilderTowerBlaster::new(building.coords, &asset_server)
-                            .update_energy_supply(&energy_supply_grid)
-                            .spawn(&mut commands, &mut obstacle_grid)
+                        let mut builder = BuilderTowerBlaster::new(building.coords);
+                        let entity = builder.entity.get(&mut commands);
+                        commands.add(builder);
+                        entity
                     },
                     TowerType::Cannon => {
-                        BuilderTowerCannon::new(building.coords, asset_server)
-                            .update_energy_supply(&energy_supply_grid)
-                            .spawn(&mut commands, &mut obstacle_grid)
+                        let mut builder = BuilderTowerCannon::new(building.coords);
+                        let entity = builder.entity.get(&mut commands);
+                        commands.add(builder);
+                        entity
                     },
                     TowerType::RocketLauncher => {
-                        BuilderTowerRocketLauncher::new(building.coords, asset_server)
-                            .update_energy_supply(&energy_supply_grid)
-                            .spawn(&mut commands,&mut obstacle_grid)
+                        let mut builder = BuilderTowerRocketLauncher::new(building.coords);
+                        let entity = builder.entity.get(&mut commands);
+                        commands.add(builder);
+                        entity
                     }
                 }
             }
             BuildingType::MiningComplex => {
-                BuilderMiningComplex::new(building.coords, &asset_server)
-                    .update_energy_supply(&energy_supply_grid)
-                    .spawn(&mut commands, &mut obstacle_grid, *dark_ores.get(&building.coords).unwrap())
+                let mut builder = BuilderMiningComplex::new(building.coords);
+                let entity = builder.entity.get(&mut commands);
+                commands.add(builder);
+                entity
+                // TODO: This won't work as MiningComplex needs special place(type) on obstacle grid, see placing code
             }
         };
         obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type), building.building_type.grid_imprint());

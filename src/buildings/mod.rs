@@ -19,6 +19,10 @@ impl Plugin for BuildingsPlugin {
                 energy_relay::EnergyRelayPlugin,
                 exploration_center::ExplorationCenterPlugin,
                 main_base::MainBasePlugin,
+                mining_complex::MiningComplexPlugin,
+                tower_blaster::TowerBlasterPlugin,
+                tower_cannon::TowerCannonPlugin,
+                tower_rocket_launcher::TowerRocketLauncherPlugin,
             ))
             .add_systems(PreUpdate, common_systems::tick_shooting_timers_system)
             .add_systems(
@@ -29,10 +33,6 @@ impl Plugin for BuildingsPlugin {
                     common_systems::targeting_system,
                     common_systems::rotate_tower_top_system,
                     common_systems::rotational_aiming_system,
-                    mining_complex::mine_ore_system,
-                    tower_blaster::shooting_system,
-                    tower_cannon::shooting_system,
-                    tower_rocket_launcher::shooting_system,
                 )
             );
     }

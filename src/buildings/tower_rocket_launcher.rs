@@ -4,78 +4,69 @@ use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
 use crate::buildings::tower_blaster::TOWER_BLASTER_GRID_IMPRINT;
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::projectiles::rocket::BuilderRocket;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
 
-pub const TOWER_ROCKET_LAUNCHER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
+pub struct TowerRocketLauncherPlugin;
+impl Plugin for TowerRocketLauncherPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_event::<BuilderTowerRocketLauncher>()
+            .add_systems(PostUpdate, (
+                BuilderTowerRocketLauncher::spawn_system,
+            )).add_systems(Update, (
+                shooting_system,
+            ));
+    }
+}
 
+pub const TOWER_ROCKET_LAUNCHER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 pub const TOWER_ROCKET_LAUNCHER_BASE_IMAGE: &str = "buildings/tower_rocket_launcher.png";
 
 #[derive(Component)]
 pub struct MarkerTowerRocketLauncher;
 
-#[derive(Bundle)]
-struct BundleTowerRocketLauncherBase {
-    pub sprite: SpriteBundle,
-    pub marker_tower: MarkerTower,
-    pub marker_tower_rocket_launcher: MarkerTowerRocketLauncher,
-    pub grid_position: GridCoords,
-    pub health: Health,
-    pub tower_range: TowerRange,
-    pub building: Building,
-    pub tower_shooting_timer: TowerShootingTimer,
-    pub tower_wisp_target: TowerWispTarget,
-    pub technical_state: TechnicalState,
-    pub tower_top_rotation: TowerTopRotation,
-}
-#[derive(Bundle)]
-struct BundleTowerRocketLauncherTop {
-    pub sprite: SpriteBundle,
-    pub marker: MarkerTowerRotationalTop,
-}
+#[derive(Event)]
 pub struct BuilderTowerRocketLauncher {
-    base: BundleTowerRocketLauncherBase,
-    top: BundleTowerRocketLauncherTop,
+    pub entity: LazyEntity,
+    pub grid_position: GridCoords,
 }
 impl BuilderTowerRocketLauncher {
-    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
-        let (tower_base, tower_top) = get_tower_rocket_launcher_sprite_bundle(asset_server, grid_position);
-        Self {
-            base: BundleTowerRocketLauncherBase {
-                sprite: tower_base,
-                marker_tower: MarkerTower,
-                marker_tower_rocket_launcher: MarkerTowerRocketLauncher,
+    pub fn new(grid_position: GridCoords) -> Self { Self { entity: LazyEntity::default(), grid_position } }
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderTowerRocketLauncher>,
+        asset_server: Res<AssetServer>,
+        energy_supply_grid: Res<EnergySupplyGrid>,
+    ) {
+        for &BuilderTowerRocketLauncher{ mut entity, grid_position } in events.read() {
+            let entity = entity.get(&mut commands);
+            let (tower_base, tower_top) = get_tower_rocket_launcher_sprite_bundle(&asset_server, grid_position);
+            let tower_base_entity = commands.entity(entity).insert((
+                tower_base,
+                MarkerTower,
+                MarkerTowerRocketLauncher,
                 grid_position,
-                health: Health(10000),
-                tower_range: TowerRange(30),
-                building: Building::from(BuildingType::Tower(TowerType::RocketLauncher)),
-                tower_shooting_timer: TowerShootingTimer::from_seconds(2.0),
-                tower_wisp_target: TowerWispTarget::default(),
-                technical_state: TechnicalState::default(),
-                tower_top_rotation: TowerTopRotation { speed: 1.0, current_angle: 0. },
-            },
-            top: BundleTowerRocketLauncherTop {
-                sprite: tower_top,
-                marker: MarkerTowerRotationalTop(Entity::PLACEHOLDER.into()),
-            },
+                Health(10000),
+                TowerRange(30),
+                Building::from(BuildingType::Tower(TowerType::RocketLauncher)),
+                TowerShootingTimer::from_seconds(2.0),
+                TowerWispTarget::default(),
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_ROCKET_LAUNCHER_GRID_IMPRINT) },
+                TowerTopRotation { speed: 1.0, current_angle: 0. },
+            )).id();
+            commands.spawn((
+                tower_top,
+                MarkerTowerRotationalTop(tower_base_entity.into()),
+            ));
         }
     }
-    pub fn update_energy_supply(mut self, energy_supply_grid: &EnergySupplyGrid) -> Self {
-        self.base.technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(self.base.grid_position, TOWER_ROCKET_LAUNCHER_GRID_IMPRINT);
-        self
+}
+impl Command for BuilderTowerRocketLauncher {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
-    pub fn spawn(self, commands: &mut Commands, obstacle_grid: &mut ObstacleGrid) -> Entity {
-        let grid_position = self.base.grid_position;
-        let BuilderTowerRocketLauncher { base, mut top } = self;
-        let base_entity = commands.spawn(base).id();
-        top.marker.0 = base_entity.into(); // Set parent reference
-        let _ = commands.spawn(top).id();
-        obstacle_grid.imprint(grid_position, Field::Building(base_entity, BuildingType::Tower(TowerType::RocketLauncher)), TOWER_ROCKET_LAUNCHER_GRID_IMPRINT);
-        base_entity
-    }
-
 }
 
 pub fn get_tower_rocket_launcher_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> (SpriteBundle, SpriteBundle) {

@@ -4,8 +4,8 @@ use crate::buildings::common_components::Building;
 use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
 use crate::grids::common::GridImprint;
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::{ObstacleGrid};
-use crate::map_objects::dark_ore::{DARK_ORE_GRID_IMPRINT};
+use crate::grids::obstacles::ObstacleGrid;
+use crate::map_objects::dark_ore::DARK_ORE_GRID_IMPRINT;
 use crate::map_objects::quantum_field::QuantumField;
 use crate::map_objects::walls::WALL_GRID_IMPRINT;
 use crate::mouse::MouseInfo;
@@ -13,10 +13,10 @@ use crate::ui::interaction_state::UiInteractionState;
 
 
 #[derive(Resource, Default)]
-pub struct GridObjectPlacerRequest(pub Option<GridObjectPlacer>);
+pub struct GridObjectPlacerRequest(Option<GridObjectPlacer>);
 impl GridObjectPlacerRequest {
     pub fn set(&mut self, request: GridObjectPlacer) { self.0 = Some(request); }
-    pub fn clear(&mut self) { self.0 = None; }
+    pub fn take(&mut self) -> Option<GridObjectPlacer> { self.0.take() }
 }
 
 #[derive(Component, Default, Clone, Debug)]
@@ -145,7 +145,7 @@ pub fn on_request_grid_object_placer_system(
     mut placer: Query<(&mut Sprite, &mut Visibility, &mut GridObjectPlacer)>,
     mut placer_request: ResMut<GridObjectPlacerRequest>,
 ) {
-    let Some(placer_request) = placer_request.0.take() else { return; };
+    let Some(placer_request) = placer_request.take() else { return; };
     if !matches!(*ui_interaction_state, UiInteractionState::Free | UiInteractionState::PlaceGridObject) {
         return;
     }

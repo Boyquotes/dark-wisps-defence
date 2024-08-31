@@ -2,8 +2,20 @@ use crate::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, TechnicalState};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::inventory::resources::DarkOreStock;
+
+pub struct MiningComplexPlugin;
+impl Plugin for MiningComplexPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_event::<BuilderMiningComplex>()
+            .add_systems(PostUpdate, (
+                BuilderMiningComplex::spawn_system,
+            )).add_systems(Update, (
+                mine_ore_system,
+            ));
+    }
+}
 
 pub const MINING_COMPLEX_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 pub const MINING_COMPLEX_BASE_IMAGE: &str = "buildings/mining_complex.png";
@@ -15,37 +27,38 @@ pub struct MarkerMiningComplex;
 #[derive(Component)]
 pub struct MiningComplexDeliveryTimer(pub Timer);
 
-#[derive(Bundle)]
+#[derive(Event)]
 pub struct BuilderMiningComplex {
-    pub sprite: SpriteBundle,
-    pub marker_mining_complex: MarkerMiningComplex,
+    pub entity: LazyEntity,
     pub grid_position: GridCoords,
-    pub health: Health,
-    pub building: Building,
-    pub technical_state: TechnicalState,
-    pub mining_complex_delivery_timer: MiningComplexDeliveryTimer,
 }
 impl BuilderMiningComplex {
-    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
-        Self {
-            sprite: get_mining_complex_sprite_bundle(asset_server, grid_position),
-            marker_mining_complex: MarkerMiningComplex,
-            grid_position,
-            health: Health(10000),
-            building: Building::from(BuildingType::MiningComplex),
-            technical_state: TechnicalState::default(),
-            mining_complex_delivery_timer: MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { entity: LazyEntity::default(), grid_position }
+    }
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderMiningComplex>,
+        asset_server: Res<AssetServer>,
+        energy_supply_grid: Res<EnergySupplyGrid>,
+    ) {
+        for &BuilderMiningComplex{ mut entity, grid_position } in events.read() {
+            let entity = entity.get(&mut commands);
+            commands.entity(entity).insert((
+                get_mining_complex_sprite_bundle(&asset_server, grid_position),
+                MarkerMiningComplex,
+                grid_position,
+                Health(10000),
+                Building::from(BuildingType::MiningComplex),
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, MINING_COMPLEX_GRID_IMPRINT) },
+                MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
+            ));
         }
     }
-    pub fn update_energy_supply(mut self, energy_supply_grid: &EnergySupplyGrid) -> Self {
-        self.technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(self.grid_position, MINING_COMPLEX_GRID_IMPRINT);
-        self
-    }
-    pub fn spawn(self, commands: &mut Commands, obstacle_grid: &mut ObstacleGrid, dark_ore: Entity) -> Entity {
-        let grid_position = self.grid_position;
-        let base_entity = commands.spawn(self).id();
-        obstacle_grid.imprint(grid_position, Field::MiningComplex {dark_ore, mining_complex: base_entity}, MINING_COMPLEX_GRID_IMPRINT);
-        base_entity
+}
+impl Command for BuilderMiningComplex {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
 }
 

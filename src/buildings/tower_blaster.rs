@@ -3,10 +3,22 @@ use crate::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget, TowerShootingTimer, TechnicalState, TowerRange, TowerTopRotation, MarkerTowerRotationalTop};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::projectiles::laser_dart::BuilderLaserDart;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
+
+pub struct TowerBlasterPlugin;
+impl Plugin for TowerBlasterPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_event::<BuilderTowerBlaster>()
+            .add_systems(PostUpdate, (
+                BuilderTowerBlaster::spawn_system,
+            )).add_systems(Update, (
+                shooting_system,
+            ));
+    }
+}
 
 pub const TOWER_BLASTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 2, height: 2 };
 pub const TOWER_BLASTER_BASE_IMAGE: &str = "buildings/tower_blaster.png";
@@ -15,70 +27,47 @@ pub const TOWER_BLASTER_TOP_IMAGE: &str = "buildings/tower_blaster_top.png";
 #[derive(Component)]
 pub struct MarkerTowerBlaster;
 
-#[derive(Bundle)]
-struct BundleTowerBlasterBase {
-    pub sprite: SpriteBundle,
-    pub marker_tower: MarkerTower,
-    pub marker_tower_blaster: MarkerTowerBlaster,
-    pub grid_position: GridCoords,
-    pub health: Health,
-    pub tower_range: TowerRange,
-    pub building: Building,
-    pub tower_shooting_timer: TowerShootingTimer,
-    pub tower_wisp_target: TowerWispTarget,
-    pub technical_state: TechnicalState,
-    pub tower_top_rotation: TowerTopRotation,
-}
-#[derive(Bundle)]
-struct BundleTowerBlasterTop {
-    pub sprite: SpriteBundle,
-    pub marker: MarkerTowerRotationalTop,
-}
+#[derive(Event)]
 pub struct BuilderTowerBlaster {
-    base: BundleTowerBlasterBase,
-    top: BundleTowerBlasterTop,
+    pub entity: LazyEntity,
+    pub grid_position: GridCoords,
 }
 impl BuilderTowerBlaster {
-    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
-        let (tower_base, tower_top) = get_tower_blaster_sprite_bundle(asset_server, grid_position);
-        Self {
-            base: BundleTowerBlasterBase {
-                sprite: tower_base,
-                marker_tower: MarkerTower,
-                marker_tower_blaster: MarkerTowerBlaster,
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { entity: LazyEntity::default(), grid_position }
+    }
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderTowerBlaster>,
+        asset_server: Res<AssetServer>,
+        energy_supply_grid: Res<EnergySupplyGrid>,
+    ) {
+        for &BuilderTowerBlaster{ mut entity, grid_position } in events.read() {
+            let entity = entity.get(&mut commands);
+            let (tower_base, tower_top) = get_tower_blaster_sprite_bundle(&asset_server, grid_position);
+            let tower_base_entity = commands.entity(entity).insert((
+                tower_base,
+                MarkerTower,
+                MarkerTowerBlaster,
                 grid_position,
-                health: Health(10000),
-                tower_range: TowerRange(15),
-                building: Building::from(BuildingType::Tower(TowerType::Blaster)),
-                tower_shooting_timer: TowerShootingTimer::from_seconds(0.2),
-                tower_wisp_target: TowerWispTarget::default(),
-                technical_state: TechnicalState::default(),
-                tower_top_rotation: TowerTopRotation { speed: 10.0, current_angle: 0. },
-            },
-            top: BundleTowerBlasterTop {
-                sprite: tower_top,
-                marker: MarkerTowerRotationalTop(Entity::PLACEHOLDER.into()),
-            },
+                Health(10000),
+                TowerRange(15),
+                Building::from(BuildingType::Tower(TowerType::Blaster)),
+                TowerShootingTimer::from_seconds(0.2),
+                TowerWispTarget::default(),
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_BLASTER_GRID_IMPRINT) },
+                TowerTopRotation { speed: 10.0, current_angle: 0. },
+            )).id();
+            commands.spawn((
+                tower_top,
+                MarkerTowerRotationalTop(tower_base_entity.into()),
+            ));
         }
     }
-    pub fn update_energy_supply(mut self, energy_supply_grid: &EnergySupplyGrid) -> Self {
-        self.base.technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(self.base.grid_position, TOWER_BLASTER_GRID_IMPRINT);
-        self
-    }
-    pub fn spawn(
-        self,
-        commands: &mut Commands,
-        obstacle_grid: &mut ObstacleGrid,
-    ) -> Entity {
-        let BuilderTowerBlaster { base, mut top } = self;
-        let grid_position = base.grid_position;
-        let base_entity = commands.spawn(base).id();
-
-        top.marker.0 = base_entity.into(); // Set parent reference
-        let _ = commands.spawn(top).id();
-
-        obstacle_grid.imprint(grid_position, Field::Building(base_entity, BuildingType::Tower(TowerType::Blaster)), TOWER_BLASTER_GRID_IMPRINT);
-        base_entity
+}
+impl Command for BuilderTowerBlaster {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
 }
 

@@ -22,9 +22,7 @@ use crate::wisps::components::Wisp;
 
 pub fn onclick_building_spawn_system(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
-    energy_supply_grid: Res<EnergySupplyGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     almanach: Res<Almanach>,
@@ -60,19 +58,22 @@ pub fn onclick_building_spawn_system(
                     GridAction::Imprint(entity)
                 }
                 BuildingType::Tower(TowerType::Blaster) => {
-                    GridAction::Imprint(BuilderTowerBlaster::new(mouse_coords, &asset_server)
-                        .update_energy_supply(&energy_supply_grid)
-                        .spawn(&mut commands, &mut obstacle_grid))
+                    let mut builder = BuilderTowerBlaster::new(mouse_coords);
+                    let entity = builder.entity.get(&mut commands);
+                    commands.add(builder);
+                    GridAction::Imprint(entity)
                 },
                 BuildingType::Tower(TowerType::Cannon) => {
-                    GridAction::Imprint(BuilderTowerCannon::new(mouse_coords, &asset_server)
-                        .update_energy_supply(&energy_supply_grid)
-                        .spawn(&mut commands, &mut obstacle_grid))
+                    let mut builder = BuilderTowerCannon::new(mouse_coords);
+                    let entity = builder.entity.get(&mut commands);
+                    commands.add(builder);
+                    GridAction::Imprint(entity)
                 },
                 BuildingType::Tower(TowerType::RocketLauncher) => {
-                    GridAction::Imprint(BuilderTowerRocketLauncher::new(mouse_coords, &asset_server)
-                        .update_energy_supply(&energy_supply_grid)
-                        .spawn(&mut commands, &mut obstacle_grid))
+                    let mut builder = BuilderTowerRocketLauncher::new(mouse_coords);
+                    let entity = builder.entity.get(&mut commands);
+                    commands.add(builder);
+                    GridAction::Imprint(entity)
                 },
                 BuildingType::MainBase => {
                     let (main_base_entity, main_base_coords) = main_base.single_mut();
@@ -92,9 +93,12 @@ pub fn onclick_building_spawn_system(
             if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
             dark_ore_stock.amount -= dark_ore_price;
             let Field::DarkOre(dark_ore) = obstacle_grid[mouse_coords] else { unreachable!() };
-            BuilderMiningComplex::new(mouse_coords, &asset_server)
-                .update_energy_supply(&energy_supply_grid)
-                .spawn(&mut commands, &mut obstacle_grid, dark_ore);
+
+            let mut builder = BuilderMiningComplex::new(mouse_coords);
+            let entity = builder.entity.get(&mut commands);
+            commands.add(builder);
+
+            obstacle_grid.imprint(mouse_coords, Field::MiningComplex {dark_ore, mining_complex: entity}, MINING_COMPLEX_GRID_IMPRINT);
         }
         _ => { return; }
     };

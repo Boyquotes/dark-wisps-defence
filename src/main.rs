@@ -21,10 +21,10 @@ mod prelude;
 
 use crate::prelude::*;
 use crate::grids::common::CELL_SIZE;
-use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterChangedEvent};
-use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent};
-use crate::grids::obstacles::{ObstacleGrid};
-use crate::inventory::objectives::{ObjectivesCheckInactiveFlag};
+use crate::grids::emissions::EmissionsEnergyRecalculateAll;
+use crate::grids::energy_supply::EnergySupplyGrid;
+use crate::grids::obstacles::ObstacleGrid;
+use crate::inventory::objectives::ObjectivesCheckInactiveFlag;
 use crate::map_editor::MapInfo;
 
 fn main() {
@@ -81,10 +81,7 @@ pub fn generate_default_map(
     asset_server: Res<AssetServer>,
     mut objectives_check_inactive_flag: ResMut<ObjectivesCheckInactiveFlag>,
     mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
-    mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
-    mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     mut obstacles_grid: ResMut<ObstacleGrid>,
-    energy_supply_grid: Res<EnergySupplyGrid>,
     mut map_info: ResMut<MapInfo>,
 ) {
     let map = map_loader::load_map("test_map");
@@ -98,9 +95,6 @@ pub fn generate_default_map(
         &mut commands, &asset_server,
         &mut objectives_check_inactive_flag,
         &mut emissions_energy_recalculate_all,
-        &mut emitter_created_event_writer,
-        &mut supplier_created_event_writer,
         &mut obstacles_grid,
-        &energy_supply_grid,
     );
 }

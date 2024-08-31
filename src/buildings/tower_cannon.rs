@@ -2,54 +2,65 @@ use crate::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerRange, TowerShootingTimer, TowerWispTarget};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::projectiles::cannonball::BuilderCannonball;
 use crate::wisps::components::{Target, Wisp};
 use crate::wisps::spawning::WISP_GRID_IMPRINT;
+
+pub struct TowerCannonPlugin;
+impl Plugin for TowerCannonPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_event::<BuilderTowerCannon>()
+            .add_systems(PostUpdate, (
+                BuilderTowerCannon::spawn_system,
+            )).add_systems(Update, (
+                shooting_system,
+            ));
+    }
+}
+
 pub const TOWER_CANNON_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 pub const TOWER_CANNON_BASE_IMAGE: &str = "buildings/tower_cannon.png";
 
 #[derive(Component)]
 pub struct MarkerTowerCannon;
 
-#[derive(Bundle)]
+#[derive(Event)]
 pub struct BuilderTowerCannon {
-    pub sprite: SpriteBundle,
-    pub marker_tower: MarkerTower,
-    pub marker_tower_cannon: MarkerTowerCannon,
+    pub entity: LazyEntity,
     pub grid_position: GridCoords,
-    pub health: Health,
-    pub tower_range: TowerRange,
-    pub building: Building,
-    pub tower_shooting_timer: TowerShootingTimer,
-    pub tower_wisp_target: TowerWispTarget,
-    pub technical_state: TechnicalState,
 }
 
 impl BuilderTowerCannon {
-    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
-        Self {
-            sprite: get_tower_cannon_sprite_bundle(asset_server, grid_position),
-            marker_tower: MarkerTower,
-            marker_tower_cannon: MarkerTowerCannon,
-            grid_position,
-            health: Health(10000),
-            tower_range: TowerRange(15),
-            building: Building::from(BuildingType::Tower(TowerType::Cannon)),
-            tower_shooting_timer: TowerShootingTimer::from_seconds(2.0),
-            tower_wisp_target: TowerWispTarget::default(),
-            technical_state: TechnicalState::default(),
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { entity: LazyEntity::default(), grid_position }
+    }
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderTowerCannon>,
+        asset_server: Res<AssetServer>,
+        energy_supply_grid: Res<EnergySupplyGrid>,
+    ) {
+        for &BuilderTowerCannon{ mut entity, grid_position } in events.read() {
+            let entity = entity.get(&mut commands);
+            commands.entity(entity).insert((
+                get_tower_cannon_sprite_bundle(&asset_server, grid_position),
+                MarkerTower,
+                MarkerTowerCannon,
+                grid_position,
+                Health(10000),
+                TowerRange(15),
+                Building::from(BuildingType::Tower(TowerType::Cannon)),
+                TowerShootingTimer::from_seconds(2.0),
+                TowerWispTarget::default(),
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_CANNON_GRID_IMPRINT) },
+            ));
         }
     }
-    pub fn update_energy_supply(mut self, energy_supply_grid: &EnergySupplyGrid) -> Self {
-        self.technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(self.grid_position, TOWER_CANNON_GRID_IMPRINT);
-        self
-    }
-    pub fn spawn(self, commands: &mut Commands, obstacle_grid: &mut ObstacleGrid) -> Entity {
-        let grid_position = self.grid_position;
-        let base_entity = commands.spawn(self).id();
-        obstacle_grid.imprint(grid_position, Field::Building(base_entity, BuildingType::Tower(TowerType::Cannon)), TOWER_CANNON_GRID_IMPRINT);
-        base_entity
+}
+impl Command for BuilderTowerCannon {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
 }
 

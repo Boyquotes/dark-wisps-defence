@@ -3,14 +3,13 @@ use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
 use crate::buildings::energy_relay::BuilderEnergyRelay;
 use crate::buildings::exploration_center::BuilderExplorationCenter;
-use crate::buildings::main_base::MarkerMainBase;
+use crate::buildings::main_base::{EventMoveMainBase, MarkerMainBase};
 use crate::buildings::mining_complex::{BuilderMiningComplex, MINING_COMPLEX_GRID_IMPRINT};
-use crate::buildings::tower_blaster::{BuilderTowerBlaster};
+use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::grids::base::GridVersion;
-use crate::grids::emissions::EmitterChangedEvent;
-use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, SupplierEnergy};
+use crate::grids::energy_supply::{EnergySupplyGrid, SupplierEnergy};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::inventory::almanach::Almanach;
@@ -24,8 +23,6 @@ use crate::wisps::components::Wisp;
 pub fn onclick_building_spawn_system(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
-    mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     energy_supply_grid: Res<EnergySupplyGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -33,7 +30,7 @@ pub fn onclick_building_spawn_system(
     almanach: Res<Almanach>,
     mut dark_ore_stock: ResMut<DarkOreStock>,
     grid_object_placer: Query<&GridObjectPlacer>,
-    mut main_base: Query<(Entity, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
+    mut main_base: Query<(Entity, &GridCoords), With<MarkerMainBase>>,
 ) {
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
@@ -43,41 +40,51 @@ pub fn onclick_building_spawn_system(
             let dark_ore_price = almanach.get_building_cost(building.building_type);
             if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
             dark_ore_stock.amount -= dark_ore_price;
-            match building.building_type {
+            // ---
+            enum GridAction {
+                Imprint(Entity),
+                Reprint{entity: Entity, old_coords: GridCoords},
+            }
+            // ---
+            let grid_action = match building.building_type {
                 BuildingType::EnergyRelay => {
-                    BuilderEnergyRelay::new(mouse_coords, &asset_server).spawn(&mut commands, &mut emitter_created_event_writer, &mut supplier_created_event_writer, &mut obstacle_grid);
+                    let mut builder = BuilderEnergyRelay::new(mouse_coords);
+                    let entity = builder.entity.get(&mut commands);
+                    commands.add(builder);
+                    GridAction::Imprint(entity)
                 }
                 BuildingType::ExplorationCenter => {
-                    BuilderExplorationCenter::new(mouse_coords, &asset_server)
-                        .update_energy_supply(&energy_supply_grid)
-                        .spawn(&mut commands, &mut obstacle_grid);
+                    let mut builder = BuilderExplorationCenter::new(mouse_coords);
+                    let entity = builder.entity.get(&mut commands);
+                    commands.add(builder);
+                    GridAction::Imprint(entity)
                 }
                 BuildingType::Tower(TowerType::Blaster) => {
-                    BuilderTowerBlaster::new(mouse_coords, &asset_server)
+                    GridAction::Imprint(BuilderTowerBlaster::new(mouse_coords, &asset_server)
                         .update_energy_supply(&energy_supply_grid)
-                        .spawn(&mut commands, &mut obstacle_grid);
+                        .spawn(&mut commands, &mut obstacle_grid))
                 },
                 BuildingType::Tower(TowerType::Cannon) => {
-                    BuilderTowerCannon::new(mouse_coords, &asset_server)
+                    GridAction::Imprint(BuilderTowerCannon::new(mouse_coords, &asset_server)
                         .update_energy_supply(&energy_supply_grid)
-                        .spawn(&mut commands, &mut obstacle_grid);
+                        .spawn(&mut commands, &mut obstacle_grid))
                 },
                 BuildingType::Tower(TowerType::RocketLauncher) => {
-                    BuilderTowerRocketLauncher::new(mouse_coords, &asset_server)
+                    GridAction::Imprint(BuilderTowerRocketLauncher::new(mouse_coords, &asset_server)
                         .update_energy_supply(&energy_supply_grid)
-                        .spawn(&mut commands, &mut obstacle_grid);
+                        .spawn(&mut commands, &mut obstacle_grid))
                 },
                 BuildingType::MainBase => {
-                    let (main_base_entity, mut main_base_coords, supplier_energy, mut transform) = main_base.single_mut();
-                    super::main_base::move_main_base(
-                        &mut emitter_created_event_writer,
-                        &mut supplier_created_event_writer,
-                        &mut obstacle_grid,
-                        (main_base_entity, &mut main_base_coords, supplier_energy, &mut transform),
-                        mouse_coords
-                    );
+                    let (main_base_entity, main_base_coords) = main_base.single_mut();
+                    commands.add(EventMoveMainBase { new_grid_position: mouse_coords });
+                    GridAction::Reprint{entity: main_base_entity, old_coords: *main_base_coords}
                 }
-                _ => panic!("Trying to place a non-supported building")            }
+                _ => panic!("Trying to place a non-supported building") 
+            };
+            match grid_action {
+                GridAction::Imprint(entity) => obstacle_grid.imprint(mouse_coords, Field::Building(entity, building.building_type), building.grid_imprint),
+                GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint(old_coords, mouse_coords, Field::Building(entity, building.building_type), building.grid_imprint),
+            }
         }
         GridObjectPlacer::MiningComplex => {
             if !obstacle_grid.imprint_query_all(mouse_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore()) { return; }

@@ -85,6 +85,7 @@ pub fn manage_energy_supply_overlay_mode_system(
     }
 }
 
+// TODO: Since supplier updates are now decoupled from the grid updates, we need a new update strategy
 pub fn update_energy_supply_overlay_system(
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,

@@ -14,21 +14,26 @@ use crate::prelude::*;
 pub struct BuildingsPlugin;
 impl Plugin for BuildingsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, common_systems::tick_shooting_timers_system);
-        app.add_systems(
-            Update,
-            (
-                common_systems::onclick_building_spawn_system,
-                common_systems::check_energy_supply_system,
-                common_systems::targeting_system,
-                common_systems::rotate_tower_top_system,
-                common_systems::rotational_aiming_system,
-                exploration_center::create_expedition_system,
-                mining_complex::mine_ore_system,
-                tower_blaster::shooting_system,
-                tower_cannon::shooting_system,
-                tower_rocket_launcher::shooting_system,
-            )
-        );
+        app
+            .add_plugins((
+                energy_relay::EnergyRelayPlugin,
+                exploration_center::ExplorationCenterPlugin,
+                main_base::MainBasePlugin,
+            ))
+            .add_systems(PreUpdate, common_systems::tick_shooting_timers_system)
+            .add_systems(
+                Update,
+                (
+                    common_systems::onclick_building_spawn_system,
+                    common_systems::check_energy_supply_system,
+                    common_systems::targeting_system,
+                    common_systems::rotate_tower_top_system,
+                    common_systems::rotational_aiming_system,
+                    mining_complex::mine_ore_system,
+                    tower_blaster::shooting_system,
+                    tower_cannon::shooting_system,
+                    tower_rocket_launcher::shooting_system,
+                )
+            );
     }
 }

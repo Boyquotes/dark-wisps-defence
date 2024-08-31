@@ -1,8 +1,25 @@
+use crate::prelude::*;
 use crate::grids::base::GridVersion;
 use crate::grids::common::{GridCoords, GridType};
 
 pub mod prelude {
     pub use super::*;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct LazyEntity(Entity);
+impl LazyEntity {
+    pub fn get(&mut self, commands: &mut Commands) -> Entity {
+        if self.0 == Entity::PLACEHOLDER {
+            self.0 = commands.spawn_empty().id();
+        }
+        self.0
+    }
+}
+impl Default for LazyEntity {
+    fn default() -> Self {
+        Self(Entity::PLACEHOLDER)
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]

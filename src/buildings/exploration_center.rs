@@ -2,9 +2,21 @@ use crate::prelude::*;
 use crate::buildings::common::BuildingType;
 use crate::buildings::common_components::{Building, TechnicalState};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::map_objects::common::ExpeditionZone;
 use crate::units::expedition_drone::BuilderExpeditionDrone;
+
+pub struct ExplorationCenterPlugin;
+impl Plugin for ExplorationCenterPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_event::<BuilderExplorationCenter>()
+            .add_systems(PostUpdate, (
+                BuilderExplorationCenter::spawn_system,
+            )).add_systems(Update, (
+                create_expedition_system,
+            ));
+    }
+}
 
 pub const EXPLORATION_CENTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 4, height: 4 };
 pub const EXPLORATION_CENTER_BASE_IMAGE: &str = "buildings/exploration_center.png";
@@ -16,39 +28,41 @@ pub struct MarkerExplorationCenter;
 #[derive(Component)]
 pub struct ExplorationCenterNewExpeditionTimer(pub Timer);
 
-#[derive(Bundle)]
+#[derive(Event)]
 pub struct BuilderExplorationCenter {
-    pub sprite: SpriteBundle,
-    pub marker_exploration_center: MarkerExplorationCenter,
+    pub entity: LazyEntity,
     pub grid_position: GridCoords,
-    pub health: Health,
-    pub building: Building,
-    pub technical_state: TechnicalState,
-    pub exploration_center_delivery_timer: ExplorationCenterNewExpeditionTimer,
 }
 impl BuilderExplorationCenter {
-    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
-        Self {
-            sprite: get_exploration_center_sprite_bundle(asset_server, grid_position),
-            marker_exploration_center: MarkerExplorationCenter,
-            grid_position,
-            health: Health(10000),
-            building: Building::from(BuildingType::ExplorationCenter),
-            technical_state: TechnicalState::default(),
-            exploration_center_delivery_timer: ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { entity: LazyEntity::default(), grid_position }
+    }
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderExplorationCenter>,
+        asset_server: Res<AssetServer>,
+        energy_supply_grid: Res<EnergySupplyGrid>,
+    ) {
+        for &BuilderExplorationCenter{ mut entity, grid_position } in events.read() {
+            let entity = entity.get(&mut commands);
+            commands.entity(entity).insert((
+                get_exploration_center_sprite_bundle(&asset_server, grid_position),
+                MarkerExplorationCenter,
+                grid_position,
+                Health(10000),
+                Building::from(BuildingType::ExplorationCenter),
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, EXPLORATION_CENTER_GRID_IMPRINT) },
+                ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
+            ));
         }
     }
-    pub fn update_energy_supply(mut self, energy_supply_grid: &EnergySupplyGrid) -> Self {
-        self.technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(self.grid_position, EXPLORATION_CENTER_GRID_IMPRINT);
-        self
-    }
-    pub fn spawn(self, commands: &mut Commands, obstacle_grid: &mut ObstacleGrid) -> Entity {
-        let grid_position = self.grid_position;
-        let base_entity = commands.spawn(self).id();
-        obstacle_grid.imprint(grid_position, Field::Building(base_entity, BuildingType::ExplorationCenter), EXPLORATION_CENTER_GRID_IMPRINT);
-        base_entity
+}
+impl Command for BuilderExplorationCenter {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
 }
+
 
 pub fn get_exploration_center_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> SpriteBundle {
     SpriteBundle {

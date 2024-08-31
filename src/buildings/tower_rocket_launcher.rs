@@ -7,7 +7,7 @@ use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::projectiles::rocket::BuilderRocket;
 use crate::utils::math::angle_difference;
-use crate::wisps::components::{Wisp};
+use crate::wisps::components::Wisp;
 
 pub const TOWER_ROCKET_LAUNCHER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 

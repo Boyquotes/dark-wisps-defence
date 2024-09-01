@@ -12,7 +12,6 @@ use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::EmissionsEnergyRecalculateAll;
-use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails, ObjectivesCheckInactiveFlag};
 use crate::map_objects::dark_ore::BuilderDarkOre;
@@ -62,7 +61,7 @@ pub fn apply_map(
     map.walls.iter().for_each(|wall_coords| {
         BuilderWall::new(*wall_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
     });
-    let dark_ores = map.dark_ores.iter().map(|dark_ore_coords| {
+    let _dark_ores = map.dark_ores.iter().map(|dark_ore_coords| {
         let dark_ore_entity = BuilderDarkOre::new(*dark_ore_coords, &asset_server)
             .spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
         (*dark_ore_coords, dark_ore_entity)

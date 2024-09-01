@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::{EmissionsGrid, EmissionsType};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::{ObstacleGrid};
+use crate::grids::obstacles::ObstacleGrid;
 use crate::grids::visited::VisitedGrid;
 use crate::search::common::CARDINAL_DIRECTIONS;
 

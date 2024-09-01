@@ -22,7 +22,6 @@ mod prelude;
 use crate::prelude::*;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::emissions::EmissionsEnergyRecalculateAll;
-use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::inventory::objectives::ObjectivesCheckInactiveFlag;
 use crate::map_editor::MapInfo;

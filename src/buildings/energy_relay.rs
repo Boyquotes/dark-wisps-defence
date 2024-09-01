@@ -61,6 +61,7 @@ impl BuilderEnergyRelay {
             ));
             let covered_coords = ENERGY_RELAY_GRID_IMPRINT.covered_coords(grid_position);
             emitter_created_event_writer.send(EmitterChangedEvent {
+                emitter_entity: entity,
                 coords: covered_coords.clone(),
                 emissions_details: vec![emmision_details],
             });

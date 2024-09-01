@@ -9,6 +9,7 @@ pub struct EmitterEnergy(pub FloodEmissionsDetails);
 
 #[derive(Event, Debug)]
 pub struct EmitterChangedEvent {
+    pub emitter_entity: Entity,
     pub coords: Vec<GridCoords>,
     pub emissions_details: Vec<FloodEmissionsDetails>,
 }
@@ -84,13 +85,13 @@ pub fn emissions_calculations_system(
     mut events: EventReader<EmitterChangedEvent>,
     mut emissions_grid: ResMut<EmissionsGrid>,
     obstacle_grid: Res<ObstacleGrid>,
-    emitters_buildings: Query<(&EmitterEnergy, &Building, &GridCoords)>,
+    emitters_buildings: Query<(Entity, &EmitterEnergy, &Building, &GridCoords)>,
 ) {
     if recalculate_all.0 {
         recalculate_all.0 = false;
-
         emissions_grid.reset_energy_emissions();
-        for (emitter, building, coords) in emitters_buildings.iter() {
+        let mut recalculated_emissions = HashSet::new();
+        for (emitter_entity, emitter, building, coords) in emitters_buildings.iter() {
             flood_emissions(
                 &mut emissions_grid,
                 &obstacle_grid,
@@ -100,9 +101,22 @@ pub fn emissions_calculations_system(
                 false,
                 true,
             );
+            recalculated_emissions.insert(emitter_entity);
         }
-        // Clear events so they don't get processed again as we already recalculated all emissions
-        events.clear();
+        // Since we recalculated all we don't want to recalculate again per event but sometimes the even arrrives when the entity is not yet spawned.
+        // To account for that we check if the recalculated_emissions contains the entity and if not we apply the event.
+        for event in events.read() {
+            if !recalculated_emissions.contains(&event.emitter_entity) {
+                flood_emissions(
+                    &mut emissions_grid,
+                    &obstacle_grid,
+                    &event.coords,
+                    &event.emissions_details,
+                    false,
+                    true,
+                );
+            }
+        }
     } else {
         for event in events.read() {
             flood_emissions(

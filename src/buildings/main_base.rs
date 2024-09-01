@@ -52,6 +52,7 @@ impl BuilderMainBase {
                 mode: FloodEmissionsMode::Increase,
             });
             emitter_created_event_writer.send(EmitterChangedEvent {
+                emitter_entity: entity,
                 coords: covered_coords.clone(),
                 emissions_details: vec![emitter_energy.0.clone()],
             });
@@ -107,10 +108,10 @@ pub fn move_main_base_system(
     mut events: EventReader<EventMoveMainBase>,
     mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
     mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
-    mut main_base: Query<(&mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
+    mut main_base: Query<(Entity, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
 ) {
     for &EventMoveMainBase { new_grid_position } in events.read() {
-        let (mut main_base_location, supplier_energy, mut transform) = main_base.single_mut();
+        let (entity, mut main_base_location, supplier_energy, mut transform) = main_base.single_mut();
         supplier_created_event_writer.send(SupplierChangedEvent {
             coords: MAIN_BASE_GRID_IMPRINT.covered_coords(*main_base_location),
             supplier: supplier_energy.clone(),
@@ -122,6 +123,7 @@ pub fn move_main_base_system(
             mode: FloodEnergySupplyMode::Increase,
         });
         emitter_created_event_writer.send(EmitterChangedEvent {
+            emitter_entity: entity,
             coords: MAIN_BASE_GRID_IMPRINT.covered_coords(*main_base_location),
             emissions_details: vec![FloodEmissionsDetails {
                 emissions_type: EmissionsType::Energy,
@@ -131,6 +133,7 @@ pub fn move_main_base_system(
             }]
         });
         emitter_created_event_writer.send(EmitterChangedEvent {
+            emitter_entity: entity,
             coords: MAIN_BASE_GRID_IMPRINT.covered_coords(new_grid_position),
             emissions_details: vec![FloodEmissionsDetails {
                 emissions_type: EmissionsType::Energy,

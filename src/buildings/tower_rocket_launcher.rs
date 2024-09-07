@@ -29,19 +29,18 @@ pub struct MarkerTowerRocketLauncher;
 
 #[derive(Event)]
 pub struct BuilderTowerRocketLauncher {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub grid_position: GridCoords,
 }
 impl BuilderTowerRocketLauncher {
-    pub fn new(grid_position: GridCoords) -> Self { Self { entity: LazyEntity::default(), grid_position } }
+    pub fn new(entity: Entity, grid_position: GridCoords) -> Self { Self { entity, grid_position } }
     pub fn spawn_system(
         mut commands: Commands,
         mut events: EventReader<BuilderTowerRocketLauncher>,
         asset_server: Res<AssetServer>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
-        for &BuilderTowerRocketLauncher{ mut entity, grid_position } in events.read() {
-            let entity = entity.get(&mut commands);
+        for &BuilderTowerRocketLauncher{ entity, grid_position } in events.read() {
             let (tower_base, tower_top) = get_tower_rocket_launcher_sprite_bundle(&asset_server, grid_position);
             let tower_base_entity = commands.entity(entity).insert((
                 tower_base,

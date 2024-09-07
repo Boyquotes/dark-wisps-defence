@@ -10,13 +10,13 @@ pub const WISP_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, he
 
 #[derive(Event)]
 pub struct BuilderWisp {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub grid_coords: GridCoords,
 }
 
 impl BuilderWisp {
-    pub fn new(grid_coords: GridCoords) -> Self {
-        Self { entity: LazyEntity::default(), grid_coords }
+    pub fn new(entity: Entity, grid_coords: GridCoords) -> Self {
+        Self { entity, grid_coords }
     }
     pub fn spawn_system(
         mut commands: Commands,
@@ -24,8 +24,7 @@ impl BuilderWisp {
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
-        for &BuilderWisp { mut entity, grid_coords } in events.read() {
-            let entity = entity.get(&mut commands);
+        for &BuilderWisp { entity, grid_coords } in events.read() {
             commands.entity(entity).insert((
                 grid_coords,
                 Health(10),

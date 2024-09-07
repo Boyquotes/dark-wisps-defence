@@ -27,21 +27,20 @@ pub struct Wall;
 
 #[derive(Event)]
 pub struct BuilderWall {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub grid_position: GridCoords,
 }
 
 impl BuilderWall {
-    pub fn new(grid_position: GridCoords) -> Self { 
-        Self { entity: LazyEntity::default(), grid_position }
+    pub fn new(entity: Entity, grid_position: GridCoords) -> Self { 
+        Self { entity, grid_position }
     }
     pub fn spawn_system(
         mut commands: Commands,
         mut events: EventReader<BuilderWall>,
         mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
      ) {
-        for &BuilderWall { mut entity, grid_position } in events.read() {
-            let entity = entity.get(&mut commands);
+        for &BuilderWall { entity, grid_position } in events.read() {
             commands.entity(entity).insert((
                 SpriteBundle {
                     sprite: Sprite {
@@ -97,10 +96,9 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a wall
         if obstacle_grid[mouse_coords].is_empty() {
-            let mut wall_builder = BuilderWall::new(mouse_coords);
-            let wall_entity = wall_builder.entity.get(&mut commands);
+            let wall_entity = commands.spawn_empty().id();
+            commands.add(BuilderWall::new(wall_entity, mouse_coords));
             obstacle_grid.imprint(mouse_coords, Field::Wall(wall_entity), WALL_GRID_IMPRINT);
-            commands.add(wall_builder);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a wall

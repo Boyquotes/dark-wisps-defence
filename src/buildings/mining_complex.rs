@@ -29,12 +29,12 @@ pub struct MiningComplexDeliveryTimer(pub Timer);
 
 #[derive(Event)]
 pub struct BuilderMiningComplex {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub grid_position: GridCoords,
 }
 impl BuilderMiningComplex {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self { entity: LazyEntity::default(), grid_position }
+    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
+        Self { entity, grid_position }
     }
     pub fn spawn_system(
         mut commands: Commands,
@@ -42,8 +42,7 @@ impl BuilderMiningComplex {
         asset_server: Res<AssetServer>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
-        for &BuilderMiningComplex{ mut entity, grid_position } in events.read() {
-            let entity = entity.get(&mut commands);
+        for &BuilderMiningComplex{ entity, grid_position } in events.read() {
             commands.entity(entity).insert((
                 get_mining_complex_sprite_bundle(&asset_server, grid_position),
                 MarkerMiningComplex,

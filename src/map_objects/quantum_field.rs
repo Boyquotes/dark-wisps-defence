@@ -44,20 +44,19 @@ impl Default for QuantumField {
 
 #[derive(Event)]
 pub struct BuilderQuantumField {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub grid_position: GridCoords,
     pub grid_imprint: GridImprint,
 }
 impl BuilderQuantumField {
-    pub fn new(grid_position: GridCoords, grid_imprint: GridImprint) -> Self {
-        Self { entity: LazyEntity::default(), grid_position, grid_imprint }
+    pub fn new(entity: Entity, grid_position: GridCoords, grid_imprint: GridImprint) -> Self {
+        Self { entity, grid_position, grid_imprint }
     }
     pub fn spawn_system(
         mut commands: Commands,
         mut events: EventReader<BuilderQuantumField>,
     ) {
-        for &BuilderQuantumField{ mut entity, grid_position, grid_imprint } in events.read() {
-            let entity = entity.get(&mut commands);
+        for &BuilderQuantumField{ entity, grid_position, grid_imprint } in events.read() {
             commands.entity(entity).insert((
                 get_quantum_field_sprite_bundle(grid_position, grid_imprint),
                 grid_position,
@@ -115,10 +114,9 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a quantum_field
         if obstacles_grid.imprint_query_all(mouse_coords, quantum_field.grid_imprint, |field| field.is_empty()) {
-            let mut quantum_field_builder = BuilderQuantumField::new(mouse_coords, quantum_field.grid_imprint);
-            let quantum_field_entity = quantum_field_builder.entity.get(&mut commands);
+            let quantum_field_entity = commands.spawn_empty().id();
+            commands.add(BuilderQuantumField::new(quantum_field_entity, mouse_coords, quantum_field.grid_imprint));
             obstacles_grid.imprint(mouse_coords, Field::QuantumField(quantum_field_entity), quantum_field.grid_imprint);
-            commands.add(quantum_field_builder);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a quantum_field

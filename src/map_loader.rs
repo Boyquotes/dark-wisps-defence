@@ -56,64 +56,55 @@ pub fn apply_map(
     obstacle_grid: &mut ObstacleGrid,
 ) {
     map.walls.iter().for_each(|wall_coords| {
-        let mut builder = BuilderWall::new(*wall_coords);
-        let entity = builder.entity.get(&mut commands);
-        obstacle_grid.imprint(*wall_coords, Field::Wall(entity), WALL_GRID_IMPRINT);
-        commands.add(builder);
+        let wall_entity = commands.spawn_empty().id();
+        obstacle_grid.imprint(*wall_coords, Field::Wall(wall_entity), WALL_GRID_IMPRINT);
+        commands.add(BuilderWall::new(wall_entity,*wall_coords));
     });
     let _dark_ores = map.dark_ores.iter().map(|dark_ore_coords| {
-        let mut dark_ore_builder = BuilderDarkOre::new(*dark_ore_coords);
-        let dark_ore_entity = dark_ore_builder.entity.get(&mut commands);
+        let dark_ore_entity = commands.spawn_empty().id();
         obstacle_grid.imprint(*dark_ore_coords, Field::DarkOre(dark_ore_entity), DARK_ORE_GRID_IMPRINT);
-        commands.add(dark_ore_builder);
+        commands.add(BuilderDarkOre::new(dark_ore_entity, *dark_ore_coords));
         (*dark_ore_coords, dark_ore_entity)
     }).collect::<HashMap<_,_>>();
     map.buildings.iter().for_each(|building| {
         let building_entity = match building.building_type {
             BuildingType::MainBase => {
-                let mut builder = BuilderMainBase::new(building.coords);
-                let entity = builder.entity.get(&mut commands);
-                commands.add(builder);
+                let entity = commands.spawn_empty().id();
+                commands.add(BuilderMainBase::new(entity, building.coords));
                 entity
             }
             BuildingType::EnergyRelay => {
-                let mut builder = BuilderEnergyRelay::new(building.coords);
-                let entity = builder.entity.get(&mut commands);
-                commands.add(builder);
+                let entity = commands.spawn_empty().id();
+                commands.add(BuilderEnergyRelay::new(entity, building.coords));
                 entity
             }
             BuildingType::ExplorationCenter => {
-                let mut builder = BuilderExplorationCenter::new(building.coords);
-                let entity = builder.entity.get(&mut commands);
-                commands.add(builder);
+                let entity = commands.spawn_empty().id();
+                commands.add(BuilderExplorationCenter::new(entity, building.coords));
                 entity
             }
             BuildingType::Tower(tower_type) => {
                 match tower_type {
                     TowerType::Blaster => {
-                        let mut builder = BuilderTowerBlaster::new(building.coords);
-                        let entity = builder.entity.get(&mut commands);
-                        commands.add(builder);
+                        let entity = commands.spawn_empty().id();
+                        commands.add(BuilderTowerBlaster::new(entity, building.coords));
                         entity
                     },
                     TowerType::Cannon => {
-                        let mut builder = BuilderTowerCannon::new(building.coords);
-                        let entity = builder.entity.get(&mut commands);
-                        commands.add(builder);
+                        let entity = commands.spawn_empty().id();
+                        commands.add(BuilderTowerCannon::new(entity, building.coords));
                         entity
                     },
                     TowerType::RocketLauncher => {
-                        let mut builder = BuilderTowerRocketLauncher::new(building.coords);
-                        let entity = builder.entity.get(&mut commands);
-                        commands.add(builder);
+                        let entity = commands.spawn_empty().id();
+                        commands.add(BuilderTowerRocketLauncher::new(entity, building.coords));
                         entity
                     }
                 }
             }
             BuildingType::MiningComplex => {
-                let mut builder = BuilderMiningComplex::new(building.coords);
-                let entity = builder.entity.get(&mut commands);
-                commands.add(builder);
+                let entity = commands.spawn_empty().id();
+                commands.add(BuilderMiningComplex::new(entity, building.coords));
                 entity
                 // TODO: This won't work as MiningComplex needs special place(type) on obstacle grid, see placing code
             }
@@ -121,10 +112,10 @@ pub fn apply_map(
         obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type), building.building_type.grid_imprint());
     });
     map.quantum_fields.iter().for_each(|quantum_field| {
-        let mut quantum_field_builder = BuilderQuantumField::new(quantum_field.coords, GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size });
-        let quantum_field_entity = quantum_field_builder.entity.get(&mut commands);
-        obstacle_grid.imprint(quantum_field.coords, Field::QuantumField(quantum_field_entity), quantum_field_builder.grid_imprint);
-        commands.add(quantum_field_builder);
+        let quantum_field_entity = commands.spawn_empty().id();
+        let grid_imprint = GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size };
+        obstacle_grid.imprint(quantum_field.coords, Field::QuantumField(quantum_field_entity), grid_imprint);
+        commands.add(BuilderQuantumField::new(quantum_field_entity, quantum_field.coords, grid_imprint));
     });
     map.objectives.into_iter().for_each(|objective_details| {
        BuilderObjective::new(objective_details)

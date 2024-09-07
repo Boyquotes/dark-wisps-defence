@@ -26,13 +26,13 @@ pub struct ExpeditionDrone {
 
 #[derive(Event)]
 pub struct BuilderExpeditionDrone {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub world_position: Vec2,
     pub target_entity: Entity,
 }
 impl BuilderExpeditionDrone {
-    pub fn new(world_position: Vec2, target_entity: Entity) -> Self {
-        Self { entity: LazyEntity::default(), world_position, target_entity }
+    pub fn new(entity: Entity, world_position: Vec2, target_entity: Entity) -> Self {
+        Self { entity, world_position, target_entity }
     }
     pub fn spawn_system(
         mut commands: Commands,
@@ -40,8 +40,7 @@ impl BuilderExpeditionDrone {
         asset_server: Res<AssetServer>,
         expedition_zones: Query<&Transform, With<ExpeditionZone>>,
     ) {
-        for &BuilderExpeditionDrone{ mut entity, world_position, target_entity } in events.read() {
-            let entity = entity.get(&mut commands);
+        for &BuilderExpeditionDrone{ entity, world_position, target_entity } in events.read() {
             if let Ok(exploration_zone_transform) = expedition_zones.get(target_entity) {
                 let target_vector = exploration_zone_transform.translation.xy() - world_position;
                 commands.entity(entity).insert((

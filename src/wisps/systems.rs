@@ -137,9 +137,8 @@ pub fn spawn_wisps(
                 GridCoords{x: obstacle_grid.width - 1, y: rng.generate_range(1..=obstacle_grid.height)}
             }
         };
-        let mut builder_wisp = BuilderWisp::new(grid_coords);
-        let wisp_entity = builder_wisp.entity.get(&mut commands);
-        commands.add(builder_wisp);
+        let wisp_entity = commands.spawn_empty().id();
+        commands.add(BuilderWisp::new(wisp_entity, grid_coords));
         wisps_grid.wisp_add(grid_coords, wisp_entity.into());
     }
 }

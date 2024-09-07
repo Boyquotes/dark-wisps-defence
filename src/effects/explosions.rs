@@ -25,7 +25,7 @@ impl FromWorld for ExplosionAtlas {
     fn from_world(world: &mut World) -> Self {
         let asset_server = world.resource::<AssetServer>();
         let texture_handle = asset_server.load("effects/explosion.png");
-        
+
         let texture_atlas = TextureAtlasLayout::from_grid(
             UVec2::new(16, 18),
             4,
@@ -47,22 +47,20 @@ pub struct MarkerExplosion;
 
 #[derive(Event)]
 pub struct BuilderExplosion {
-    pub entity: LazyEntity,
     pub grid_position: GridCoords,
 }
 
 impl BuilderExplosion {
     pub fn new(grid_position: GridCoords) -> Self {
-        Self { entity: LazyEntity::default(), grid_position }
+        Self { grid_position }
     }
     pub fn spawn_system(
         mut commands: Commands,
         mut events: EventReader<BuilderExplosion>,
         explosion_atlas: Res<ExplosionAtlas>,
     ) {
-        for &BuilderExplosion { mut entity, grid_position } in events.read() {
-            let entity = entity.get(&mut commands);
-            commands.entity(entity).insert((
+        for &BuilderExplosion { grid_position } in events.read() {
+            commands.spawn((
                 SpriteBundle {
                     transform: Transform {
                         translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),

@@ -30,12 +30,12 @@ pub struct ExplorationCenterNewExpeditionTimer(pub Timer);
 
 #[derive(Event)]
 pub struct BuilderExplorationCenter {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub grid_position: GridCoords,
 }
 impl BuilderExplorationCenter {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self { entity: LazyEntity::default(), grid_position }
+    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
+        Self { entity, grid_position }
     }
     pub fn spawn_system(
         mut commands: Commands,
@@ -43,8 +43,7 @@ impl BuilderExplorationCenter {
         asset_server: Res<AssetServer>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
-        for &BuilderExplorationCenter{ mut entity, grid_position } in events.read() {
-            let entity = entity.get(&mut commands);
+        for &BuilderExplorationCenter{ entity, grid_position } in events.read() {
             commands.entity(entity).insert((
                 get_exploration_center_sprite_bundle(&asset_server, grid_position),
                 MarkerExplorationCenter,
@@ -97,8 +96,8 @@ pub fn create_expedition_system(
                 a.1.distance_squared(center_position).total_cmp(&b.1.distance_squared(center_position))
             });
             if let Some((zone_entity, ..)) = closest_zone {
-                let builder_expedition_drone = BuilderExpeditionDrone::new(center_position, *zone_entity);
-                commands.add(builder_expedition_drone);
+                let drone_entity = commands.spawn_empty().id();
+                commands.add(BuilderExpeditionDrone::new(drone_entity, center_position, *zone_entity));
             }
         }
     }

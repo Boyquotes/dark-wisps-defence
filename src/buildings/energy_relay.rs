@@ -25,12 +25,12 @@ pub struct MarkerEnergyRelay;
 
 #[derive(Event)]
 pub struct BuilderEnergyRelay {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub grid_position: GridCoords,
 }
 impl BuilderEnergyRelay {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self { entity: LazyEntity::default(), grid_position}
+    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
+        Self { entity, grid_position}
     }
     pub fn spawn_system(
         mut commands: Commands,
@@ -39,7 +39,7 @@ impl BuilderEnergyRelay {
         mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
         mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     ) {
-        for &BuilderEnergyRelay{ mut entity, grid_position } in events.read() {
+        for &BuilderEnergyRelay{ entity, grid_position } in events.read() {
             let emmision_details = FloodEmissionsDetails {
                 emissions_type: EmissionsType::Energy,
                 range: usize::MAX,
@@ -47,7 +47,6 @@ impl BuilderEnergyRelay {
                 mode: FloodEmissionsMode::Increase,
             };
             let supplier_energy = SupplierEnergy { range: 15 };
-            let entity = entity.get(&mut commands); 
             commands.entity(entity).insert((
                 get_energy_relay_sprite_bundle(grid_position, &asset_server),
                 MarkerEnergyRelay,

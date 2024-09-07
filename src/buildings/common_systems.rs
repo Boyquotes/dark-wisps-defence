@@ -46,33 +46,28 @@ pub fn onclick_building_spawn_system(
             // ---
             let grid_action = match building.building_type {
                 BuildingType::EnergyRelay => {
-                    let mut builder = BuilderEnergyRelay::new(mouse_coords);
-                    let entity = builder.entity.get(&mut commands);
-                    commands.add(builder);
+                    let entity = commands.spawn_empty().id();
+                    commands.add(BuilderEnergyRelay::new(entity, mouse_coords));
                     GridAction::Imprint(entity)
                 }
                 BuildingType::ExplorationCenter => {
-                    let mut builder = BuilderExplorationCenter::new(mouse_coords);
-                    let entity = builder.entity.get(&mut commands);
-                    commands.add(builder);
+                    let entity = commands.spawn_empty().id();
+                    commands.add(BuilderExplorationCenter::new(entity, mouse_coords));
                     GridAction::Imprint(entity)
                 }
                 BuildingType::Tower(TowerType::Blaster) => {
-                    let mut builder = BuilderTowerBlaster::new(mouse_coords);
-                    let entity = builder.entity.get(&mut commands);
-                    commands.add(builder);
+                    let entity = commands.spawn_empty().id();
+                    commands.add(BuilderTowerBlaster::new(entity, mouse_coords));
                     GridAction::Imprint(entity)
                 },
                 BuildingType::Tower(TowerType::Cannon) => {
-                    let mut builder = BuilderTowerCannon::new(mouse_coords);
-                    let entity = builder.entity.get(&mut commands);
-                    commands.add(builder);
+                    let entity = commands.spawn_empty().id();
+                    commands.add(BuilderTowerCannon::new(entity, mouse_coords));
                     GridAction::Imprint(entity)
                 },
                 BuildingType::Tower(TowerType::RocketLauncher) => {
-                    let mut builder = BuilderTowerRocketLauncher::new(mouse_coords);
-                    let entity = builder.entity.get(&mut commands);
-                    commands.add(builder);
+                    let entity = commands.spawn_empty().id();
+                    commands.add(BuilderTowerRocketLauncher::new(entity, mouse_coords));
                     GridAction::Imprint(entity)
                 },
                 BuildingType::MainBase => {
@@ -94,9 +89,8 @@ pub fn onclick_building_spawn_system(
             dark_ore_stock.amount -= dark_ore_price;
             let Field::DarkOre(dark_ore) = obstacle_grid[mouse_coords] else { unreachable!() };
 
-            let mut builder = BuilderMiningComplex::new(mouse_coords);
-            let entity = builder.entity.get(&mut commands);
-            commands.add(builder);
+            let entity = commands.spawn_empty().id();
+            commands.add(BuilderMiningComplex::new(entity, mouse_coords));
 
             obstacle_grid.imprint(mouse_coords, Field::MiningComplex {dark_ore, mining_complex: entity}, MINING_COMPLEX_GRID_IMPRINT);
         }

@@ -28,12 +28,12 @@ pub struct MarkerMainBase;
 
 #[derive(Event)]
 pub struct BuilderMainBase {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub grid_position: GridCoords,
 }
 impl BuilderMainBase {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self { entity: LazyEntity::default(), grid_position }
+    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
+        Self { entity, grid_position }
      }
     pub fn spawn_system(
         mut commands: Commands,
@@ -42,8 +42,7 @@ impl BuilderMainBase {
         mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
         mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     ) {
-        for &BuilderMainBase { mut entity, grid_position } in events.read() {
-            let entity = entity.get(&mut commands);
+        for &BuilderMainBase { entity, grid_position } in events.read() {
             let covered_coords = MAIN_BASE_GRID_IMPRINT.covered_coords(grid_position);
             let emitter_energy = EmitterEnergy(FloodEmissionsDetails {
                 emissions_type: EmissionsType::Energy,

@@ -27,13 +27,13 @@ pub struct MarkerTowerCannon;
 
 #[derive(Event)]
 pub struct BuilderTowerCannon {
-    pub entity: LazyEntity,
+    pub entity: Entity,
     pub grid_position: GridCoords,
 }
 
 impl BuilderTowerCannon {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self { entity: LazyEntity::default(), grid_position }
+    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
+        Self { entity, grid_position }
     }
     pub fn spawn_system(
         mut commands: Commands,
@@ -41,8 +41,7 @@ impl BuilderTowerCannon {
         asset_server: Res<AssetServer>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
-        for &BuilderTowerCannon{ mut entity, grid_position } in events.read() {
-            let entity = entity.get(&mut commands);
+        for &BuilderTowerCannon{ entity, grid_position } in events.read() {
             commands.entity(entity).insert((
                 get_tower_cannon_sprite_bundle(&asset_server, grid_position),
                 MarkerTower,

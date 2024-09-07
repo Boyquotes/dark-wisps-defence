@@ -8,34 +8,43 @@ use crate::wisps::components::{Target, Wisp};
 
 pub const WISP_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
-#[derive(Bundle, Default)]
-struct WispBundle {
-    wisp: Wisp,
-    target: Target,
-    grid_coords: GridCoords,
-    health: Health,
-    display: MaterialMesh2dBundle<ColorMaterial>,
+#[derive(Event)]
+pub struct BuilderWisp {
+    pub entity: LazyEntity,
+    pub grid_coords: GridCoords,
 }
 
-pub fn spawn_wisp(
-    commands: &mut Commands,
-    meshes:  &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    grid_coords: GridCoords,
-) -> Entity {
-    commands.spawn(
-        WispBundle {
-            grid_coords,
-            health: Health(10),
-            display: MaterialMesh2dBundle {
-                mesh: meshes.add(Circle::new(6.)).into(),
-                material: materials.add(ColorMaterial::from_color(PURPLE)),
-                transform: Transform::from_translation(
-                    grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP)
-                ),
-                ..default()
-            },
-            ..Default::default()
+impl BuilderWisp {
+    pub fn new(grid_coords: GridCoords) -> Self {
+        Self { entity: LazyEntity::default(), grid_coords }
+    }
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderWisp>,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+        for &BuilderWisp { mut entity, grid_coords } in events.read() {
+            let entity = entity.get(&mut commands);
+            commands.entity(entity).insert((
+                grid_coords,
+                Health(10),
+                MaterialMesh2dBundle {
+                    mesh: meshes.add(Circle::new(6.)).into(),
+                    material: materials.add(ColorMaterial::from_color(PURPLE)),
+                    transform: Transform::from_translation(
+                        grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP)
+                    ),
+                    ..default()
+                },
+                Wisp,
+                Target::default(),
+            ));
         }
-    ).id()
+    }
+}
+impl Command for BuilderWisp {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
+    }
 }

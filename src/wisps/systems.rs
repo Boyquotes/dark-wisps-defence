@@ -7,23 +7,10 @@ use crate::grids::common::{GridCoords, GridImprint, GridType};
 use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
-use crate::is_game_mode;
 use crate::search::pathfinding::path_find_energy_beckon;
 use crate::wisps::components::{Target, Wisp};
-use crate::wisps::spawning::spawn_wisp;
 
-pub struct WispsPlugin;
-impl Plugin for WispsPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Update, (
-            move_wisps,
-            target_wisps,
-            collide_wisps,
-            remove_dead_wisps,
-        ));
-        app.add_systems(Update, spawn_wisps.run_if(is_game_mode));
-    }
-}
+use super::spawning::BuilderWisp;
 
 pub fn move_wisps(
     mut wisps: Query<(Entity, &Health, &mut Transform, &mut Target, &mut GridCoords), With<Wisp>>,
@@ -133,8 +120,6 @@ pub fn collide_wisps(
 
 pub fn spawn_wisps(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     obstacle_grid: Res<ObstacleGrid>,
     mut wisps_grid: ResMut<WispsGrid>,
 ) {
@@ -152,7 +137,9 @@ pub fn spawn_wisps(
                 GridCoords{x: obstacle_grid.width - 1, y: rng.generate_range(1..=obstacle_grid.height)}
             }
         };
-        let new_wisp = spawn_wisp(&mut commands, &mut meshes, &mut materials, grid_coords);
-        wisps_grid.wisp_add(grid_coords, new_wisp.into());
+        let mut builder_wisp = BuilderWisp::new(grid_coords);
+        let wisp_entity = builder_wisp.entity.get(&mut commands);
+        commands.add(builder_wisp);
+        wisps_grid.wisp_add(grid_coords, wisp_entity.into());
     }
 }

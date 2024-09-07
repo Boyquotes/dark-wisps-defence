@@ -34,7 +34,7 @@ fn main() {
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             camera::CameraPlugin,
             grids::GridsPlugin,
-            wisps::systems::WispsPlugin,
+            wisps::WispsPlugin,
             ui::UiPlugin,
             map_editor::MapEditorPlugin,
             mouse::MousePlugin,
@@ -52,26 +52,6 @@ fn main() {
         .add_systems(Startup, generate_default_map)
         .add_systems(Update, common_systems::pulsate_sprites_system)
         .run();
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum GameMode {
-    Game,
-    Editor,
-    Manu,
-}
-
-#[derive(Resource)]
-pub struct GameConfig {
-    pub mode: GameMode,
-}
-
-pub fn is_editor_mode(config: Res<GameConfig>) -> bool {
-    config.mode == GameMode::Editor
-}
-
-pub fn is_game_mode(config: Res<GameConfig>) -> bool {
-    true || config.mode == GameMode::Game
 }
 
 pub fn generate_default_map(

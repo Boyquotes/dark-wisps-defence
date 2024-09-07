@@ -78,7 +78,6 @@ pub fn get_exploration_center_sprite_bundle(asset_server: &AssetServer, coords: 
 
 pub fn create_expedition_system(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     //mut dark_ore_stock: ResMut<DarkOreStock>,
     mut exploration_centres: Query<(&mut ExplorationCenterNewExpeditionTimer, &TechnicalState, &Transform), With<MarkerExplorationCenter>>,
     expedition_zones: Query<(Entity, &Transform), With<ExpeditionZone>>,
@@ -97,10 +96,9 @@ pub fn create_expedition_system(
             let closest_zone = zones_positions.as_ref().unwrap().iter().min_by(|a, b| {
                 a.1.distance_squared(center_position).total_cmp(&b.1.distance_squared(center_position))
             });
-            if let Some((zone_entity, zone_position)) = closest_zone {
-                BuilderExpeditionDrone::new(center_position, &asset_server)
-                    .with_target(*zone_entity, *zone_position)
-                    .spawn(&mut commands);
+            if let Some((zone_entity, ..)) = closest_zone {
+                let builder_expedition_drone = BuilderExpeditionDrone::new(center_position, *zone_entity);
+                commands.add(builder_expedition_drone);
             }
         }
     }

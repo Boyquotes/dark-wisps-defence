@@ -169,7 +169,7 @@ pub fn rocket_hit_system(
             let blast_zone_coords = coords.shifted((*dx, *dy));
             if !blast_zone_coords.is_in_bounds(wisps_grid.bounds()) { continue; }
 
-            BuilderExplosion::new(blast_zone_coords).spawn(&mut commands);
+            commands.add(BuilderExplosion::new(blast_zone_coords));
 
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {

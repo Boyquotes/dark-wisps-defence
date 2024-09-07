@@ -4,6 +4,20 @@ use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 
+pub struct DarkOrePlugin;
+impl Plugin for DarkOrePlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_event::<BuilderDarkOre>()
+            .add_systems(PostUpdate, (
+                BuilderDarkOre::spawn_system,
+            ))
+            .add_systems(Update, (
+                onclick_spawn_system,
+            ));
+    }
+}
+
 pub const DARK_ORE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 pub const DARK_ORE_BASE_IMAGE: &str = "map_objects/dark_ore.png";
 
@@ -13,32 +27,36 @@ pub struct DarkOre {
     grid_imprint: GridImprint,
 }
 
-#[derive(Bundle)]
+#[derive(Event)]
 pub struct BuilderDarkOre {
-    sprite: SpriteBundle,
-    grid_position: GridCoords,
-    dark_ore: DarkOre,
+    pub entity: LazyEntity,
+    pub grid_position: GridCoords,
 }
 
 impl BuilderDarkOre {
-    pub fn new(grid_position: GridCoords, asset_server: &AssetServer) -> Self {
-        Self {
-            sprite: get_dark_ore_sprite_bundle(grid_position, asset_server),
-            grid_position,
-            dark_ore: DarkOre { amount: 10000, grid_imprint: DARK_ORE_GRID_IMPRINT },
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { entity: LazyEntity::default(), grid_position }
+    }
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderDarkOre>,
+        asset_server: Res<AssetServer>,
+        mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    ) {
+        for &BuilderDarkOre { mut entity, grid_position } in events.read() {
+            let entity = entity.get(&mut commands);
+            commands.entity(entity).insert((
+                get_dark_ore_sprite_bundle(grid_position, &asset_server),
+                grid_position,
+                DarkOre { amount: 10000, grid_imprint: DARK_ORE_GRID_IMPRINT },
+            ));
+            emissions_energy_recalculate_all.0 = true;
         }
     }
-    pub fn spawn(
-        self,
-        commands: &mut Commands,
-        emissions_energy_recalculate_all: &mut EmissionsEnergyRecalculateAll,
-        obstacles_grid: &mut ObstacleGrid
-    ) -> Entity {
-        let position = self.grid_position;
-        let entity = commands.spawn(self).id();
-        obstacles_grid.imprint(position, Field::DarkOre(entity), DARK_ORE_GRID_IMPRINT);
-        emissions_energy_recalculate_all.0 = true;
-        entity
+}
+impl Command for BuilderDarkOre {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
 }
 
@@ -74,7 +92,6 @@ pub fn remove_dark_ore(
 
 pub fn onclick_spawn_system(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -88,8 +105,10 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a dark_ore
         if obstacle_grid.imprint_query_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| field.is_empty()) {
-            BuilderDarkOre::new(mouse_coords, &asset_server)
-                .spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
+            let mut dark_ore_builder = BuilderDarkOre::new(mouse_coords);
+            let dark_ore_entity = dark_ore_builder.entity.get(&mut commands);
+            obstacle_grid.imprint(mouse_coords, Field::DarkOre(dark_ore_entity), DARK_ORE_GRID_IMPRINT);
+            commands.add(dark_ore_builder)
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a dark_ore

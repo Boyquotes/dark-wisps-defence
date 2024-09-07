@@ -11,12 +11,11 @@ use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::grids::common::{GridCoords, GridImprint};
-use crate::grids::emissions::EmissionsEnergyRecalculateAll;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails, ObjectivesCheckInactiveFlag};
-use crate::map_objects::dark_ore::BuilderDarkOre;
+use crate::map_objects::dark_ore::{BuilderDarkOre, DARK_ORE_GRID_IMPRINT};
 use crate::map_objects::quantum_field::BuilderQuantumField;
-use crate::map_objects::walls::BuilderWall;
+use crate::map_objects::walls::{BuilderWall, WALL_GRID_IMPRINT};
 
 /// Represents yaml content for a map
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -53,17 +52,20 @@ pub fn load_map(map_name: &str) -> Map {
 pub fn apply_map(
     map: Map,
     mut commands: &mut Commands,
-    asset_server: &AssetServer,
     mut objectives_check_inactive_flag: &mut ObjectivesCheckInactiveFlag,
-    mut emissions_energy_recalculate_all: &mut EmissionsEnergyRecalculateAll,
-    mut obstacle_grid: &mut ObstacleGrid,
+    obstacle_grid: &mut ObstacleGrid,
 ) {
     map.walls.iter().for_each(|wall_coords| {
-        BuilderWall::new(*wall_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
+        let mut builder = BuilderWall::new(*wall_coords);
+        let entity = builder.entity.get(&mut commands);
+        obstacle_grid.imprint(*wall_coords, Field::Wall(entity), WALL_GRID_IMPRINT);
+        commands.add(builder);
     });
     let _dark_ores = map.dark_ores.iter().map(|dark_ore_coords| {
-        let dark_ore_entity = BuilderDarkOre::new(*dark_ore_coords, &asset_server)
-            .spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
+        let mut dark_ore_builder = BuilderDarkOre::new(*dark_ore_coords);
+        let dark_ore_entity = dark_ore_builder.entity.get(&mut commands);
+        obstacle_grid.imprint(*dark_ore_coords, Field::DarkOre(dark_ore_entity), DARK_ORE_GRID_IMPRINT);
+        commands.add(dark_ore_builder);
         (*dark_ore_coords, dark_ore_entity)
     }).collect::<HashMap<_,_>>();
     map.buildings.iter().for_each(|building| {
@@ -119,8 +121,10 @@ pub fn apply_map(
         obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type), building.building_type.grid_imprint());
     });
     map.quantum_fields.iter().for_each(|quantum_field| {
-        BuilderQuantumField::new(quantum_field.coords, GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size })
-            .spawn(&mut commands, &mut obstacle_grid);
+        let mut quantum_field_builder = BuilderQuantumField::new(quantum_field.coords, GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size });
+        let quantum_field_entity = quantum_field_builder.entity.get(&mut commands);
+        obstacle_grid.imprint(quantum_field.coords, Field::QuantumField(quantum_field_entity), quantum_field_builder.grid_imprint);
+        commands.add(quantum_field_builder);
     });
     map.objectives.into_iter().for_each(|objective_details| {
        BuilderObjective::new(objective_details)

@@ -5,47 +5,65 @@ use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 
+pub struct WallPlugin;
+impl Plugin for WallPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_event::<BuilderWall>()
+            .add_systems(PostUpdate, (
+                BuilderWall::spawn_system,
+            ))
+            .add_systems(Update, (
+                onclick_spawn_system,
+                color_rotation_system,
+            ));
+    }
+}
+
 pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
 #[derive(Component)]
 pub struct Wall;
 
-#[derive(Bundle)]
+#[derive(Event)]
 pub struct BuilderWall {
-    sprite: SpriteBundle,
-    grid_position: GridCoords,
-    wall: Wall,
+    pub entity: LazyEntity,
+    pub grid_position: GridCoords,
 }
 
 impl BuilderWall {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self {
-            sprite: SpriteBundle {
-                sprite: Sprite {
-                    color: GRAY.into(), // Color::hsla(0., 0.5, 1.3, 0.8); for hdr
-                    custom_size: Some(WALL_GRID_IMPRINT.world_size()),
+    pub fn new(grid_position: GridCoords) -> Self { 
+        Self { entity: LazyEntity::default(), grid_position }
+    }
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderWall>,
+        mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+     ) {
+        for &BuilderWall { mut entity, grid_position } in events.read() {
+            let entity = entity.get(&mut commands);
+            commands.entity(entity).insert((
+                SpriteBundle {
+                    sprite: Sprite {
+                        color: GRAY.into(), // Color::hsla(0., 0.5, 1.3, 0.8); for hdr
+                        custom_size: Some(WALL_GRID_IMPRINT.world_size()),
+                        ..Default::default()
+                    },
+                    transform: Transform::from_translation(
+                        grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(Z_OBSTACLE)
+                    ),
                     ..Default::default()
                 },
-                transform: Transform::from_translation(
-                    grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(Z_OBSTACLE)
-                ),
-                ..Default::default()
-            },
-            grid_position,
-            wall: Wall,
+                grid_position,
+                Wall,
+            ));
+            emissions_energy_recalculate_all.0 = true;
         }
     }
-    pub fn spawn(
-        self,
-        commands: &mut Commands,
-        emissions_energy_recalculate_all: &mut EmissionsEnergyRecalculateAll,
-        obstacles_grid: &mut ObstacleGrid
-    ) -> Entity {
-        let position = self.grid_position;
-        let entity = commands.spawn(self).id();
-        obstacles_grid.imprint(position, Field::Wall(entity), WALL_GRID_IMPRINT);
-        emissions_energy_recalculate_all.0 = true;
-        entity
+}
+impl Command for BuilderWall {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
 }
 
@@ -79,7 +97,10 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a wall
         if obstacle_grid[mouse_coords].is_empty() {
-            BuilderWall::new(mouse_coords).spawn(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid);
+            let mut wall_builder = BuilderWall::new(mouse_coords);
+            let wall_entity = wall_builder.entity.get(&mut commands);
+            obstacle_grid.imprint(mouse_coords, Field::Wall(wall_entity), WALL_GRID_IMPRINT);
+            commands.add(wall_builder);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a wall

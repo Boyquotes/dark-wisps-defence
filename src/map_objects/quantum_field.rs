@@ -6,6 +6,24 @@ use crate::mouse::MouseInfo;
 use crate::ui::common::AdvancedInteraction;
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
 
+pub struct QuantumFieldPlugin;
+impl Plugin for QuantumFieldPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_event::<BuilderQuantumField>()
+            .add_systems(PostUpdate, (
+                BuilderQuantumField::spawn_system,
+            ))
+            .add_systems(Startup, (
+                create_grid_placer_ui_for_quantum_field_system,
+            ))
+            .add_systems(Update, (
+                onclick_spawn_system,
+                operate_arrows_for_grid_placer_ui_for_quantum_field_system,
+            ));
+    }
+}
+
 pub const QUANTUM_FIELD_MIN_IMPRINT_SIZE: i32 = 3;
 pub const QUANTUM_FIELD_MAX_IMPRINT_SIZE: i32 = 6;
 
@@ -24,29 +42,36 @@ impl Default for QuantumField {
     }
 }
 
-#[derive(Bundle)]
+#[derive(Event)]
 pub struct BuilderQuantumField {
-    sprite: SpriteBundle,
-    grid_position: GridCoords,
-    quantum_field: QuantumField,
-    expedition_zone: ExpeditionZone,
+    pub entity: LazyEntity,
+    pub grid_position: GridCoords,
+    pub grid_imprint: GridImprint,
 }
 impl BuilderQuantumField {
     pub fn new(grid_position: GridCoords, grid_imprint: GridImprint) -> Self {
-        Self {
-            sprite: get_quantum_field_sprite_bundle(grid_position, grid_imprint),
-            grid_position,
-            quantum_field: QuantumField { grid_imprint },
-            expedition_zone: ExpeditionZone::default(),
+        Self { entity: LazyEntity::default(), grid_position, grid_imprint }
+    }
+    pub fn spawn_system(
+        mut commands: Commands,
+        mut events: EventReader<BuilderQuantumField>,
+    ) {
+        for &BuilderQuantumField{ mut entity, grid_position, grid_imprint } in events.read() {
+            let entity = entity.get(&mut commands);
+            commands.entity(entity).insert((
+                get_quantum_field_sprite_bundle(grid_position, grid_imprint),
+                grid_position,
+                QuantumField { grid_imprint },
+                ExpeditionZone::default(),
+                // TODO: Remove ExpeditionTargetMarker as users should set targets themselves
+                ExpeditionTargetMarker,
+            ));
         }
     }
-    pub fn spawn(self, commands: &mut Commands, obstacles_grid: &mut ObstacleGrid) -> Entity {
-        let grid_position = self.grid_position;
-        let grid_imprint = self.quantum_field.grid_imprint;
-        // TODO: Remove ExpeditionTargetMarker as users should set targets themselves
-        let entity = commands.spawn(self).insert(ExpeditionTargetMarker).id();
-        obstacles_grid.imprint(grid_position, Field::QuantumField(entity), grid_imprint);
-        entity
+}
+impl Command for BuilderQuantumField {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
     }
 }
 
@@ -90,8 +115,10 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a quantum_field
         if obstacles_grid.imprint_query_all(mouse_coords, quantum_field.grid_imprint, |field| field.is_empty()) {
-            BuilderQuantumField::new(mouse_coords, quantum_field.grid_imprint)
-                .spawn(&mut commands, &mut obstacles_grid);
+            let mut quantum_field_builder = BuilderQuantumField::new(mouse_coords, quantum_field.grid_imprint);
+            let quantum_field_entity = quantum_field_builder.entity.get(&mut commands);
+            obstacles_grid.imprint(mouse_coords, Field::QuantumField(quantum_field_entity), quantum_field.grid_imprint);
+            commands.add(quantum_field_builder);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a quantum_field

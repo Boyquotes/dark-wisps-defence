@@ -21,7 +21,6 @@ mod prelude;
 
 use crate::prelude::*;
 use crate::grids::common::CELL_SIZE;
-use crate::grids::emissions::EmissionsEnergyRecalculateAll;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::inventory::objectives::ObjectivesCheckInactiveFlag;
 use crate::map_editor::MapInfo;
@@ -77,9 +76,7 @@ pub fn is_game_mode(config: Res<GameConfig>) -> bool {
 
 pub fn generate_default_map(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut objectives_check_inactive_flag: ResMut<ObjectivesCheckInactiveFlag>,
-    mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
     mut obstacles_grid: ResMut<ObstacleGrid>,
     mut map_info: ResMut<MapInfo>,
 ) {
@@ -91,9 +88,8 @@ pub fn generate_default_map(
     map_info.world_height = map.height as f32 * CELL_SIZE;
     map_loader::apply_map(
         map,
-        &mut commands, &asset_server,
+        &mut commands, 
         &mut objectives_check_inactive_flag,
-        &mut emissions_energy_recalculate_all,
         &mut obstacles_grid,
     );
 }

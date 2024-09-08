@@ -1,6 +1,8 @@
 use crate::{map_objects::quantum_field::QuantumField, prelude::*};
 use serde::{Deserialize, Serialize};
 
+use super::stats::StatsWispsKilled;
+
 pub struct ObjectivesPlugin;
 impl Plugin for ObjectivesPlugin {
     fn build(&self, app: &mut App) {
@@ -11,6 +13,7 @@ impl Plugin for ObjectivesPlugin {
             ))
             .add_systems(Update, (
                 update_clear_all_quantum_fields_system,
+                update_kill_wisps_system,
             ));
     }
 }
@@ -24,6 +27,7 @@ pub enum ObjectivePrerequisities {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum ObjectiveType {
     ClearAllQuantumFields,
+    KillWisps(usize),
 }
 
 #[derive(Component, Clone, Debug, Serialize, Deserialize)]
@@ -64,6 +68,7 @@ impl BuilderObjective {
         mut commands: Commands,
         mut events: EventReader<BuilderObjective>,
         mut objectives_check_inactive_flag: ResMut<ObjectivesCheckInactiveFlag>,
+        stats_wisps_killed: Res<StatsWispsKilled>,
     ) {
         for BuilderObjective { entity, objective_details } in events.read() {
             objectives_check_inactive_flag.0 = true;
@@ -72,7 +77,7 @@ impl BuilderObjective {
             };
             commands.entity(*entity).insert((
                 objective_details.clone(),
-                ObjectiveMarkerInactive,
+                ObjectiveMarkerInProgress,
                 NodeBundle {
                     style: Style {
                         width: Val::Percent(100.),
@@ -87,6 +92,14 @@ impl BuilderObjective {
             )).with_children(|parent| {
                 objective.text = parent.spawn(TextBundle::from_sections([objective_details.id_name.clone().into()])).id();
             }).insert(objective);
+            match objective_details.objective_type {
+                ObjectiveType::ClearAllQuantumFields => {
+                    commands.entity(*entity).insert(ObjectiveClearAllQuantumFields::default());
+                }
+                ObjectiveType::KillWisps(target_amount) => {
+                    commands.entity(*entity).insert(ObjectiveKillWisps{target_amount, started_amount: stats_wisps_killed.0});
+                }
+            }
         }
     }
 }
@@ -101,6 +114,11 @@ pub struct ObjectiveClearAllQuantumFields {
     total_quantum_fields: usize,
     completed_quantum_fields: usize,
 }
+#[derive(Component, Default)]
+pub struct ObjectiveKillWisps {
+    target_amount: usize,
+    started_amount: usize,
+}
 
 // TODO: make it trigger only on quantum fieds change event
 fn update_clear_all_quantum_fields_system(
@@ -110,5 +128,17 @@ fn update_clear_all_quantum_fields_system(
     for mut objective in &mut objectives {
         objective.completed_quantum_fields = 0;
         objective.total_quantum_fields = quantum_fields.iter().count();
+    }
+}
+
+fn update_kill_wisps_system(
+    stats_wisps_killed: Res<StatsWispsKilled>,
+    mut objectives: Query<(&Objective, &ObjectiveKillWisps), With<ObjectiveMarkerInProgress>>,
+    mut texts: Query<&mut Text>,
+) {
+    for (objective, objective_kill_wisps)  in &mut objectives {
+        let current_amount = stats_wisps_killed.0 - objective_kill_wisps.started_amount;
+        let mut text = texts.get_mut(objective.text).unwrap();
+        text.sections[0].value = format!("Kill Wisps: {}/{}", current_amount, objective_kill_wisps.target_amount);
     }
 }

@@ -1,6 +1,7 @@
 pub mod resources;
 pub mod almanach;
 pub mod objectives;
+pub mod stats;
 
 use crate::prelude::*;
 
@@ -10,6 +11,7 @@ impl Plugin for InventoryPlugin {
         app
             .add_plugins((
                 objectives::ObjectivesPlugin,
+                stats::StatsPlugin,
             ))
             .insert_resource(almanach::Almanach::default())
             .insert_resource(objectives::ObjectivesCheckInactiveFlag::default())

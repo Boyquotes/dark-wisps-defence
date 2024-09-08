@@ -1142,5 +1142,8 @@ quantum_fields:
   size: 4
 objectives:
 - id_name: clear_quantum_fields
-  objective_type: ClearAllQuantumFields
+  objective_type: !ClearAllQuantumFields
+  prerequisites: None
+- id_name: kill_wisps
+  objective_type: !KillWisps 100
   prerequisites: None

@@ -1,3 +1,4 @@
+use crate::inventory::stats::StatsWispsKilled;
 use crate::prelude::*;
 use nanorand::Rng;
 use crate::buildings::common_components::Building;
@@ -81,13 +82,15 @@ pub fn target_wisps(
 
 pub fn remove_dead_wisps(
     mut commands: Commands,
-    wisps: Query<(Entity, &Health, &GridCoords), With<Wisp>>,
     mut wisps_grid: ResMut<WispsGrid>,
+    mut stats_wisps_killed: ResMut<StatsWispsKilled>,
+    wisps: Query<(Entity, &Health, &GridCoords), With<Wisp>>,
 ) {
     for (wisp_entity, health, coords) in wisps.iter() {
         if health.is_dead() {
             wisps_grid.wisp_remove(*coords, wisp_entity.into());
             commands.entity(wisp_entity).despawn();
+            stats_wisps_killed.0 += 1;
         }
     }
 }

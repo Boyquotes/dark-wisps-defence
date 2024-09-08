@@ -35,8 +35,8 @@ fn initialize_objectives_panel_system(
         UiImage::new(asset_server.load("ui/objectives_panel.png")),
         ImageScaleMode::Sliced(TextureSlicer {
             border: BorderRect::square(20.0),
-            center_scale_mode: SliceScaleMode::Tile { stretch_value: 0.1 },
-            sides_scale_mode: SliceScaleMode::Tile { stretch_value: 0.2 },
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
             max_corner_scale: 1.0,
         }),
         ObjectivesPanel,

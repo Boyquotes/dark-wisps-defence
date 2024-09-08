@@ -22,7 +22,6 @@ mod prelude;
 use crate::prelude::*;
 use crate::grids::common::CELL_SIZE;
 use crate::grids::obstacles::ObstacleGrid;
-use crate::inventory::objectives::ObjectivesCheckInactiveFlag;
 use crate::map_editor::MapInfo;
 
 fn main() {
@@ -56,7 +55,6 @@ fn main() {
 
 pub fn generate_default_map(
     mut commands: Commands,
-    mut objectives_check_inactive_flag: ResMut<ObjectivesCheckInactiveFlag>,
     mut obstacles_grid: ResMut<ObstacleGrid>,
     mut map_info: ResMut<MapInfo>,
 ) {
@@ -69,7 +67,6 @@ pub fn generate_default_map(
     map_loader::apply_map(
         map,
         &mut commands, 
-        &mut objectives_check_inactive_flag,
         &mut obstacles_grid,
     );
 }

@@ -12,7 +12,7 @@ use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails, ObjectivesCheckInactiveFlag};
+use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails};
 use crate::map_objects::dark_ore::{BuilderDarkOre, DARK_ORE_GRID_IMPRINT};
 use crate::map_objects::quantum_field::BuilderQuantumField;
 use crate::map_objects::walls::{BuilderWall, WALL_GRID_IMPRINT};
@@ -51,8 +51,7 @@ pub fn load_map(map_name: &str) -> Map {
 /// Apply the map to the scene.
 pub fn apply_map(
     map: Map,
-    mut commands: &mut Commands,
-    mut objectives_check_inactive_flag: &mut ObjectivesCheckInactiveFlag,
+    commands: &mut Commands,
     obstacle_grid: &mut ObstacleGrid,
 ) {
     map.walls.iter().for_each(|wall_coords| {
@@ -118,7 +117,7 @@ pub fn apply_map(
         commands.add(BuilderQuantumField::new(quantum_field_entity, quantum_field.coords, grid_imprint));
     });
     map.objectives.into_iter().for_each(|objective_details| {
-       BuilderObjective::new(objective_details)
-           .spawn(&mut commands, &mut objectives_check_inactive_flag);
+       let objective_entity = commands.spawn_empty().id();
+       commands.add(BuilderObjective::new(objective_entity, objective_details));
     });
 }

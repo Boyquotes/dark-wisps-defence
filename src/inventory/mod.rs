@@ -7,8 +7,12 @@ use crate::prelude::*;
 pub struct InventoryPlugin;
 impl Plugin for InventoryPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(almanach::Almanach::default());
-        app.insert_resource(objectives::ObjectivesCheckInactiveFlag::default());
-        app.insert_resource(resources::DarkOreStock::default());
+        app
+            .add_plugins((
+                objectives::ObjectivesPlugin,
+            ))
+            .insert_resource(almanach::Almanach::default())
+            .insert_resource(objectives::ObjectivesCheckInactiveFlag::default())
+            .insert_resource(resources::DarkOreStock::default());
     }
 }

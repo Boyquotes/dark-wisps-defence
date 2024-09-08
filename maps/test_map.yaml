@@ -1142,5 +1142,5 @@ quantum_fields:
   size: 4
 objectives:
 - id_name: clear_quantum_fields
-  objective_type: ClearQuantumFields
-  requirements: None
+  objective_type: ClearAllQuantumFields
+  prerequisites: None

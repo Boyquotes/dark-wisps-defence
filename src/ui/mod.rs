@@ -5,12 +5,16 @@ pub mod display_building_info;
 pub mod badges;
 mod construction_menu;
 pub mod common;
+mod objectives_panel;
 
 use crate::prelude::*;
 
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugins((
+            objectives_panel::ObjectivesPanelPlugin,
+        ));
         app.insert_resource(UiConfig::default());
         app.insert_resource(interaction_state::UiInteractionState::default());
         app.insert_resource(grid_object_placer::GridObjectPlacerRequest::default());

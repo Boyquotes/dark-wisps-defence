@@ -21,13 +21,14 @@ fn initialize_objectives_panel_system(
     commands.spawn((
         NodeBundle {
             style: Style {
-                width: Val::Px(500.0),
-                height: Val::Px(125.0),
+                width: Val::Px(300.0),
+                height: Val::Px(300.0),
                 position_type: PositionType::Absolute,
                 flex_direction: FlexDirection::Column,
                 top: Val::Px(5.0),
                 right: Val::Px(5.0),
-                padding: UiRect::all(Val::Px(6.0)),
+                padding: UiRect::all(Val::Px(8.0)),
+                row_gap: Val::Px(2.0),
                 ..default()
             },
             ..default()

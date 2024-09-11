@@ -124,7 +124,7 @@ impl BuilderObjective {
                     ObjectiveCheckmark,
                 )).id();
                 objective.text = parent.spawn((
-                    TextBundle::from_sections([objective_details.id_name.clone().into()]),
+                    TextBundle::from_section(objective_details.id_name.clone(), TextStyle { font_size: 16., ..default() }),
                     ObjectiveText,
                 )).id();
             }).insert(objective);
@@ -173,7 +173,6 @@ fn on_objective_failed_system(
 
 #[derive(Component, Default)]
 pub struct ObjectiveClearAllQuantumFields {
-    total_quantum_fields: usize,
     completed_quantum_fields: usize,
 }
 #[derive(Component, Default)]
@@ -184,12 +183,24 @@ pub struct ObjectiveKillWisps {
 
 // TODO: make it trigger only on quantum fieds change event
 fn update_clear_all_quantum_fields_system(
-    mut objectives: Query<&mut ObjectiveClearAllQuantumFields, With<ObjectiveMarkerInProgress>>,
+    mut commands: Commands,
+    mut objectives: Query<(Entity, &Objective, &mut ObjectiveClearAllQuantumFields), With<ObjectiveMarkerInProgress>>,
     quantum_fields: Query<&QuantumField>,
+    mut texts: Query<&mut Text, With<ObjectiveText>>,
 ) {
-    for mut objective in &mut objectives {
-        objective.completed_quantum_fields = 0;
-        objective.total_quantum_fields = quantum_fields.iter().count();
+    for (objective_entity, objective, mut objective_clear_all_quantum_fields) in &mut objectives {
+        objective_clear_all_quantum_fields.completed_quantum_fields = 0;
+        let total_quantum_fields = quantum_fields.iter().count();
+
+        let mut text = texts.get_mut(objective.text).unwrap();
+        text.sections[0].value = format!("Clear All Quantum Fields: {}/{}", objective_clear_all_quantum_fields.completed_quantum_fields, total_quantum_fields);
+
+        if objective_clear_all_quantum_fields.completed_quantum_fields == total_quantum_fields {
+            commands.entity(objective_entity)
+                .remove::<ObjectiveMarkerInProgress>()
+                .insert(ObjectiveMarkerCompleted);
+            commands.add(ObjectivesCheckInactiveFlag(true));
+        }
     }
 }
 

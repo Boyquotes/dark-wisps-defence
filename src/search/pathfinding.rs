@@ -2,7 +2,7 @@ use std::collections::BinaryHeap;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::grids::visited::{TrackingGrid};
+use crate::grids::visited::TrackingGrid;
 use crate::search::common::{State, ALL_DIRECTIONS};
 
 const EMPTY_FIELD_MODIFIER: f32 = 1.0;

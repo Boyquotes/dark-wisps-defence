@@ -1,6 +1,8 @@
+use std::collections::VecDeque;
+
 use crate::prelude::*;
 use crate::grids::base::GridVersion;
-use crate::grids::common::{GridCoords, GridType};
+use crate::grids::common::GridCoords;
 
 pub mod prelude {
     pub use super::*;
@@ -26,20 +28,23 @@ pub fn is_game_mode(config: Res<GameConfig>) -> bool {
     true || config.mode == GameMode::Game
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Default)]
-pub enum TargetType {
-    #[default]
-    None,
-    Field{coords: GridCoords, grid_version: GridVersion},
-    Unreachable{grid_type: GridType, grid_version: GridVersion},
+#[derive(Component, Default)]
+pub struct GridPath {
+    pub grid_version: GridVersion,
+    pub path: VecDeque<GridCoords>,
 }
-
-impl TargetType {
-    pub fn is_some(&self) -> bool {
-        !matches!(self, TargetType::None) && !matches!(self, TargetType::Unreachable{..})
+impl GridPath {
+    pub fn next_in_path(&self) -> Option<GridCoords> {
+        self.path.front().copied()
     }
-    pub fn is_unreachable(&self) -> bool {
-        matches!(self, TargetType::Unreachable{..})
+    pub fn remove_first(&mut self) {
+        self.path.pop_front();
+    }
+    pub fn is_empty(&self) -> bool {
+        self.path.is_empty()
+    }
+    pub fn distance(&self) -> usize {
+        self.path.len()
     }
 }
 

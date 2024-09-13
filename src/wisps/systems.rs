@@ -1,81 +1,61 @@
+use crate::effects::wisp_attack::BuilderWispAttackEffect;
 use crate::inventory::stats::StatsWispsKilled;
 use crate::prelude::*;
 use nanorand::Rng;
 use crate::buildings::common_components::Building;
-use crate::common::TargetType;
 use crate::common_components::Health;
-use crate::grids::common::{GridCoords, GridImprint, GridType};
+use crate::grids::common::{GridCoords, GridImprint};
 use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::search::pathfinding::path_find_energy_beckon;
-use crate::wisps::components::{Target, Wisp};
 
+use super::components::{Wisp, WispState};
 use super::spawning::BuilderWisp;
 
 pub fn move_wisps(
-    mut wisps: Query<(Entity, &Health, &mut Transform, &mut Target, &mut GridCoords), With<Wisp>>,
+    mut wisps: Query<(Entity, &WispState, &Health, &mut Transform, &mut GridPath, &mut GridCoords), With<Wisp>>,
     time: Res<Time>,
     mut wisps_grid: ResMut<WispsGrid>,
 ) {
-    for (entity, health, mut transform, mut target, mut grid_coords) in wisps.iter_mut() {
-        if !target.is_on_its_path() || health.is_dead() { continue; }
-        if let Some(grid_path) = &mut target.grid_path {
-            let next_target = grid_path.first().unwrap();
-            let curr_world_coords = transform.translation.truncate();
-            let interim_target_world_coords = next_target.to_world_position_centered(GridImprint::default());
-            let direction = interim_target_world_coords - curr_world_coords;
-            let (sx, sy) = (direction.x.signum(), direction.y.signum());
-            transform.translation += Vec3::new(sx * time.delta_seconds() * 30., sy * time.delta_seconds() * 30., 0.);
-            // If close enough, remove from path.
-            if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
-                grid_path.remove(0);
-                if grid_path.is_empty() {
-                    target.grid_path = None;
-                }
-            }
-            let new_coords = GridCoords::from_transform(&transform);
-            if new_coords != *grid_coords {
-                wisps_grid.wisp_move(*grid_coords, new_coords, entity.into());
-                *grid_coords = new_coords;
-            }
+    for (entity, wisp_state, health, mut transform, mut grid_path, mut grid_coords) in wisps.iter_mut() {
+        if !matches!(*wisp_state, WispState::MovingToTarget) || health.is_dead() { continue; }
+        let Some(next_target) = grid_path.next_in_path() else { continue; };
+        let curr_world_coords = transform.translation.truncate();
+        let interim_target_world_coords = next_target.to_world_position_centered(GridImprint::default());
+        let direction = interim_target_world_coords - curr_world_coords;
+        let (sx, sy) = (direction.x.signum(), direction.y.signum());
+        transform.translation += Vec3::new(sx * time.delta_seconds() * 30., sy * time.delta_seconds() * 30., 0.);
+        // If close enough, remove from path.
+        if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
+            grid_path.remove_first();
+        }
+        // Update grid coords
+        let new_coords = GridCoords::from_transform(&transform);
+        if new_coords != *grid_coords {
+            wisps_grid.wisp_move(*grid_coords, new_coords, entity.into());
+            *grid_coords = new_coords;
         }
     }
 }
 
 pub fn target_wisps(
-    mut wisps_query: Query<(&mut Target, &GridCoords), With<Wisp>>,
+    mut wisps_query: Query<(&mut WispState, &mut GridPath, &GridCoords), With<Wisp>>,
     obstacle_grid: Res<ObstacleGrid>,
     emissions_grid: Res<EmissionsGrid>,
 ) {
-    wisps_query.par_iter_mut().for_each(|(mut target, grid_coords)| {
-        // First check if there was anything that would invalidate existing targeting.
-        match target.target_type {
-            TargetType::None => {},
-            TargetType::Field{grid_version, ..} => {
-                if grid_version != obstacle_grid.version {
-                    target.target_type = TargetType::None;
-                }
-            }
-            TargetType::Unreachable{grid_type, grid_version} => {
-                match grid_type {
-                    GridType::Obstacles => {
-                        if grid_version != obstacle_grid.version {
-                            target.target_type = TargetType::None;
-                        }
-                    }
-                }
-            }
-        }
-        // Then check if the wisp is eligible for new targeting.
-        if target.is_on_its_path() || target.is_at_destination() || target.is_unreachable() { return; }
+    wisps_query.par_iter_mut().for_each(|(mut wisp_state, mut grid_path, grid_coords)| {
+        // Retarget is needed when grid has changed or there is no target yet.
+        let is_path_outdated = matches!(*wisp_state, WispState::MovingToTarget) && grid_path.grid_version != obstacle_grid.version;
+        let need_retarget = is_path_outdated || matches!(*wisp_state, WispState::NeedTarget | WispState::JustSpawned) || matches!(*wisp_state, WispState::Stranded(ref grid_version) if grid_path.grid_version != *grid_version);
+        if !need_retarget { return; }
 
         if let Some(path) = path_find_energy_beckon(&obstacle_grid, &emissions_grid, *grid_coords) {
-            target.target_type = TargetType::Field{coords: *path.last().unwrap(), grid_version: obstacle_grid.version};
-            target.grid_path = Some(path);
+            *wisp_state = WispState::MovingToTarget;
+            grid_path.grid_version = obstacle_grid.version;
+            grid_path.path = path.into();
         } else {
-            target.target_type = TargetType::Unreachable {grid_type: GridType::Obstacles, grid_version: obstacle_grid.version};
-            target.grid_path = Some(Vec::new());
+            *wisp_state = WispState::Stranded(obstacle_grid.version)
         }
     });
 }
@@ -95,28 +75,37 @@ pub fn remove_dead_wisps(
     }
 }
 
+// pub fn start_wisp_attacks(
+//     mut commands: Commands,
+//     wisps: Query<(Entity, &Taget), (With<Wisp>, Without<WispIsAttacking>)>,
+// ) {
+//     for (wisp_entity, target) in wisps.iter() {
+//         let Some(distance_to_target) = target.distance() else { continue; };
+//         if distance_to_target != 1 { continue; }
+
+//         commands.entity(wisp_entity).insert(WispIsAttacking::Charge);
+//     }
+// }
+
 pub fn collide_wisps(
     mut commands: Commands,
-    wisps: Query<(Entity, &Target, &Health), (With<Wisp>, Without<Building>)>,
+    wisps: Query<(Entity, &WispState, &GridPath, &Health, &Transform, &GridCoords), (With<Wisp>, Without<Building>)>,
     mut buildings: Query<&mut Health, With<Building>>,
     grid: Res<ObstacleGrid>,
     mut wisps_grid: ResMut<WispsGrid>,
 ) {
-    for (wisp_entity, target, health) in wisps.iter() {
-        if !target.is_at_destination() || health.is_dead() { continue; }
-        match &target.target_type {
-            TargetType::Field{coords, ..} => {
-                let building_entity = match &grid[*coords] {
-                    Field::Building(entity, _) => *entity,
-                    _ => panic!("Expected a building"),
-                };
-                let mut health = buildings.get_mut(building_entity).unwrap();
-                health.decrease(1);
-                wisps_grid.wisp_remove(*coords, wisp_entity.into());
-                commands.entity(wisp_entity).despawn();
-            }
-            _ => panic!("Expected a field"),
-        }
+    for (wisp_entity, wisp_state, grid_path, health, transform, coords) in wisps.iter() {
+        if !matches!(wisp_state, WispState::MovingToTarget) || health.is_dead() { continue; }
+        if !grid_path.is_empty() { continue; }
+        let building_entity = match &grid[*coords] {
+            Field::Building(entity, _) => *entity,
+            _ => panic!("Expected a building"),
+        };
+        let mut health = buildings.get_mut(building_entity).unwrap();
+        health.decrease(1);
+        wisps_grid.wisp_remove(*coords, wisp_entity.into());
+        commands.entity(wisp_entity).despawn();
+        commands.add(BuilderWispAttackEffect::new(transform.translation.xy()))
     }
 }
 

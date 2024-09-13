@@ -4,7 +4,9 @@ use bevy::sprite::MaterialMesh2dBundle;
 use crate::common::Z_WISP;
 use crate::common_components::Health;
 use crate::grids::common::{GridCoords, GridImprint};
-use crate::wisps::components::{Target, Wisp};
+use crate::wisps::components::Wisp;
+
+use super::components::{WispChargeAttack, WispState};
 
 pub const WISP_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
@@ -37,7 +39,9 @@ impl BuilderWisp {
                     ..default()
                 },
                 Wisp,
-                Target::default(),
+                WispState::default(),
+                WispChargeAttack::default(),
+                GridPath::default(),
             ));
         }
     }

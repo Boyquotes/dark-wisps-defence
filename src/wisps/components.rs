@@ -1,6 +1,5 @@
 use crate::prelude::*;
-use crate::common::TargetType;
-use crate::grids::common::GridCoords;
+use crate::grids::base::GridVersion;
 use crate::utils::id::Id;
 
 pub type WispEntity = Id<Wisp, Entity>;
@@ -8,23 +7,19 @@ pub type WispEntity = Id<Wisp, Entity>;
 
 #[derive(Component, Debug, Default, PartialEq)]
 pub struct Wisp;
-
-#[derive(Component, Default, Debug)]
-pub struct Target{
-    pub target_type: TargetType,
-    pub grid_path: Option<Vec<GridCoords>>,
+#[derive(Component, Default)]
+pub enum WispState {
+    #[default]
+    JustSpawned,
+    NeedTarget,
+    MovingToTarget,
+    Attacking,
+    Stranded(GridVersion), // No target available, waiting for change in obstacle grid
 }
 
-impl Target {
-    pub fn is_on_its_path(&self) -> bool
-    {
-        self.target_type.is_some() && self.grid_path.is_some()
-    }
-    // We are at the destination if there is a target, and no path anymore.
-    pub fn is_at_destination(&self) -> bool {
-        self.target_type.is_some() && self.grid_path.is_none()
-    }
-    pub fn is_unreachable(&self) -> bool {
-        self.target_type.is_unreachable()
-    }
+#[derive(Component, Default)]
+pub enum WispChargeAttack {
+    #[default]
+    Charge,
+    Backoff,
 }

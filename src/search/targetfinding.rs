@@ -1,8 +1,8 @@
 use std::collections::BinaryHeap;
 use crate::prelude::*;
 use crate::grids::common::GridCoords;
-use crate::grids::obstacles::{ObstacleGrid};
-use crate::grids::visited::{VisitedGrid};
+use crate::grids::obstacles::ObstacleGrid;
+use crate::grids::visited::VisitedGrid;
 use crate::grids::wisps::WispsGrid;
 use crate::search::common::{CARDINAL_DIRECTIONS, State};
 use crate::wisps::components::WispEntity;

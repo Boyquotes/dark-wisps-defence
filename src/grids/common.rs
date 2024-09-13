@@ -7,12 +7,6 @@ pub mod prelude {
 
 pub const CELL_SIZE: f32 = 16.;
 
-// TODO: remove alongside generic targets from common.rs
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum GridType {
-    Obstacles,
-}
-
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq, Component, Hash)]
 pub struct GridCoords {
     pub x: i32,

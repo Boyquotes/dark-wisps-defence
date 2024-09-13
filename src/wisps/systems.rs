@@ -10,22 +10,23 @@ use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::search::pathfinding::path_find_energy_beckon;
 
-use super::components::{Wisp, WispState};
+use super::components::{Wisp, WispChargeAttack, WispState};
 use super::spawning::BuilderWisp;
 
 pub fn move_wisps(
-    mut wisps: Query<(Entity, &WispState, &Health, &mut Transform, &mut GridPath, &mut GridCoords), With<Wisp>>,
     time: Res<Time>,
     mut wisps_grid: ResMut<WispsGrid>,
+    mut wisps: Query<(Entity, &WispState, &Health, &Speed, &mut Transform, &mut GridPath, &mut GridCoords), With<Wisp>>,
 ) {
-    for (entity, wisp_state, health, mut transform, mut grid_path, mut grid_coords) in wisps.iter_mut() {
+    for (entity, wisp_state, health, speed, mut transform, mut grid_path, mut grid_coords) in wisps.iter_mut() {
         if !matches!(*wisp_state, WispState::MovingToTarget) || health.is_dead() { continue; }
         let Some(next_target) = grid_path.next_in_path() else { continue; };
         let curr_world_coords = transform.translation.truncate();
         let interim_target_world_coords = next_target.to_world_position_centered(GridImprint::default());
         let direction = interim_target_world_coords - curr_world_coords;
         let (sx, sy) = (direction.x.signum(), direction.y.signum());
-        transform.translation += Vec3::new(sx * time.delta_seconds() * 30., sy * time.delta_seconds() * 30., 0.);
+        let wisp_speed = speed.0;
+        transform.translation += Vec3::new(sx * time.delta_seconds() * wisp_speed, sy * time.delta_seconds() * wisp_speed, 0.);
         // If close enough, remove from path.
         if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
             grid_path.remove_first();
@@ -75,18 +76,55 @@ pub fn remove_dead_wisps(
     }
 }
 
-// pub fn start_wisp_attacks(
-//     mut commands: Commands,
-//     wisps: Query<(Entity, &Taget), (With<Wisp>, Without<WispIsAttacking>)>,
-// ) {
-//     for (wisp_entity, target) in wisps.iter() {
-//         let Some(distance_to_target) = target.distance() else { continue; };
-//         if distance_to_target != 1 { continue; }
+pub fn wisp_charge_attack(
+    mut commands: Commands,
+    time: Res<Time>,
+    obstacle_grid: Res<ObstacleGrid>,
+    mut wisps: Query<(&mut WispState, &Health, &Speed, &GridPath, &mut Transform, &mut WispChargeAttack, &GridCoords), With<Wisp>>,
+) {
+    for (mut wisp_state, health, speed, grid_path, mut transform, mut attack, grid_coords) in wisps.iter_mut() {
+        if health.is_dead() { continue; }
+        // First check if moving wisps should switch to attack mode
+        if matches!(*wisp_state, WispState::MovingToTarget) && grid_path.distance() == 1 { *wisp_state = WispState::Attacking; }
+        if !matches!(*wisp_state, WispState::Attacking) { continue; }
+        // Then confirm the target still exists
+        let Some(target_coords) = grid_path.next_in_path() else { continue; };
+        if !matches!(obstacle_grid[target_coords], Field::Building(_, _)) {
+            *wisp_state = WispState::NeedTarget;
+            continue; 
+        }
+        // Then execute the attack
+        match *attack {
+            WispChargeAttack::Charge => {
+                // Charge means normal movement, just sped up
+                let curr_world_coords = transform.translation.truncate();
+                let interim_target_world_coords = target_coords.to_world_position_centered(GridImprint::default());
+                let direction = interim_target_world_coords - curr_world_coords;
+                let (sx, sy) = (direction.x.signum(), direction.y.signum());
+                let wisp_speed = speed.0 * 5.;
+                transform.translation += Vec3::new(sx * time.delta_seconds() * wisp_speed, sy * time.delta_seconds() * wisp_speed, 0.);
+                if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
+                    *attack = WispChargeAttack::Backoff;
+                    commands.add(BuilderWispAttackEffect::new(transform.translation.xy()))
+                }
+            },
+            WispChargeAttack::Backoff => {
+                // Backoff means to go back half the normal speed to repeat the charge
+                let curr_world_coords = transform.translation.truncate();
+                let interim_target_world_coords = grid_coords.to_world_position_centered(GridImprint::default());
+                let direction = interim_target_world_coords - curr_world_coords;
+                let (sx, sy) = (direction.x.signum(), direction.y.signum());
+                let wisp_speed = speed.0 * 0.5;
+                transform.translation += Vec3::new(sx * time.delta_seconds() * wisp_speed, sy * time.delta_seconds() * wisp_speed, 0.);
+                if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
+                    *attack = WispChargeAttack::Charge;
+                }
+            },
+        }
+    }
+}
 
-//         commands.entity(wisp_entity).insert(WispIsAttacking::Charge);
-//     }
-// }
-
+// For wisps not having any attack defined
 pub fn collide_wisps(
     mut commands: Commands,
     wisps: Query<(Entity, &WispState, &GridPath, &Health, &Transform, &GridCoords), (With<Wisp>, Without<Building>)>,

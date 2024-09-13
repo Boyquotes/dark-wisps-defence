@@ -15,6 +15,9 @@ impl Health {
     }
 }
 
+#[derive(Component)]
+pub struct Speed(pub f32);
+
 #[derive(Component, Default)]
 pub struct ColorPulsation {
     min_brightness: f32,

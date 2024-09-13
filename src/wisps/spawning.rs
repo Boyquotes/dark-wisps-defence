@@ -30,6 +30,7 @@ impl BuilderWisp {
             commands.entity(entity).insert((
                 grid_coords,
                 Health(10),
+                Speed(30.),
                 MaterialMesh2dBundle {
                     mesh: meshes.add(Circle::new(6.)).into(),
                     material: materials.add(ColorMaterial::from_color(PURPLE)),

@@ -1,41 +1,46 @@
+use bevy::log::tracing_subscriber::fmt::time;
+use bevy::transform::commands;
+
+use crate::mouse::MouseInfo;
 use crate::prelude::*;
 use crate::effects::common::AnimationController;
 
-pub struct ExplosionPlugin;
-impl Plugin for ExplosionPlugin {
+pub struct WispAttackEffectPlugin;
+impl Plugin for WispAttackEffectPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderExplosion>()
-            .init_resource::<ExplosionAtlas>()
+            .add_event::<BuilderWispAttackEffect>()
+            .init_resource::<WispAttackEffectAtlas>()
             .add_systems(PostUpdate, (
-                BuilderExplosion::spawn_system,
+                BuilderWispAttackEffect::spawn_system,
             ))
             .add_systems(Update, (
                 remove_explosions_system,
+                spawn_random_wisps_effect_system,
             ));
     }
 }
 
 #[derive(Resource)]
-pub struct ExplosionAtlas {
+pub struct WispAttackEffectAtlas {
     pub atlas_handle: Handle<TextureAtlasLayout>,
     pub texture_handle: Handle<Image>,
 }
-impl FromWorld for ExplosionAtlas {
+impl FromWorld for WispAttackEffectAtlas {
     fn from_world(world: &mut World) -> Self {
         let asset_server = world.resource::<AssetServer>();
-        let texture_handle = asset_server.load("effects/explosion.png");
+        let texture_handle = asset_server.load("effects/wisp_attack.png");
 
         let texture_atlas = TextureAtlasLayout::from_grid(
-            UVec2::new(16, 18),
-            4,
-            1,
+            UVec2::new(192, 192),
+            5,
+            2,
             None,
             None,
         );
         let mut texture_atlases = world.resource_mut::<Assets<TextureAtlasLayout>>();
         let texture_atlas_handle = texture_atlases.add(texture_atlas);
-        ExplosionAtlas {
+        WispAttackEffectAtlas {
             atlas_handle: texture_atlas_handle,
             texture_handle,
         }
@@ -43,27 +48,28 @@ impl FromWorld for ExplosionAtlas {
 }
 
 #[derive(Component)]
-pub struct MarkerExplosion;
+pub struct MarkerWispAttackEffect;
 
 #[derive(Event)]
-pub struct BuilderExplosion {
-    pub grid_position: GridCoords,
+pub struct BuilderWispAttackEffect {
+    pub world_position: Vec2,
 }
 
-impl BuilderExplosion {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self { grid_position }
+impl BuilderWispAttackEffect {
+    pub fn new(world_position: Vec2) -> Self {
+        Self { world_position }
     }
     pub fn spawn_system(
         mut commands: Commands,
-        mut events: EventReader<BuilderExplosion>,
-        explosion_atlas: Res<ExplosionAtlas>,
+        mut events: EventReader<BuilderWispAttackEffect>,
+        explosion_atlas: Res<WispAttackEffectAtlas>,
     ) {
-        for &BuilderExplosion { grid_position } in events.read() {
+        for &BuilderWispAttackEffect { world_position } in events.read() {
             commands.spawn((
                 SpriteBundle {
                     transform: Transform {
-                        translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
+                        translation: world_position.extend(Z_GROUND_EFFECT),
+                        scale: Vec3::new(0.25, 0.25, 1.0),
                         ..Default::default()
                     },
                     texture: explosion_atlas.texture_handle.clone(),
@@ -74,13 +80,13 @@ impl BuilderExplosion {
                     index: 0,
                     ..Default::default()
                 },
-                AnimationController::new(0, 3, 0.1, false),
-                MarkerExplosion,
+                AnimationController::new(0, 9, 0.025, false),
+                MarkerWispAttackEffect,
             ));
         }
     }
 } 
-impl Command for BuilderExplosion {
+impl Command for BuilderWispAttackEffect {
     fn apply(self, world: &mut World) {
         world.send_event(self);
     }
@@ -88,11 +94,22 @@ impl Command for BuilderExplosion {
 
 fn remove_explosions_system(
     mut commands: Commands,
-    explosions: Query<(Entity, &AnimationController), With<MarkerExplosion>>,
+    explosions: Query<(Entity, &AnimationController), With<MarkerWispAttackEffect>>,
 ) {
     for (explosion_entity, animation_controller) in &explosions {
         if animation_controller.has_finished {
             commands.entity(explosion_entity).despawn();
         }
+    }
+}
+
+fn spawn_random_wisps_effect_system(
+    mut commands: Commands,
+    button_input: Res<ButtonInput<MouseButton>>,
+    mouse_info: Res<MouseInfo>,
+) {
+    if button_input.just_released(MouseButton::Left){
+        println!("Spawning");
+        commands.add(BuilderWispAttackEffect::new(mouse_info.world_position));
     }
 }

@@ -1,5 +1,6 @@
 pub mod explosions;
 pub mod common;
+pub mod wisp_attack;
 
 use crate::prelude::*;
 
@@ -9,6 +10,7 @@ impl Plugin for EffectsPlugin {
         app
             .add_plugins((
                 explosions::ExplosionPlugin,
+                wisp_attack::WispAttackEffectPlugin,
             ))
             .add_systems(
             Update, (

@@ -16,7 +16,6 @@ impl Plugin for ObjectivesPanelPlugin {
 }
 
 const SLIDING_SPEED: f32 = 800.;
-const HIDDEN_TOP_POSITION: f32 = -300.;
 const VISIBLE_TOP_POSITION: f32 = 5.;
 
 #[derive(Component)]
@@ -40,7 +39,6 @@ fn initialize_objectives_panel_system(
         NodeBundle {
             style: Style {
                 width: Val::Px(300.0),
-                //height: Val::Px(300.0),
                 position_type: PositionType::Absolute,
                 flex_direction: FlexDirection::Column,
                 top: Val::Px(VISIBLE_TOP_POSITION),

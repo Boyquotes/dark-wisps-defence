@@ -14,7 +14,7 @@ impl Plugin for InventoryPlugin {
                 stats::StatsPlugin,
             ))
             .insert_resource(almanach::Almanach::default())
-            .insert_resource(objectives::ObjectivesCheckInactiveFlag::default())
+            .insert_resource(objectives::ObjectivesReassesInactiveFlag::default())
             .insert_resource(resources::DarkOreStock::default());
     }
 }

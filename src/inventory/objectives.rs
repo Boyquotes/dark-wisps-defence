@@ -11,6 +11,9 @@ impl Plugin for ObjectivesPlugin {
             .add_systems(PostUpdate, (
                 BuilderObjective::spawn_system.run_if(on_event::<BuilderObjective>()),
             ))
+            .add_systems(PreUpdate, (
+                reassess_inactive_objectives_system,
+            ))
             .add_systems(Update, (
                 on_objective_completed_system,
                 on_objective_failed_system,
@@ -42,10 +45,10 @@ pub struct ObjectiveDetails {
 // When true, assess prerequisities of inactive objectives to see if they should become active
 // You can use it as a command to change its value
 #[derive(Resource, Default)]
-pub struct ObjectivesCheckInactiveFlag(bool);
-impl Command for ObjectivesCheckInactiveFlag {
+pub struct ObjectivesReassesInactiveFlag(bool);
+impl Command for ObjectivesReassesInactiveFlag {
     fn apply(self, world: &mut World) {
-        world.resource_mut::<ObjectivesCheckInactiveFlag>().0 = self.0
+        world.resource_mut::<ObjectivesReassesInactiveFlag>().0 = self.0
     }
 }
 
@@ -83,7 +86,7 @@ impl BuilderObjective {
         mut commands: Commands,
         mut events: EventReader<BuilderObjective>,
         asset_server: Res<AssetServer>,
-        mut objectives_check_inactive_flag: ResMut<ObjectivesCheckInactiveFlag>,
+        mut objectives_check_inactive_flag: ResMut<ObjectivesReassesInactiveFlag>,
         stats_wisps_killed: Res<StatsWispsKilled>,
     ) {
         for BuilderObjective { entity, objective_details } in events.read() {
@@ -94,7 +97,7 @@ impl BuilderObjective {
             };
             commands.entity(*entity).insert((
                 objective_details.clone(),
-                ObjectiveMarkerInProgress,
+                ObjectiveMarkerInactive,
                 NodeBundle {
                     style: Style {
                         width: Val::Percent(100.),
@@ -145,6 +148,23 @@ impl Command for BuilderObjective {
     }
 }
 
+fn reassess_inactive_objectives_system(
+    mut commands: Commands,
+    mut reassesion_flag: ResMut<ObjectivesReassesInactiveFlag>,
+    objectives: Query<(Entity, &ObjectiveDetails), With<ObjectiveMarkerInactive>>,
+) {
+    if !reassesion_flag.0 { return; }
+    for (objective_entity, objective_details) in &objectives {
+        match objective_details.prerequisites {
+            ObjectivePrerequisities::None => (),
+        }
+        commands.entity(objective_entity)
+            .insert(ObjectiveMarkerInProgress)
+            .remove::<ObjectiveMarkerInactive>();
+    }
+    reassesion_flag.0 = false;
+}
+
 fn on_objective_completed_system(
     asset_server: Res<AssetServer>,
     mut objectives: Query<(&Objective, &mut BackgroundColor, &mut BorderColor), Added<ObjectiveMarkerCompleted>>,
@@ -175,11 +195,6 @@ fn on_objective_failed_system(
 pub struct ObjectiveClearAllQuantumFields {
     completed_quantum_fields: usize,
 }
-#[derive(Component, Default)]
-pub struct ObjectiveKillWisps {
-    target_amount: usize,
-    started_amount: usize,
-}
 
 // TODO: make it trigger only on quantum fieds change event
 fn update_clear_all_quantum_fields_system(
@@ -199,9 +214,15 @@ fn update_clear_all_quantum_fields_system(
             commands.entity(objective_entity)
                 .remove::<ObjectiveMarkerInProgress>()
                 .insert(ObjectiveMarkerCompleted);
-            commands.add(ObjectivesCheckInactiveFlag(true));
+            commands.add(ObjectivesReassesInactiveFlag(true));
         }
     }
+}
+
+#[derive(Component, Default)]
+pub struct ObjectiveKillWisps {
+    target_amount: usize,
+    started_amount: usize,
 }
 
 fn update_kill_wisps_system(
@@ -219,7 +240,7 @@ fn update_kill_wisps_system(
             commands.entity(objective_entity)
                 .remove::<ObjectiveMarkerInProgress>()
                 .insert(ObjectiveMarkerCompleted);
-            commands.add(ObjectivesCheckInactiveFlag(true));
+            commands.add(ObjectivesReassesInactiveFlag(true));
         }
 
     }

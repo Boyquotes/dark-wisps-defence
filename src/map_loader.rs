@@ -98,7 +98,12 @@ pub fn apply_map(
                         let entity = commands.spawn_empty().id();
                         commands.add(BuilderTowerRocketLauncher::new(entity, building.coords));
                         entity
-                    }
+                    },
+                    TowerType::Emitter => {
+                        let entity = commands.spawn_empty().id();
+                        commands.add(BuilderTowerBlaster::new(entity, building.coords));
+                        entity
+                    },
                 }
             }
             BuildingType::MiningComplex => {

@@ -1,3 +1,4 @@
+use crate::buildings::tower_emitter::BuilderTowerEmitter;
 use crate::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
@@ -68,6 +69,11 @@ pub fn onclick_building_spawn_system(
                 BuildingType::Tower(TowerType::RocketLauncher) => {
                     let entity = commands.spawn_empty().id();
                     commands.add(BuilderTowerRocketLauncher::new(entity, mouse_coords));
+                    GridAction::Imprint(entity)
+                },
+                BuildingType::Tower(TowerType::Emitter) => {
+                    let entity = commands.spawn_empty().id();
+                    commands.add(BuilderTowerEmitter::new(entity, mouse_coords));
                     GridAction::Imprint(entity)
                 },
                 BuildingType::MainBase => {

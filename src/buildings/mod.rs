@@ -3,6 +3,7 @@ pub mod main_base;
 pub mod common;
 pub mod tower_blaster;
 pub mod tower_cannon;
+pub mod tower_emitter;
 pub mod common_systems;
 pub mod energy_relay;
 pub mod tower_rocket_launcher;
@@ -23,6 +24,7 @@ impl Plugin for BuildingsPlugin {
                 tower_blaster::TowerBlasterPlugin,
                 tower_cannon::TowerCannonPlugin,
                 tower_rocket_launcher::TowerRocketLauncherPlugin,
+                tower_emitter::TowerEmitterPlugin,
             ))
             .add_systems(PreUpdate, common_systems::tick_shooting_timers_system)
             .add_systems(

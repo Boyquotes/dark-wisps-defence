@@ -25,6 +25,7 @@ impl BuildingType {
                     TowerType::Blaster => super::tower_blaster::TOWER_BLASTER_GRID_IMPRINT,
                     TowerType::Cannon => super::tower_cannon::TOWER_CANNON_GRID_IMPRINT,
                     TowerType::RocketLauncher => super::tower_rocket_launcher::TOWER_ROCKET_LAUNCHER_GRID_IMPRINT,
+                    TowerType::Emitter => super::tower_emitter::TOWER_EMITTER_GRID_IMPRINT,
                 }
             },
             BuildingType::MiningComplex => super::mining_complex::MINING_COMPLEX_GRID_IMPRINT,
@@ -38,4 +39,5 @@ pub enum TowerType {
     Blaster,
     Cannon,
     RocketLauncher,
+    Emitter,
 }

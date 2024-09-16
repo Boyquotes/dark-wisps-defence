@@ -1,6 +1,7 @@
 pub mod explosions;
 pub mod common;
 pub mod wisp_attack;
+pub mod ripple;
 
 use crate::prelude::*;
 
@@ -11,6 +12,7 @@ impl Plugin for EffectsPlugin {
             .add_plugins((
                 explosions::ExplosionPlugin,
                 wisp_attack::WispAttackEffectPlugin,
+                ripple::RipplePlugin,
             ))
             .add_systems(
             Update, (

@@ -1,4 +1,5 @@
 use bevy::color::palettes::css::{TURQUOISE, WHITE};
+use crate::buildings::tower_emitter::TOWER_EMITTER_BASE_IMAGE;
 use crate::prelude::*;
 use bevy::ui::FocusPolicy;
 use crate::buildings::common::{BuildingType, TowerType};
@@ -120,6 +121,7 @@ impl ConstructObjectButtonBundle {
                         TowerType::Blaster => Some(TOWER_BLASTER_BASE_IMAGE),
                         TowerType::Cannon => Some(TOWER_CANNON_BASE_IMAGE),
                         TowerType::RocketLauncher => Some(TOWER_ROCKET_LAUNCHER_BASE_IMAGE),
+                        TowerType::Emitter => Some(TOWER_EMITTER_BASE_IMAGE),
                     }
                 },
                 BuildingType::MainBase => Some(MAIN_BASE_BASE_IMAGE),
@@ -176,6 +178,7 @@ pub fn create_construct_menu(
                 ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::Blaster).into());
                 ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::Cannon).into());
                 ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::RocketLauncher).into());
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::Emitter).into());
             });
         });
         parent.spawn(

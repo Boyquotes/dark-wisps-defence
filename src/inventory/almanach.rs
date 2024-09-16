@@ -22,6 +22,7 @@ impl Default for Almanach {
             (BuildingType::Tower(TowerType::Blaster), 150),
             (BuildingType::Tower(TowerType::Cannon), 250),
             (BuildingType::Tower(TowerType::RocketLauncher), 350),
+            (BuildingType::Tower(TowerType::Emitter), 450),
         ].into_iter().collect();
 
         Self { building_costs }

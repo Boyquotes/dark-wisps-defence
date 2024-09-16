@@ -3,7 +3,7 @@
 // Wave parameters used in the ripple effect:
 //
 // current_radius (f32):
-// - Normalized radius of the ripple's leading edge (range: 0.0 to 1.0).
+// - Normalized radius of the ripple's leading edge (range: 0.0 to 1.0) over the mesh size.
 // - Calculated as: current_radius_world / max_radius_world.
 // - Controls how far the ripple has expanded.
 //

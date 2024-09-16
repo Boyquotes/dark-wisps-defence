@@ -4,7 +4,7 @@ use bevy::{
     sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle,}
 };
 
-use crate::prelude::*;
+use crate::{grids::wisps::WispsGrid, prelude::*, wisps::components::Wisp};
 
 pub struct RipplePlugin;
 impl Plugin for RipplePlugin {
@@ -14,12 +14,9 @@ impl Plugin for RipplePlugin {
             .add_plugins((
                 Material2dPlugin::<RippleMaterial>::default(),
             ))
-            .add_systems(Startup, (
-                setup,
-            ))
             .add_systems(Update, (
-                update_ripple_system,
-                spawn_random_wisps_effect_system
+                ripple_propagate_system,
+                ripple_hit_system,
             ))
             .add_systems(PostUpdate, (
                 BuilderRipple::spawn_system,
@@ -90,35 +87,7 @@ pub struct Ripple {
     current_radius: f32,
 }
 
-fn setup(
-    mut commands: Commands,
-    mut ripple_materials: ResMut<Assets<RippleMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-) {
-    let ripple_material_handle = ripple_materials.add(RippleMaterial {
-        current_radius: 0.0,
-        wave_width: 0.35,
-        wave_exponent: 0.8,
-    });
-
-    let test_mesh = meshes.add(Circle::new(16. * 4.));
-
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: test_mesh.into(),
-            material: ripple_material_handle,
-            transform: Transform {
-                translation: Vec3::new(80.0, 10.0, 1.0),
-                ..default()
-            },
-            ..default()
-        },
-        Ripple{ max_radius: 16. * 4., current_radius: 0. },
-        Speed(70.0),
-    ));
-}
-
-fn update_ripple_system(
+fn ripple_propagate_system(
     mut commands: Commands,
     time: Res<Time>,
     mut wave_materials: ResMut<Assets<RippleMaterial>>,
@@ -137,14 +106,31 @@ fn update_ripple_system(
     }
 }
 
-fn spawn_random_wisps_effect_system(
-    mut commands: Commands,
-    button_input: Res<ButtonInput<MouseButton>>,
-    mouse_info: Res<crate::mouse::MouseInfo>,
+pub fn ripple_hit_system(
+    wisps_grid: Res<WispsGrid>,
+    ripples: Query<(&Ripple, &Transform)>,
+    mut wisps: Query<(&mut Health, &Transform), With<Wisp>>,
 ) {
-    if button_input.just_released(MouseButton::Left){
-        println!("Spawning");
-        commands.add(BuilderRipple::new(mouse_info.world_position, 16. * 4. * 4.));
+    for (ripple, ripple_transform) in ripples.iter() {
+        // Check all fields covered by the ripple for wisp collisions
+        let starting_grid_coords = GridCoords::from_transform(&ripple_transform);
+        let bounds_range = (ripple.current_radius / CELL_SIZE) as i32;
+        // Make bounds +/-1 since the ripple starts from in-between the grid fields
+        let lower_bound_x = std::cmp::max(0, starting_grid_coords.x - bounds_range - 1);
+        let lower_bound_y = std::cmp::max(0, starting_grid_coords.y - bounds_range - 1);
+        let upper_bound_x = std::cmp::min(wisps_grid.width - 1, starting_grid_coords.x + bounds_range + 1);
+        let upper_bound_y = std::cmp::min(wisps_grid.height - 1, starting_grid_coords.y + bounds_range + 1);
+        for x in lower_bound_x..=upper_bound_x {
+            for y in lower_bound_y..=upper_bound_y {
+                for wisp in &wisps_grid[GridCoords{ x, y }] {
+                    let Ok((mut wisp_health, wisp_transform)) = wisps.get_mut(**wisp) else { continue; };
+                    let distance = wisp_transform.translation.distance(ripple_transform.translation);
+                    // Hit only wisps that are up to 5 units away from the front of the ripple
+                    if distance > ripple.current_radius || distance < ripple.current_radius - 1. { continue; }
+                    wisp_health.decrease(1);
+                }
+            }
+        }
     }
 }
 

@@ -105,14 +105,20 @@ pub fn onclick_building_spawn_system(
 }
 
 pub fn targeting_system(
-    mut tower_cannons: Query<(&GridCoords, &Building, &TechnicalState, &TowerRange, &mut TowerWispTarget), With<MarkerTower>>,
     obstacle_grid: Res<ObstacleGrid>,
     wisps_grid: Res<WispsGrid>,
+    mut tower_cannons: Query<(&GridCoords, &Building, &TechnicalState, &TowerRange, &mut TowerWispTarget), (With<MarkerTower>, Without<Wisp>)>,
+    wisps: Query<&GridCoords, (With<Wisp>, Without<MarkerTower>)>,
 ) {
     for (coords, building, technical_state, range, mut target) in tower_cannons.iter_mut() {
         if !technical_state.has_energy_supply { continue; }
         match *target {
-            TowerWispTarget::Wisp(_) => continue,
+            TowerWispTarget::Wisp(wisp_entity) => {
+                if let Ok(wisp_coords) = wisps.get(*wisp_entity) {
+                    // Check if wisp is still in range. For now we use Manhattan distance to check. This may not be correct for all tower types.
+                    if coords.manhattan_distance(wisp_coords) as usize <= range.0 { continue; }
+                }
+            },
             TowerWispTarget::NoValidTargets(grid_version) => {
                 if grid_version == wisps_grid.version {
                     continue;

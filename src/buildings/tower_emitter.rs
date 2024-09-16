@@ -1,8 +1,11 @@
+use crate::effects::ripple::BuilderRipple;
 use crate::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerRange, TowerShootingTimer};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::wisps::components::Wisp;
+
+use super::common_components::TowerWispTarget;
 
 pub struct TowerEmitterPlugin;
 impl Plugin for TowerEmitterPlugin {
@@ -48,7 +51,8 @@ impl BuilderTowerEmitter {
                 Health(10000),
                 TowerRange(4),
                 Building::from(BuildingType::Tower(TowerType::Emitter)),
-                TowerShootingTimer::from_seconds(1.0),
+                TowerShootingTimer::from_seconds(2.0),
+                TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_EMITTER_GRID_IMPRINT) },
             ));
         }
@@ -74,27 +78,21 @@ pub fn get_tower_emitter_sprite_bundle(asset_server: &AssetServer, coords: GridC
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_emitters: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer), With<MarkerTowerEmitter>>,
-    wisps: Query<(&GridPath, &GridCoords), With<Wisp>>,
+    mut tower_emitters: Query<(&Transform, &TechnicalState, &TowerRange, &mut TowerShootingTimer, &mut TowerWispTarget), With<MarkerTowerEmitter>>,
+    wisps: Query<(), With<Wisp>>,
 ) {
-    // for (transform, technical_state, mut timer, mut target) in tower_emitters.iter_mut() {
-    //     if !technical_state.has_energy_supply { continue; }
-    //     let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
-    //     if !timer.0.finished() { continue; }
+    for (transform, technical_state, range, mut timer, mut target) in tower_emitters.iter_mut() {
+        if !technical_state.has_energy_supply { continue; }
+        let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
+        if !timer.0.finished() { continue; }
 
-    //     let Ok((wisp_grid_path, wisp_coords)) = wisps.get(*target_wisp) else {
-    //         // Target wisp does not exist anymore
-    //         *target = TowerWispTarget::SearchForNewTarget;
-    //         continue;
-    //     };
+        if !wisps.contains(*target_wisp) {
+            // Target wisp does not exist anymore
+            *target = TowerWispTarget::SearchForNewTarget;
+            continue;
+        };
 
-    //     // If wisps has path, target the next path position. Otherwise, target the wisp's current position.
-    //     let target_world_position = wisp_grid_path.next_in_path().map_or(
-    //         wisp_coords.to_world_position_centered(WISP_GRID_IMPRINT),
-    //         |coords| coords.to_world_position_centered(WISP_GRID_IMPRINT)
-    //     );
-
-    //     commands.add(BuilderEmitterball::new(transform.translation.xy(), target_world_position));
-    //     timer.0.reset();
-    // }
+        commands.add(BuilderRipple::new(transform.translation.xy(), range.0 as f32 * CELL_SIZE));
+        timer.0.reset();
+    }
 }

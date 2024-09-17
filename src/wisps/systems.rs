@@ -10,7 +10,7 @@ use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::search::pathfinding::path_find_energy_beckon;
 
-use super::components::{Wisp, WispChargeAttack, WispState};
+use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispState};
 use super::spawning::BuilderWisp;
 
 pub fn move_wisps(
@@ -80,13 +80,25 @@ pub fn wisp_charge_attack(
     mut commands: Commands,
     time: Res<Time>,
     obstacle_grid: Res<ObstacleGrid>,
-    mut wisps: Query<(&mut WispState, &Health, &Speed, &GridPath, &mut Transform, &mut WispChargeAttack, &GridCoords), With<Wisp>>,
+    mut wisps: Query<(&mut WispState, &Health, &Speed, &WispAttackRange, &GridPath, &mut Transform, &mut WispChargeAttack, &GridCoords), With<Wisp>>,
 ) {
-    for (mut wisp_state, health, speed, grid_path, mut transform, mut attack, grid_coords) in wisps.iter_mut() {
+    for (mut wisp_state, health, speed, attack_range, grid_path, mut transform, mut attack, grid_coords) in wisps.iter_mut() {
+        // --- Validation ---
         if health.is_dead() { continue; }
         // First check if moving wisps should switch to attack mode
-        if matches!(*wisp_state, WispState::MovingToTarget) && grid_path.distance() == 1 { *wisp_state = WispState::Attacking; }
+        if matches!(*wisp_state, WispState::MovingToTarget) {
+            // If wisps is at distance 1 to its target, it's always in range
+            if grid_path.distance() == 1 {
+                *wisp_state = WispState::Attacking;
+            } else if let Some(coords_in_range) = grid_path.at_distance(attack_range.0) {
+                // Otherwise, check if the field in the current range is a building
+                if obstacle_grid[coords_in_range].is_building() {
+                    *wisp_state = WispState::Attacking;
+                }
+            }
+        }
         if !matches!(*wisp_state, WispState::Attacking) { continue; }
+        // --- Charge Attack ---
         // Then confirm the target still exists
         let Some(target_coords) = grid_path.next_in_path() else { continue; };
         if !matches!(obstacle_grid[target_coords], Field::Building(_, _)) {

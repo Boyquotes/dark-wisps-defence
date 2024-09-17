@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::usize;
 
 use crate::prelude::*;
 use crate::grids::base::GridVersion;
@@ -45,6 +46,9 @@ impl GridPath {
     }
     pub fn distance(&self) -> usize {
         self.path.len()
+    }
+    pub fn at_distance(&self, index: usize) -> Option<GridCoords> {
+        self.path.get(index).copied()
     }
 }
 

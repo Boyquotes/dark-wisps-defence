@@ -23,3 +23,6 @@ pub enum WispChargeAttack {
     Charge,
     Backoff,
 }
+
+#[derive(Component)]
+pub struct WispAttackRange(pub usize);

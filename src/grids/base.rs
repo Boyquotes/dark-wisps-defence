@@ -38,8 +38,10 @@ impl<FieldType, GridVersionType> BaseGrid<FieldType, GridVersionType> where Fiel
     pub fn resize_and_reset(&mut self, width: i32, height: i32) {
         self.width = width;
         self.height = height;
-        // TODO: reuse existing grid
         self.grid = vec![Default::default(); (width * height) as usize];
+    }
+    pub fn reset(&mut self) {
+        self.grid.fill(Default::default());
     }
     pub fn index(&self, coords: GridCoords) -> usize {
         (coords.y * self.width + coords.x) as usize

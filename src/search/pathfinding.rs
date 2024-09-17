@@ -1,9 +1,14 @@
+use std::cell::RefCell;
 use std::collections::BinaryHeap;
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::visited::TrackingGrid;
 use crate::search::common::{State, ALL_DIRECTIONS};
+
+thread_local! {
+    pub static TRACKING_GRID: RefCell<TrackingGrid> = RefCell::new(TrackingGrid::new_with_size(0, 0));
+}
 
 const EMPTY_FIELD_MODIFIER: f32 = 1.0;
 const BUILDING_FIELD_MODIFIER: f32 = 0.1;
@@ -14,47 +19,52 @@ pub fn path_find_energy_beckon(
     start_coords: GridCoords,
 ) -> Option<Vec<GridCoords>> {
     // BFS to find closest building field
-    // TODO: TrackingGrids could probably be thread-local
-    let mut tracking = TrackingGrid::new_with_size(obstacle_grid.width, obstacle_grid.height);
-    let mut queue = BinaryHeap::new();
-    queue.push(State{ cost: f32::MIN, distance: 0, coords: start_coords });
-    tracking.set_tracked(start_coords, start_coords);
-    while let Some(State{ distance, coords, .. }) = queue.pop() {
-        for (delta_x, delta_y) in ALL_DIRECTIONS {
-            let new_coords = coords.shifted((delta_x, delta_y));
-            if !new_coords.is_in_bounds(obstacle_grid.bounds())
-                || tracking.is_tracked(new_coords)
-                || obstacle_grid[new_coords].is_wall()
-            {
-                continue;
-            }
-
-            // If it is a diagonal move it shall be allowed only if both adjacent fields are empty
-            if delta_x.abs() == delta_y.abs() {
-                let adjacent_x = (coords.x + delta_x, coords.y).into();
-                let adjacent_y = (coords.x, coords.y + delta_y).into();
-                if !obstacle_grid[adjacent_x].is_empty() || !obstacle_grid[adjacent_y].is_empty() {
+    TRACKING_GRID.with_borrow_mut(|tracking| {
+        if tracking.bounds() != obstacle_grid.bounds() {
+            tracking.resize_and_reset(obstacle_grid.width, obstacle_grid.height);
+        } else {
+            tracking.reset();
+        }
+        let mut queue = BinaryHeap::new();
+        queue.push(State{ cost: f32::MIN, distance: 0, coords: start_coords });
+        tracking.set_tracked(start_coords, start_coords);
+        while let Some(State{ distance, coords, .. }) = queue.pop() {
+            for (delta_x, delta_y) in ALL_DIRECTIONS {
+                let new_coords = coords.shifted((delta_x, delta_y));
+                if !new_coords.is_in_bounds(obstacle_grid.bounds())
+                    || tracking.is_tracked(new_coords)
+                    || obstacle_grid[new_coords].is_wall()
+                {
                     continue;
                 }
-            }
 
-            tracking.set_tracked(new_coords, coords);
-            let new_distance = distance + 1;
-            let new_cost = match obstacle_grid[new_coords] {
-                Field::Building(_, building_type) => {
-                    if building_type.is_energy_rich() {
-                        // Compile the path by backtracking
-                        return Some(tracking.compile_path(new_coords, start_coords));
-                    } else {
-                        -emissions_grid[new_coords].energy * BUILDING_FIELD_MODIFIER + new_distance as f32
+                // If it is a diagonal move it shall be allowed only if both adjacent fields are empty
+                if delta_x.abs() == delta_y.abs() {
+                    let adjacent_x = (coords.x + delta_x, coords.y).into();
+                    let adjacent_y = (coords.x, coords.y + delta_y).into();
+                    if !obstacle_grid[adjacent_x].is_empty() || !obstacle_grid[adjacent_y].is_empty() {
+                        continue;
                     }
                 }
-                _ => {
-                    -emissions_grid[new_coords].energy * EMPTY_FIELD_MODIFIER + new_distance as f32
-                },
-            };
-            queue.push(State { cost: new_cost, distance: new_distance, coords: new_coords });
+
+                tracking.set_tracked(new_coords, coords);
+                let new_distance = distance + 1;
+                let new_cost = match obstacle_grid[new_coords] {
+                    Field::Building(_, building_type) => {
+                        if building_type.is_energy_rich() {
+                            // Compile the path by backtracking
+                            return Some(tracking.compile_path(new_coords, start_coords));
+                        } else {
+                            -emissions_grid[new_coords].energy * BUILDING_FIELD_MODIFIER + new_distance as f32
+                        }
+                    }
+                    _ => {
+                        -emissions_grid[new_coords].energy * EMPTY_FIELD_MODIFIER + new_distance as f32
+                    },
+                };
+                queue.push(State { cost: new_cost, distance: new_distance, coords: new_coords });
+            }
         }
-    }
-    None
+        None
+    })
 }

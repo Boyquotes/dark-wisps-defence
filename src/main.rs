@@ -25,8 +25,6 @@ use crate::grids::obstacles::ObstacleGrid;
 use crate::map_editor::MapInfo;
 
 fn main() {
-    let mut grid = ObstacleGrid::new_empty();
-    grid.resize_and_reset(10, 10);
     App::new()
         .insert_resource(ClearColor(Color::srgb_u8(30, 31, 34)))
         .add_plugins((

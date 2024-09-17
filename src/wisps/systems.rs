@@ -48,7 +48,7 @@ pub fn target_wisps(
     wisps_query.par_iter_mut().for_each(|(mut wisp_state, mut grid_path, grid_coords)| {
         // Retarget is needed when grid has changed or there is no target yet.
         let is_path_outdated = matches!(*wisp_state, WispState::MovingToTarget) && grid_path.grid_version != obstacle_grid.version;
-        let need_retarget = is_path_outdated || matches!(*wisp_state, WispState::NeedTarget | WispState::JustSpawned) || matches!(*wisp_state, WispState::Stranded(ref grid_version) if grid_path.grid_version != *grid_version);
+        let need_retarget = is_path_outdated || matches!(*wisp_state, WispState::NeedTarget | WispState::JustSpawned) || matches!(*wisp_state, WispState::Stranded(ref grid_version) if obstacle_grid.version != *grid_version);
         if !need_retarget { return; }
 
         if let Some(path) = path_find_energy_beckon(&obstacle_grid, &emissions_grid, *grid_coords) {
@@ -80,7 +80,8 @@ pub fn wisp_charge_attack(
     mut commands: Commands,
     time: Res<Time>,
     obstacle_grid: Res<ObstacleGrid>,
-    mut wisps: Query<(&mut WispState, &Health, &Speed, &WispAttackRange, &GridPath, &mut Transform, &mut WispChargeAttack, &GridCoords), With<Wisp>>,
+    mut wisps: Query<(&mut WispState, &Health, &Speed, &WispAttackRange, &GridPath, &mut Transform, &mut WispChargeAttack, &GridCoords), (With<Wisp>, Without<Building>)>,
+    mut buildings: Query<&mut Health, (With<Building>, Without<Wisp>)>,
 ) {
     for (mut wisp_state, health, speed, attack_range, grid_path, mut transform, mut attack, grid_coords) in wisps.iter_mut() {
         // --- Validation ---
@@ -98,13 +99,18 @@ pub fn wisp_charge_attack(
             }
         }
         if !matches!(*wisp_state, WispState::Attacking) { continue; }
-        // --- Charge Attack ---
         // Then confirm the target still exists
-        let Some(target_coords) = grid_path.next_in_path() else { continue; };
-        if !matches!(obstacle_grid[target_coords], Field::Building(_, _)) {
-            *wisp_state = WispState::NeedTarget;
+        let Some(target_coords) = grid_path.at_distance(attack_range.0) else { continue; };
+        let Field::Building(target_entity, _ ) = obstacle_grid[target_coords] else {
+            // If not, then either find new target if we were already at our itended target, or continue moving if we were stopped by an obstacle
+            if grid_path.distance() <= attack_range.0 {
+                *wisp_state = WispState::NeedTarget;
+            } else {
+                *wisp_state = WispState::MovingToTarget;
+            }
             continue; 
-        }
+        };
+        // --- Charge Attack ---
         // Then execute the attack
         match *attack {
             WispChargeAttack::Charge => {
@@ -117,7 +123,11 @@ pub fn wisp_charge_attack(
                 transform.translation += Vec3::new(sx * time.delta_seconds() * wisp_speed, sy * time.delta_seconds() * wisp_speed, 0.);
                 if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
                     *attack = WispChargeAttack::Backoff;
-                    commands.add(BuilderWispAttackEffect::new(transform.translation.xy()))
+                    commands.add(BuilderWispAttackEffect::new(transform.translation.xy()));
+                    // Deal damage to the building
+                    let _ = buildings.get_mut(target_entity).map(|mut health| {
+                        health.decrease(1);
+                    });
                 }
             },
             WispChargeAttack::Backoff => {

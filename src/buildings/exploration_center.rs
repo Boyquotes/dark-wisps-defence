@@ -48,7 +48,7 @@ impl BuilderExplorationCenter {
                 get_exploration_center_sprite_bundle(&asset_server, grid_position),
                 MarkerExplorationCenter,
                 grid_position,
-                Health(10000),
+                Health(100),
                 Building::from(BuildingType::ExplorationCenter),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, EXPLORATION_CENTER_GRID_IMPRINT) },
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),

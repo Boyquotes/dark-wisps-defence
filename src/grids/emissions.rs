@@ -42,7 +42,8 @@ impl EmissionsGrid {
     pub fn reset_energy_emissions(&mut self) {
         self.grid.iter_mut().for_each(|emissions| {
             emissions.energy = 0.;
-        })
+        });
+        self.version.energy = self.version.energy.wrapping_add(1);
     }
     pub fn imprint_into_heatmap(&self, heatmap: &mut Vec<u8>, emissions_type: EmissionsType) {
         let (min_emission, max_emission) = match emissions_type {

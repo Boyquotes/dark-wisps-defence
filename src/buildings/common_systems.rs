@@ -1,4 +1,6 @@
 use crate::buildings::tower_emitter::BuilderTowerEmitter;
+use crate::effects::explosions::BuilderExplosion;
+use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterEnergy};
 use crate::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
@@ -10,12 +12,13 @@ use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::grids::base::GridVersion;
-use crate::grids::energy_supply::{EnergySupplyGrid, SupplierEnergy};
+use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, SupplierEnergy};
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::inventory::almanach::Almanach;
 use crate::inventory::resources::DarkOreStock;
 use crate::mouse::MouseInfo;
+use crate::search::flooding::FloodEnergySupplyMode;
 use crate::search::targetfinding::target_find_closest_wisp;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 use crate::utils::math::angle_difference;
@@ -156,6 +159,34 @@ pub fn check_energy_supply_system(
     *current_energy_supply_grid_version = energy_supply_grid.version;
     for (building, grid_coords, mut technical_state) in buildings.iter_mut() {
         technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(*grid_coords, building.grid_imprint);
+    }
+}
+
+pub fn damage_control_system(
+    mut commands: Commands,
+    mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    mut obstacle_grid: ResMut<ObstacleGrid>,
+    mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
+    buildings: Query<(Entity, &Health, &Building, &GridCoords, Has<EmitterEnergy>, Option<&SupplierEnergy>)>,
+) {
+    for (entity, health, building, grid_coords, has_emitter_energy, maybe_supplier_energy) in buildings.iter() {
+        if health.is_dead() {
+            commands.entity(entity).despawn_recursive();
+            obstacle_grid.deprint(*grid_coords, building.grid_imprint);
+            if has_emitter_energy {
+                emissions_energy_recalculate_all.0 = true;
+            }
+            if let Some(suplier_energy) = maybe_supplier_energy {
+                supplier_created_event_writer.send(SupplierChangedEvent {
+                    supplier: suplier_energy.clone(),
+                    coords: building.grid_imprint.covered_coords(*grid_coords),
+                    mode: FloodEnergySupplyMode::Decrease,
+                });
+            }
+            building.grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
+                commands.add(BuilderExplosion::new(coords));
+            })
+        }
     }
 }
 

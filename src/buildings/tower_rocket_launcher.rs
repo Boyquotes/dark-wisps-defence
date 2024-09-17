@@ -47,7 +47,7 @@ impl BuilderTowerRocketLauncher {
                 MarkerTower,
                 MarkerTowerRocketLauncher,
                 grid_position,
-                Health(10000),
+                Health(100),
                 TowerRange(30),
                 Building::from(BuildingType::Tower(TowerType::RocketLauncher)),
                 TowerShootingTimer::from_seconds(2.0),

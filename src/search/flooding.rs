@@ -25,6 +25,16 @@ pub struct FloodEmissionsDetails {
     pub evaluator: FloodEmissionsEvaluator,
     pub mode: FloodEmissionsMode,
 }
+impl FloodEmissionsDetails {
+    pub fn cloned_with_reversed_mode(&self) -> Self {
+        let mut clone = self.clone();
+        clone.mode = match self.mode {
+            FloodEmissionsMode::Increase => FloodEmissionsMode::Decrease,
+            FloodEmissionsMode::Decrease => FloodEmissionsMode::Increase,
+        };
+        clone
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 pub enum FloodEmissionsMode {

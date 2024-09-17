@@ -48,7 +48,7 @@ impl GridPath {
         self.path.len()
     }
     pub fn at_distance(&self, index: usize) -> Option<GridCoords> {
-        self.path.get(index).copied()
+        self.path.get(index - 1).copied()
     }
 }
 

@@ -47,7 +47,7 @@ impl BuilderMiningComplex {
                 get_mining_complex_sprite_bundle(&asset_server, grid_position),
                 MarkerMiningComplex,
                 grid_position,
-                Health(10000),
+                Health(100),
                 Building::from(BuildingType::MiningComplex),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, MINING_COMPLEX_GRID_IMPRINT) },
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),

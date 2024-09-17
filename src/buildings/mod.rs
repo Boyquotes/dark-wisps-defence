@@ -35,6 +35,7 @@ impl Plugin for BuildingsPlugin {
                     common_systems::targeting_system,
                     common_systems::rotate_tower_top_system,
                     common_systems::rotational_aiming_system,
+                    common_systems::damage_control_system,
                 )
             );
     }

@@ -48,7 +48,7 @@ impl BuilderTowerEmitter {
                 MarkerTower,
                 MarkerTowerEmitter,
                 grid_position,
-                Health(10000),
+                Health(100),
                 TowerRange(4),
                 Building::from(BuildingType::Tower(TowerType::Emitter)),
                 TowerShootingTimer::from_seconds(2.0),

@@ -51,7 +51,7 @@ impl BuilderEnergyRelay {
                 get_energy_relay_sprite_bundle(grid_position, &asset_server),
                 MarkerEnergyRelay,
                 grid_position,
-                Health(10000),
+                Health(100),
                 Building::from(BuildingType::EnergyRelay),
                 EmitterEnergy(emmision_details.clone()),
                 supplier_energy.clone(),

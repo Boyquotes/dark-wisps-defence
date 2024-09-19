@@ -12,6 +12,11 @@ pub mod exploration_center;
 
 use crate::prelude::*;
 
+pub mod prelude {
+    pub use super::common_components::*;
+    pub use super::common::*;
+}
+
 pub struct BuildingsPlugin;
 impl Plugin for BuildingsPlugin {
     fn build(&self, app: &mut App) {

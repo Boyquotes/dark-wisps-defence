@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::grids::common::GridCoords;
+use crate::prelude::*;
 use crate::grids::emissions::{EmissionsGrid, EmissionsType};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};

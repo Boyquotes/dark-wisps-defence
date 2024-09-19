@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, TechnicalState};
 use crate::grids::emissions::{EmissionsType, EmitterChangedEvent, EmitterEnergy};
 use crate::grids::energy_supply::{SupplierChangedEvent, SupplierEnergy};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode, FloodEnergySupplyMode};
@@ -67,7 +65,9 @@ impl BuilderMainBase {
                 MarkerMainBase,
                 grid_position,
                 Health(10000),
-                Building::from(BuildingType::MainBase),
+                Building,
+                BuildingType::MainBase,
+                MAIN_BASE_GRID_IMPRINT,
                 emitter_energy,
                 supplier_energy,
                 TechnicalState { has_energy_supply: true },

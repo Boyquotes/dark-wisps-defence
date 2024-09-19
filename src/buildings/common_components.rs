@@ -1,17 +1,39 @@
 use std::time::Duration;
+use serde::{Deserialize, Serialize};
 use crate::prelude::*;
-use crate::buildings::common::{BuildingId, BuildingType};
 use crate::grids::base::GridVersion;
 use crate::wisps::components::WispEntity;
 
 #[derive(Component, Clone, Debug)]
-pub struct Building {
-    pub grid_imprint: GridImprint,
-    pub building_type: BuildingType,
+pub struct Building;
+
+#[derive(Component, Copy, Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash)]
+pub enum BuildingType {
+    EnergyRelay,
+    MainBase,
+    Tower(TowerType),
+    MiningComplex,
+    ExplorationCenter,
 }
-impl From<BuildingType> for Building {
-    fn from(building_type: BuildingType) -> Building {
-        Building { building_type, grid_imprint: building_type.grid_imprint() }
+impl BuildingType {
+    pub fn is_energy_rich(&self) -> bool {
+        matches!(self, BuildingType::MainBase | BuildingType::EnergyRelay)
+    }
+    pub fn grid_imprint(&self) -> GridImprint {
+        match self {
+            BuildingType::EnergyRelay => super::energy_relay::ENERGY_RELAY_GRID_IMPRINT,
+            BuildingType::MainBase => super::main_base::MAIN_BASE_GRID_IMPRINT,
+            BuildingType::Tower(tower_type) => {
+                match tower_type {
+                    TowerType::Blaster => super::tower_blaster::TOWER_BLASTER_GRID_IMPRINT,
+                    TowerType::Cannon => super::tower_cannon::TOWER_CANNON_GRID_IMPRINT,
+                    TowerType::RocketLauncher => super::tower_rocket_launcher::TOWER_ROCKET_LAUNCHER_GRID_IMPRINT,
+                    TowerType::Emitter => super::tower_emitter::TOWER_EMITTER_GRID_IMPRINT,
+                }
+            },
+            BuildingType::MiningComplex => super::mining_complex::MINING_COMPLEX_GRID_IMPRINT,
+            BuildingType::ExplorationCenter => super::exploration_center::EXPLORATION_CENTER_GRID_IMPRINT,
+        }
     }
 }
 

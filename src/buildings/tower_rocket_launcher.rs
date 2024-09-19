@@ -1,8 +1,5 @@
 use crate::prelude::*;
 use bevy::sprite::Anchor;
-use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
-use crate::buildings::tower_blaster::TOWER_BLASTER_GRID_IMPRINT;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::projectiles::rocket::BuilderRocket;
 use crate::utils::math::angle_difference;
@@ -49,7 +46,9 @@ impl BuilderTowerRocketLauncher {
                 grid_position,
                 Health(100),
                 TowerRange(30),
-                Building::from(BuildingType::Tower(TowerType::RocketLauncher)),
+                Building,
+                BuildingType::Tower(TowerType::RocketLauncher),
+                TOWER_ROCKET_LAUNCHER_GRID_IMPRINT,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_ROCKET_LAUNCHER_GRID_IMPRINT) },
@@ -115,7 +114,7 @@ pub fn shooting_system(
         if angle_difference(target_angle, top_rotation.current_angle).abs() > std::f32::consts::PI / 72. { continue; }
 
         // Calculate transform offset in the direction we are aiming
-        let tower_world_width = TOWER_BLASTER_GRID_IMPRINT.world_size().x;
+        let tower_world_width = TOWER_ROCKET_LAUNCHER_GRID_IMPRINT.world_size().x;
         let offset = Vec2::new(
             top_rotation.current_angle.cos() * tower_world_width * 0.4,
             top_rotation.current_angle.sin() * tower_world_width * 0.4,

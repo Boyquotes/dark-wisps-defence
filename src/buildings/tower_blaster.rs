@@ -1,7 +1,5 @@
 use bevy::math::Vec3Swizzles;
 use crate::prelude::*;
-use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, MarkerTower, TowerWispTarget, TowerShootingTimer, TechnicalState, TowerRange, TowerTopRotation, MarkerTowerRotationalTop};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::projectiles::laser_dart::BuilderLaserDart;
 use crate::utils::math::angle_difference;
@@ -51,7 +49,9 @@ impl BuilderTowerBlaster {
                 grid_position,
                 Health(100),
                 TowerRange(15),
-                Building::from(BuildingType::Tower(TowerType::Blaster)),
+                Building,
+                BuildingType::Tower(TowerType::Blaster),
+                TOWER_BLASTER_GRID_IMPRINT,
                 TowerShootingTimer::from_seconds(0.2),
                 TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_BLASTER_GRID_IMPRINT) },

@@ -1,7 +1,5 @@
 use crate::effects::ripple::BuilderRipple;
 use crate::prelude::*;
-use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, MarkerTower, TechnicalState, TowerRange, TowerShootingTimer};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::wisps::components::Wisp;
 
@@ -50,7 +48,9 @@ impl BuilderTowerEmitter {
                 grid_position,
                 Health(100),
                 TowerRange(4),
-                Building::from(BuildingType::Tower(TowerType::Emitter)),
+                Building,
+                BuildingType::Tower(TowerType::Emitter),
+                TOWER_EMITTER_GRID_IMPRINT,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_EMITTER_GRID_IMPRINT) },

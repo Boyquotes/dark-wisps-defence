@@ -1,9 +1,6 @@
 use bevy::color::palettes::css::PURPLE;
-use crate::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
-use crate::common::Z_WISP;
-use crate::common_components::Health;
-use crate::grids::common::{GridCoords, GridImprint};
+use crate::prelude::*;
 use crate::wisps::components::Wisp;
 
 use super::components::{WispAttackRange, WispChargeAttack, WispState};

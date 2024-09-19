@@ -2,7 +2,6 @@ use bevy::color::palettes::css::{TURQUOISE, WHITE};
 use crate::buildings::tower_emitter::TOWER_EMITTER_BASE_IMAGE;
 use crate::prelude::*;
 use bevy::ui::FocusPolicy;
-use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::energy_relay::ENERGY_RELAY_BASE_IMAGE;
 use crate::buildings::exploration_center::EXPLORATION_CENTER_BASE_IMAGE;
 use crate::buildings::main_base::MAIN_BASE_BASE_IMAGE;
@@ -114,7 +113,7 @@ impl ConstructObjectButtonBundle {
     }
     pub fn spawn(builder: &mut ChildBuilder, asset_server: &AssetServer, grid_object_placer: GridObjectPlacer) {
         let image_handle = match &grid_object_placer {
-            GridObjectPlacer::Building(building) => match building.building_type {
+            GridObjectPlacer::Building(building_type) => match building_type {
                 BuildingType::Tower(tower_type) => {
                     match tower_type {
                         TowerType::Blaster => Some(TOWER_BLASTER_BASE_IMAGE),

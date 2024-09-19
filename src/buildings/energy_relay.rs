@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, TechnicalState};
 use crate::grids::emissions::{EmissionsType, EmitterChangedEvent, EmitterEnergy};
 use crate::grids::energy_supply::{SupplierChangedEvent, SupplierEnergy};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode, FloodEnergySupplyMode};
@@ -19,9 +17,6 @@ impl Plugin for EnergyRelayPlugin {
 
 pub const ENERGY_RELAY_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 2, height: 2 };
 pub const ENERGY_RELAY_BASE_IMAGE: &str = "buildings/energy_relay.png";
-
-#[derive(Component)]
-pub struct MarkerEnergyRelay;
 
 #[derive(Event)]
 pub struct BuilderEnergyRelay {
@@ -49,10 +44,11 @@ impl BuilderEnergyRelay {
             let supplier_energy = SupplierEnergy { range: 15 };
             commands.entity(entity).insert((
                 get_energy_relay_sprite_bundle(grid_position, &asset_server),
-                MarkerEnergyRelay,
                 grid_position,
                 Health(100),
-                Building::from(BuildingType::EnergyRelay),
+                Building,
+                BuildingType::EnergyRelay,
+                ENERGY_RELAY_GRID_IMPRINT,
                 EmitterEnergy(emmision_details.clone()),
                 supplier_energy.clone(),
                 TechnicalState{ has_energy_supply: true },

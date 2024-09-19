@@ -1,14 +1,12 @@
-use crate::buildings::tower_emitter::BuilderTowerEmitter;
 use crate::effects::explosions::BuilderExplosion;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterEnergy};
 use crate::prelude::*;
-use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRotationalTop, TechnicalState, TowerRange, TowerShootingTimer, TowerTopRotation, TowerWispTarget};
 use crate::buildings::energy_relay::BuilderEnergyRelay;
 use crate::buildings::exploration_center::BuilderExplorationCenter;
 use crate::buildings::main_base::{EventMoveMainBase, MarkerMainBase};
 use crate::buildings::mining_complex::BuilderMiningComplex;
 use crate::buildings::tower_blaster::BuilderTowerBlaster;
+use crate::buildings::tower_emitter::BuilderTowerEmitter;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::grids::base::GridVersion;
@@ -31,17 +29,18 @@ pub fn onclick_building_spawn_system(
     mouse_info: Res<MouseInfo>,
     almanach: Res<Almanach>,
     mut dark_ore_stock: ResMut<DarkOreStock>,
-    grid_object_placer: Query<&GridObjectPlacer>,
+    grid_object_placer: Query<(&GridObjectPlacer, &GridImprint)>,
     mut main_base: Query<(Entity, &GridCoords), With<MarkerMainBase>>,
 ) {
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
-    match &*grid_object_placer.single() {
-        GridObjectPlacer::Building(building) => {
+    let (grid_object_placer, grid_imprint) = grid_object_placer.single();
+    match &*grid_object_placer {
+        GridObjectPlacer::Building(building_type) => {
             // Grid Placement Validation
-            if !obstacle_grid.query_building_placement(mouse_coords, building.building_type, building.grid_imprint) { return; }
+            if !obstacle_grid.query_building_placement(mouse_coords, *building_type, *grid_imprint) { return; }
             // Payment
-            let dark_ore_price = almanach.get_building_cost(building.building_type);
+            let dark_ore_price = almanach.get_building_cost(*building_type);
             if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
             dark_ore_stock.amount -= dark_ore_price;
             // Creation
@@ -52,7 +51,7 @@ pub fn onclick_building_spawn_system(
                 Reprint{entity: Entity, old_coords: GridCoords},
             }
             // ---
-            let grid_action = match building.building_type {
+            let grid_action = match building_type {
                 BuildingType::EnergyRelay => {
                     let entity = commands.spawn_empty().id();
                     commands.add(BuilderEnergyRelay::new(entity, mouse_coords));
@@ -95,9 +94,11 @@ pub fn onclick_building_spawn_system(
                 },
             };
             match grid_action {
-                GridAction::Imprint(entity) => obstacle_grid.imprint(mouse_coords, Field::Building(entity, building.building_type, default()), building.grid_imprint),
-                GridAction::ImprintMiningComplex(entity) => obstacle_grid.imprint_mining_complex(mouse_coords, entity, building.grid_imprint),
-                GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint(old_coords, mouse_coords, Field::Building(entity, building.building_type, default()), building.grid_imprint),
+                GridAction::Imprint(entity) => obstacle_grid.imprint(mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint),
+                GridAction::ImprintMiningComplex(entity) => obstacle_grid.imprint_mining_complex(mouse_coords, entity, *grid_imprint),
+                GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint(
+                    old_coords, mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint
+                ),
             }
         }
         _ => { return; }
@@ -107,10 +108,10 @@ pub fn onclick_building_spawn_system(
 pub fn targeting_system(
     obstacle_grid: Res<ObstacleGrid>,
     wisps_grid: Res<WispsGrid>,
-    mut tower_cannons: Query<(&GridCoords, &Building, &TechnicalState, &TowerRange, &mut TowerWispTarget), (With<MarkerTower>, Without<Wisp>)>,
+    mut towers: Query<(&GridCoords, &GridImprint, &TechnicalState, &TowerRange, &mut TowerWispTarget), (With<MarkerTower>, Without<Wisp>)>,
     wisps: Query<&GridCoords, (With<Wisp>, Without<MarkerTower>)>,
 ) {
-    for (coords, building, technical_state, range, mut target) in tower_cannons.iter_mut() {
+    for (coords, grid_imprint, technical_state, range, mut target) in towers.iter_mut() {
         if !technical_state.has_energy_supply { continue; }
         match *target {
             TowerWispTarget::Wisp(wisp_entity) => {
@@ -129,7 +130,7 @@ pub fn targeting_system(
         if let Some((_a, target_wisp)) = target_find_closest_wisp(
             &obstacle_grid,
             &wisps_grid,
-            building.grid_imprint.covered_coords(*coords),
+            grid_imprint.covered_coords(*coords),
             range.0,
             true,
         ) {
@@ -150,12 +151,12 @@ pub fn tick_shooting_timers_system(
 pub fn check_energy_supply_system(
     mut current_energy_supply_grid_version: Local<GridVersion>,
     energy_supply_grid: Res<EnergySupplyGrid>,
-    mut buildings: Query<(&Building, &GridCoords, &mut TechnicalState), Without<SupplierEnergy>>
+    mut buildings: Query<(&GridImprint, &GridCoords, &mut TechnicalState), (With<Building>, Without<SupplierEnergy>)>
 ) {
     if *current_energy_supply_grid_version == energy_supply_grid.version { return; }
     *current_energy_supply_grid_version = energy_supply_grid.version;
-    for (building, grid_coords, mut technical_state) in buildings.iter_mut() {
-        technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(*grid_coords, building.grid_imprint);
+    for (grid_imprint, grid_coords, mut technical_state) in buildings.iter_mut() {
+        technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(*grid_coords, *grid_imprint);
     }
 }
 
@@ -164,23 +165,23 @@ pub fn damage_control_system(
     mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
-    buildings: Query<(Entity, &Health, &Building, &GridCoords, Has<EmitterEnergy>, Option<&SupplierEnergy>)>,
+    buildings: Query<(Entity, &Health, &GridImprint, &GridCoords, Has<EmitterEnergy>, Option<&SupplierEnergy>), With<Building>>,
 ) {
-    for (entity, health, building, grid_coords, has_emitter_energy, maybe_supplier_energy) in buildings.iter() {
+    for (entity, health, grid_imprint, grid_coords, has_emitter_energy, maybe_supplier_energy) in buildings.iter() {
         if health.is_dead() {
             commands.entity(entity).despawn_recursive();
-            obstacle_grid.deprint(*grid_coords, building.grid_imprint);
+            obstacle_grid.deprint(*grid_coords, *grid_imprint);
             if has_emitter_energy {
                 emissions_energy_recalculate_all.0 = true;
             }
             if let Some(suplier_energy) = maybe_supplier_energy {
                 supplier_created_event_writer.send(SupplierChangedEvent {
                     supplier: suplier_energy.clone(),
-                    coords: building.grid_imprint.covered_coords(*grid_coords),
+                    coords: grid_imprint.covered_coords(*grid_coords),
                     mode: FloodEnergySupplyMode::Decrease,
                 });
             }
-            building.grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
+            grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
                 commands.add(BuilderExplosion::new(coords));
             })
         }

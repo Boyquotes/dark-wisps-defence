@@ -1,9 +1,6 @@
 use std::collections::VecDeque;
-use std::usize;
-
 use crate::prelude::*;
 use crate::grids::base::GridVersion;
-use crate::grids::common::GridCoords;
 
 pub mod prelude {
     pub use super::*;

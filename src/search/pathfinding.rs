@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::collections::BinaryHeap;
-use crate::grids::common::GridCoords;
+use crate::prelude::*;
 use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::visited::TrackingGrid;

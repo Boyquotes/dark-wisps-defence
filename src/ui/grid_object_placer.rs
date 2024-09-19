@@ -1,7 +1,4 @@
 use crate::prelude::*;
-use crate::buildings::common::{BuildingType, TowerType};
-use crate::buildings::common_components::Building;
-use crate::grids::common::GridImprint;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::dark_ore::DARK_ORE_GRID_IMPRINT;
@@ -10,19 +7,42 @@ use crate::map_objects::walls::WALL_GRID_IMPRINT;
 use crate::mouse::MouseInfo;
 use crate::ui::interaction_state::UiInteractionState;
 
+pub struct GridObjectPlacerPlugin;
+impl Plugin for GridObjectPlacerPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .insert_resource(GridObjectPlacerRequest::default())
+            .add_systems(Startup, (
+                create_grid_object_placer_system,
+            ))
+            .add_systems(PreUpdate, (
+                keyboard_input_system,
+            ))
+            .add_systems(Update, (
+                update_grid_object_placer_system,
+                on_request_grid_object_placer_system.run_if(GridObjectPlacerRequest::there_is_request()),
+            ));
+    }
+}
+
 
 #[derive(Resource, Default)]
 pub struct GridObjectPlacerRequest(Option<GridObjectPlacer>);
 impl GridObjectPlacerRequest {
+    pub fn is_set(&self) -> bool { self.0.is_some() }
     pub fn set(&mut self, request: GridObjectPlacer) { self.0 = Some(request); }
     pub fn take(&mut self) -> Option<GridObjectPlacer> { self.0.take() }
+
+    pub fn there_is_request() -> fn(Res<GridObjectPlacerRequest>) -> bool {
+        |placer_request: Res<GridObjectPlacerRequest>| placer_request.is_set()
+    }
 }
 
 #[derive(Component, Default, Clone, Debug)]
 pub enum GridObjectPlacer {
     #[default]
     None,
-    Building(Building),
+    Building(BuildingType),
     Wall,
     DarkOre,
     QuantumField(QuantumField),
@@ -30,7 +50,7 @@ pub enum GridObjectPlacer {
 impl GridObjectPlacer {
     pub fn as_grid_imprint(&self) -> GridImprint {
         match self {
-            GridObjectPlacer::Building(building) => building.grid_imprint,
+            GridObjectPlacer::Building(building_type) => building_type.grid_imprint(),
             GridObjectPlacer::Wall => WALL_GRID_IMPRINT,
             GridObjectPlacer::DarkOre => DARK_ORE_GRID_IMPRINT,
             GridObjectPlacer::QuantumField(quantum_field) => quantum_field.grid_imprint,
@@ -41,14 +61,15 @@ impl GridObjectPlacer {
 
 impl From<BuildingType> for GridObjectPlacer {
     fn from(building_type: BuildingType) -> Self {
-        GridObjectPlacer::Building(building_type.into())
+        GridObjectPlacer::Building(building_type)
     }
 }
 
 pub fn create_grid_object_placer_system(mut commands: Commands) {
     commands.spawn((
         GridObjectPlacer::default(),
-        SpriteBundle::default()
+        GridImprint::default(),
+        SpriteBundle::default(),
     ));
 }
 
@@ -57,9 +78,9 @@ pub fn update_grid_object_placer_system(
     energy_supply_grid: Res<EnergySupplyGrid>,
     ui_interaction_state: Res<UiInteractionState>,
     mouse_info: Res<MouseInfo>,
-    mut placer: Query<(&mut Transform, &mut Sprite, &mut Visibility, &mut GridObjectPlacer)>,
+    mut placer: Query<(&mut Transform, &mut Sprite, &mut Visibility, &mut GridObjectPlacer, &GridImprint)>,
 ) {
-    let (mut transform, mut sprite, mut visibility, mut grid_object_placer) = placer.single_mut();
+    let (mut transform, mut sprite, mut visibility, mut grid_object_placer, grid_imprint) = placer.single_mut();
     match *ui_interaction_state {
         UiInteractionState::PlaceGridObject => {}
         _ => {
@@ -71,22 +92,21 @@ pub fn update_grid_object_placer_system(
     transform.translation = mouse_info.grid_coords.to_world_position().extend(10.);
     let is_imprint_placable = match &*grid_object_placer {
         GridObjectPlacer::None => false,
-        GridObjectPlacer::Building(building) => {//TODO: Make GridObjectPlacer just have GridImprint component
-            transform.translation += building.grid_imprint.world_center().extend(0.);
-            obstacle_grid.query_building_placement(mouse_info.grid_coords, building.building_type, building.grid_imprint)
+        GridObjectPlacer::Building(building_type) => {
+            transform.translation += grid_imprint.world_center().extend(0.);
+            obstacle_grid.query_building_placement(mouse_info.grid_coords, *building_type, *grid_imprint)
         },
-        placed => {
-            let imprint = placed.as_grid_imprint(); //TODO: Make GridObjectPlacer just have GridImprint component
-            transform.translation += imprint.world_center().extend(0.);
-            obstacle_grid.imprint_query_all(mouse_info.grid_coords, imprint, |field| field.is_empty())
+        _ => {
+            transform.translation += grid_imprint.world_center().extend(0.);
+            obstacle_grid.imprint_query_all(mouse_info.grid_coords, *grid_imprint, |field| field.is_empty())
         }
     };
 
     let (needs_energy_supply, is_imprint_suppliable) = match &*grid_object_placer {
-        GridObjectPlacer::Building(building) => match building.building_type {
+        GridObjectPlacer::Building(building_type) => match building_type {
             BuildingType::MainBase | BuildingType::EnergyRelay => (false, false),
             _ => {
-                (true, energy_supply_grid.is_imprint_suppliable(mouse_info.grid_coords, building.grid_imprint))
+                (true, energy_supply_grid.is_imprint_suppliable(mouse_info.grid_coords, *grid_imprint))
             },
         },
         _ => (false, false)
@@ -135,19 +155,22 @@ pub fn keyboard_input_system(
 
 pub fn on_request_grid_object_placer_system(
     mut ui_interaction_state: ResMut<UiInteractionState>,
-    mut placer: Query<(&mut Sprite, &mut Visibility, &mut GridObjectPlacer)>,
+    mut placer: Query<(&mut Sprite, &mut Visibility, &mut GridObjectPlacer, &mut GridImprint)>,
     mut placer_request: ResMut<GridObjectPlacerRequest>,
 ) {
     let Some(placer_request) = placer_request.take() else { return; };
     if !matches!(*ui_interaction_state, UiInteractionState::Free | UiInteractionState::PlaceGridObject) {
         return;
     }
-    let (mut sprite, mut visibility, mut grid_object_placer) = placer.single_mut();
+    let (mut sprite, mut visibility, mut grid_object_placer, mut grid_imprint) = placer.single_mut();
     *ui_interaction_state = UiInteractionState::PlaceGridObject;
     *visibility = Visibility::Visible;
     *grid_object_placer = placer_request;
-    sprite.custom_size = match &*grid_object_placer {
-        GridObjectPlacer::None => None,
-        placer => Some(placer.as_grid_imprint().world_size()),
+    match &*grid_object_placer {
+        GridObjectPlacer::None => panic!("GridObjectPlacer::None should not be possible here"),
+        placer => {
+            *grid_imprint = placer.as_grid_imprint();
+            sprite.custom_size = Some(grid_imprint.world_size());
+        }
     }
 }

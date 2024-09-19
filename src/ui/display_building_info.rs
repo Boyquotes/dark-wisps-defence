@@ -1,7 +1,5 @@
 use bevy::color::palettes::css::YELLOW;
 use crate::prelude::*;
-use crate::buildings::common_components::Building;
-use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::energy_supply::SupplierEnergy;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
@@ -35,15 +33,15 @@ pub fn on_click_building_display_info_system(
 pub fn display_building_info_system(
     mut gizmos: Gizmos,
     ui_interaction_state: Res<UiInteractionState>,
-    buildings: Query<(&Building, &GridCoords, Option<&SupplierEnergy>)>,
+    buildings: Query<(&GridImprint, &GridCoords, Option<&SupplierEnergy>), With<Building>>,
 ) {
     let UiInteractionState::DisplayBuildingInfo(building_id) = &*ui_interaction_state else {
         return;
     };
 
-    let Ok((building, grid_coords, energy_provider)) = buildings.get(**building_id) else { return; };
+    let Ok((grid_imprint, grid_coords, energy_provider)) = buildings.get(**building_id) else { return; };
     if let Some(energy_provider) = energy_provider {
-        let position = grid_coords.to_world_position() + match building.grid_imprint {
+        let position = grid_coords.to_world_position() + match *grid_imprint {
             GridImprint::Rectangle { width, height } => Vec2::new(width as f32 * CELL_SIZE / 2., height as f32 * CELL_SIZE / 2.),
         };
         gizmos.circle_2d(

@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, TechnicalState};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::map_objects::common::ExpeditionZone;
 use crate::units::expedition_drone::BuilderExpeditionDrone;
@@ -49,7 +47,9 @@ impl BuilderExplorationCenter {
                 MarkerExplorationCenter,
                 grid_position,
                 Health(100),
-                Building::from(BuildingType::ExplorationCenter),
+                Building,
+                BuildingType::ExplorationCenter,
+                EXPLORATION_CENTER_GRID_IMPRINT,
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, EXPLORATION_CENTER_GRID_IMPRINT) },
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
             ));

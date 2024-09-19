@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use crate::buildings::common::BuildingType;
-use crate::buildings::common_components::{Building, TechnicalState};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::inventory::resources::DarkOreStock;
 
@@ -48,7 +46,9 @@ impl BuilderMiningComplex {
                 MarkerMiningComplex,
                 grid_position,
                 Health(100),
-                Building::from(BuildingType::MiningComplex),
+                Building,
+                BuildingType::MiningComplex,
+                MINING_COMPLEX_GRID_IMPRINT,
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, MINING_COMPLEX_GRID_IMPRINT) },
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
             ));

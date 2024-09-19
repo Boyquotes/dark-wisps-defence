@@ -1,9 +1,7 @@
 use std::fs::File;
-use crate::prelude::*;
 use bevy::utils::HashSet;
+use crate::prelude::*;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::buildings::common_components::Building;
-use crate::grids::common::{GridCoords, GridImprint};
 use crate::inventory::objectives::ObjectiveDetails;
 use crate::map_loader;
 use crate::map_loader::{MapBuilding, MapQuantumField};
@@ -39,7 +37,7 @@ pub fn save_map_system(
     grid: Res<ObstacleGrid>,
     keys: Res<ButtonInput<KeyCode>>,
     objectives: Query<&ObjectiveDetails>,
-    buildings_query: Query<(&Building, &GridCoords)>,
+    buildings_query: Query<(&BuildingType, &GridCoords), With<Building>>,
     dark_ores_query: Query<(&DarkOre, &GridCoords)>,
     quantum_fields_query: Query<(&GridCoords, &QuantumField)>,
 ) {
@@ -68,10 +66,10 @@ pub fn save_map_system(
                         panic!("BelowFields in editor not yet implemented");
                     }
                     if processed_entities.insert(entity) {
-                        let (building, building_coords) = buildings_query.get(*entity).unwrap();
+                        let (building_type, building_coords) = buildings_query.get(*entity).unwrap();
                         buildings.push(
                             MapBuilding {
-                                building_type: building.building_type,
+                                building_type: *building_type,
                                 coords: *building_coords,
                             }
                         );

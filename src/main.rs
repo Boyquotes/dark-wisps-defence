@@ -20,7 +20,6 @@ mod common_systems;
 mod prelude;
 
 use crate::prelude::*;
-use crate::grids::common::CELL_SIZE;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::map_editor::MapInfo;
 

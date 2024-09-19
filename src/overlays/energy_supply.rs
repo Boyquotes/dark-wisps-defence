@@ -3,7 +3,6 @@ use bevy::reflect::TypePath;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
-use crate::buildings::common::BuildingId;
 use crate::grids::base::GridVersion;
 use crate::grids::energy_supply::EnergySupplyGrid;
 

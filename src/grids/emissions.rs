@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::buildings::common_components::Building;
 use crate::grids::base::{BaseGrid, GridVersion};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::search::flooding::{flood_emissions, FloodEmissionsDetails};
@@ -86,17 +85,17 @@ pub fn emissions_calculations_system(
     mut events: EventReader<EmitterChangedEvent>,
     mut emissions_grid: ResMut<EmissionsGrid>,
     obstacle_grid: Res<ObstacleGrid>,
-    emitters_buildings: Query<(Entity, &EmitterEnergy, &Building, &GridCoords)>,
+    emitters_buildings: Query<(Entity, &EmitterEnergy, &GridImprint, &GridCoords), With<Building>>,
 ) {
     if recalculate_all.0 {
         recalculate_all.0 = false;
         emissions_grid.reset_energy_emissions();
         let mut recalculated_emissions = HashSet::new();
-        for (emitter_entity, emitter, building, coords) in emitters_buildings.iter() {
+        for (emitter_entity, emitter, grid_imprint, coords) in emitters_buildings.iter() {
             flood_emissions(
                 &mut emissions_grid,
                 &obstacle_grid,
-                &building.grid_imprint.covered_coords(*coords),
+                &grid_imprint.covered_coords(*coords),
                 &vec![emitter.0.clone()],
                 |field| !field.is_wall(),
             );

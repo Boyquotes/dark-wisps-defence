@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::buildings::common::{BuildingType, TowerType};
 
 #[derive(Resource)]
 pub struct Almanach {

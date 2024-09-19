@@ -1,7 +1,6 @@
 use crate::prelude::*;
 use crate::buildings::common::{BuildingType, TowerType};
 use crate::buildings::common_components::Building;
-use crate::buildings::mining_complex::MINING_COMPLEX_GRID_IMPRINT;
 use crate::grids::common::GridImprint;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::ObstacleGrid;
@@ -26,7 +25,6 @@ pub enum GridObjectPlacer {
     Building(Building),
     Wall,
     DarkOre,
-    MiningComplex,
     QuantumField(QuantumField),
 }
 impl GridObjectPlacer {
@@ -35,7 +33,6 @@ impl GridObjectPlacer {
             GridObjectPlacer::Building(building) => building.grid_imprint,
             GridObjectPlacer::Wall => WALL_GRID_IMPRINT,
             GridObjectPlacer::DarkOre => DARK_ORE_GRID_IMPRINT,
-            GridObjectPlacer::MiningComplex => MINING_COMPLEX_GRID_IMPRINT,
             GridObjectPlacer::QuantumField(quantum_field) => quantum_field.grid_imprint,
             GridObjectPlacer::None => unreachable!(),
         }
@@ -44,10 +41,7 @@ impl GridObjectPlacer {
 
 impl From<BuildingType> for GridObjectPlacer {
     fn from(building_type: BuildingType) -> Self {
-        match building_type {
-            BuildingType::MiningComplex => GridObjectPlacer::MiningComplex,
-            _ => GridObjectPlacer::Building(building_type.into()),
-        }
+        GridObjectPlacer::Building(building_type.into())
     }
 }
 
@@ -77,25 +71,24 @@ pub fn update_grid_object_placer_system(
     transform.translation = mouse_info.grid_coords.to_world_position().extend(10.);
     let is_imprint_placable = match &*grid_object_placer {
         GridObjectPlacer::None => false,
-        GridObjectPlacer::MiningComplex => {
-            transform.translation += MINING_COMPLEX_GRID_IMPRINT.world_center().extend(0.);
-            obstacle_grid.imprint_query_any(mouse_info.grid_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore())
-
-        }
+        GridObjectPlacer::Building(building) => {//TODO: Make GridObjectPlacer just have GridImprint component
+            transform.translation += building.grid_imprint.world_center().extend(0.);
+            obstacle_grid.query_building_placement(mouse_info.grid_coords, building.building_type, building.grid_imprint)
+        },
         placed => {
-            let imprint = placed.as_grid_imprint();
+            let imprint = placed.as_grid_imprint(); //TODO: Make GridObjectPlacer just have GridImprint component
             transform.translation += imprint.world_center().extend(0.);
             obstacle_grid.imprint_query_all(mouse_info.grid_coords, imprint, |field| field.is_empty())
         }
     };
+
     let (needs_energy_supply, is_imprint_suppliable) = match &*grid_object_placer {
         GridObjectPlacer::Building(building) => match building.building_type {
-            BuildingType::Tower(_) | BuildingType::ExplorationCenter => {
+            BuildingType::MainBase | BuildingType::EnergyRelay => (false, false),
+            _ => {
                 (true, energy_supply_grid.is_imprint_suppliable(mouse_info.grid_coords, building.grid_imprint))
             },
-            _ => (false, false)
         },
-        GridObjectPlacer::MiningComplex => (true, energy_supply_grid.is_imprint_suppliable(mouse_info.grid_coords, MINING_COMPLEX_GRID_IMPRINT)),
         _ => (false, false)
     };
 
@@ -122,7 +115,7 @@ pub fn keyboard_input_system(
         } else if keys.just_pressed(KeyCode::KeyQ) {
             GridObjectPlacer::QuantumField(QuantumField::default())
         } else if keys.just_pressed(KeyCode::KeyM) {
-            GridObjectPlacer::MiningComplex
+            GridObjectPlacer::Building(BuildingType::MiningComplex.into())
         } else if keys.just_pressed(KeyCode::KeyE) {
             GridObjectPlacer::Building(BuildingType::EnergyRelay.into())
         } else if keys.just_pressed(KeyCode::KeyX) {

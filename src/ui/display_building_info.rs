@@ -1,6 +1,6 @@
 use bevy::color::palettes::css::YELLOW;
 use crate::prelude::*;
-use crate::buildings::common_components::{Building};
+use crate::buildings::common_components::Building;
 use crate::grids::common::{CELL_SIZE, GridCoords, GridImprint};
 use crate::grids::energy_supply::SupplierEnergy;
 use crate::grids::obstacles::{Field, ObstacleGrid};
@@ -25,7 +25,7 @@ pub fn on_click_building_display_info_system(
     }
 
     match &obstacle_grid[mouse_info.grid_coords] {
-        Field::Building(entity, _) => {
+        Field::Building(entity, _, _) => {
             *ui_interaction_state = UiInteractionState::DisplayBuildingInfo((*entity).into());
         }
         _ => {}

@@ -114,7 +114,6 @@ impl ConstructObjectButtonBundle {
     }
     pub fn spawn(builder: &mut ChildBuilder, asset_server: &AssetServer, grid_object_placer: GridObjectPlacer) {
         let image_handle = match &grid_object_placer {
-            GridObjectPlacer::MiningComplex => Some(MINING_COMPLEX_BASE_IMAGE),
             GridObjectPlacer::Building(building) => match building.building_type {
                 BuildingType::Tower(tower_type) => {
                     match tower_type {
@@ -127,6 +126,7 @@ impl ConstructObjectButtonBundle {
                 BuildingType::MainBase => Some(MAIN_BASE_BASE_IMAGE),
                 BuildingType::EnergyRelay => Some(ENERGY_RELAY_BASE_IMAGE),
                 BuildingType::ExplorationCenter => Some(EXPLORATION_CENTER_BASE_IMAGE),
+                BuildingType::MiningComplex => Some(MINING_COMPLEX_BASE_IMAGE),
                 _ => None,
             },
             GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGES[0]),

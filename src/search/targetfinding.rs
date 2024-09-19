@@ -8,7 +8,7 @@ use crate::search::common::{CARDINAL_DIRECTIONS, State};
 use crate::wisps::components::WispEntity;
 
 /// Finds the closest wisp
-/// `ignore_obstacles` ignores grid obstacles
+/// `ignore_obstacles` ignores all grid obstacles
 /// `range` is the maximum searching range, diagonal moves are not allowed
 /// Returns grid coords and entity id of the closest wisp or None if no wisp is found
 pub fn target_find_closest_wisp(
@@ -32,7 +32,7 @@ pub fn target_find_closest_wisp(
             if distance > range
                 || !new_coords.is_in_bounds(obstacle_grid.bounds())
                 || visited_grid.is_visited(new_coords)
-                || (!ignore_obstacles && obstacle_grid[new_coords].is_obstacle())
+                || (!ignore_obstacles && !obstacle_grid[new_coords].is_empty())
             {
                 continue;
             }

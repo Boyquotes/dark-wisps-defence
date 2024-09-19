@@ -7,7 +7,7 @@ use crate::buildings::common_components::{Building, MarkerTower, MarkerTowerRota
 use crate::buildings::energy_relay::BuilderEnergyRelay;
 use crate::buildings::exploration_center::BuilderExplorationCenter;
 use crate::buildings::main_base::{EventMoveMainBase, MarkerMainBase};
-use crate::buildings::mining_complex::{BuilderMiningComplex, MINING_COMPLEX_GRID_IMPRINT};
+use crate::buildings::mining_complex::BuilderMiningComplex;
 use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
@@ -38,13 +38,17 @@ pub fn onclick_building_spawn_system(
     if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     match &*grid_object_placer.single() {
         GridObjectPlacer::Building(building) => {
-            if !obstacle_grid.imprint_query_all(mouse_coords, building.grid_imprint, |field| field.is_empty()) { return; }
+            // Grid Placement Validation
+            if !obstacle_grid.query_building_placement(mouse_coords, building.building_type, building.grid_imprint) { return; }
+            // Payment
             let dark_ore_price = almanach.get_building_cost(building.building_type);
             if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
             dark_ore_stock.amount -= dark_ore_price;
+            // Creation
             // ---
             enum GridAction {
                 Imprint(Entity),
+                ImprintMiningComplex(Entity),
                 Reprint{entity: Entity, old_coords: GridCoords},
             }
             // ---
@@ -83,29 +87,18 @@ pub fn onclick_building_spawn_system(
                     let (main_base_entity, main_base_coords) = main_base.single_mut();
                     commands.add(EventMoveMainBase { new_grid_position: mouse_coords });
                     GridAction::Reprint{entity: main_base_entity, old_coords: *main_base_coords}
-                }
-                _ => panic!("Trying to place a non-supported building") 
+                },
+                BuildingType::MiningComplex => {
+                    let entity = commands.spawn_empty().id();
+                    commands.add(BuilderMiningComplex::new(entity, mouse_coords));
+                    GridAction::ImprintMiningComplex(entity)
+                },
             };
             match grid_action {
-                GridAction::Imprint(entity) => obstacle_grid.imprint(mouse_coords, Field::Building(entity, building.building_type), building.grid_imprint),
-                GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint(old_coords, mouse_coords, Field::Building(entity, building.building_type), building.grid_imprint),
+                GridAction::Imprint(entity) => obstacle_grid.imprint(mouse_coords, Field::Building(entity, building.building_type, default()), building.grid_imprint),
+                GridAction::ImprintMiningComplex(entity) => obstacle_grid.imprint_mining_complex(mouse_coords, entity, building.grid_imprint),
+                GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint(old_coords, mouse_coords, Field::Building(entity, building.building_type, default()), building.grid_imprint),
             }
-        }
-        GridObjectPlacer::MiningComplex => {
-            if !obstacle_grid.imprint_query_any(mouse_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore()) { return; }
-            let dark_ore_price = almanach.get_building_cost(BuildingType::MiningComplex);
-            if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
-            dark_ore_stock.amount -= dark_ore_price;
-            let maybe_dark_ore_entity = match obstacle_grid[mouse_coords] {
-                Field::DarkOre(entity) => Some(entity),
-                Field::Empty => None,
-                _ => unreachable!(),
-            };
-
-            let entity = commands.spawn_empty().id();
-            commands.add(BuilderMiningComplex::new(entity, mouse_coords));
-
-            obstacle_grid.imprint(mouse_coords, Field::MiningComplex {dark_ore: maybe_dark_ore_entity, mining_complex: entity}, MINING_COMPLEX_GRID_IMPRINT);
         }
         _ => { return; }
     };

@@ -53,19 +53,22 @@ pub fn save_map_system(
     for y in 0..grid.height {
         for x in 0..grid.width {
             let coords = GridCoords { x, y };
-            match grid[coords] {
+            match &grid[coords] {
                 Field::Wall(_) => {
                     walls.push(coords);
                 },
                 Field::DarkOre(entity) => {
                     if processed_entities.insert(entity) {
-                        let (_, dark_ore_coords) = dark_ores_query.get(entity).unwrap();
+                        let (_, dark_ore_coords) = dark_ores_query.get(*entity).unwrap();
                         dark_ores.push(*dark_ore_coords);
                     }
                 },
-                Field::Building(entity, _) => {
+                Field::Building(entity, _, below_field) => {
+                    if !below_field.is_empty() {
+                        panic!("BelowFields in editor not yet implemented");
+                    }
                     if processed_entities.insert(entity) {
-                        let (building, building_coords) = buildings_query.get(entity).unwrap();
+                        let (building, building_coords) = buildings_query.get(*entity).unwrap();
                         buildings.push(
                             MapBuilding {
                                 building_type: building.building_type,
@@ -76,7 +79,7 @@ pub fn save_map_system(
                 }
                 Field::QuantumField(entity) => {
                     if processed_entities.insert(entity) {
-                        let (quantum_field_coords, quantum_field) = quantum_fields_query.get(entity).unwrap();
+                        let (quantum_field_coords, quantum_field) = quantum_fields_query.get(*entity).unwrap();
                         if let GridImprint::Rectangle { width, .. } = quantum_field.grid_imprint {
                             quantum_fields.push(MapQuantumField { coords: *quantum_field_coords, size: width });
                         } else { panic!("Quantum field imprint size is not a rectangle"); }

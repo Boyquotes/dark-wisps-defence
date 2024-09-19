@@ -101,7 +101,7 @@ pub fn wisp_charge_attack(
         if !matches!(*wisp_state, WispState::Attacking) { continue; }
         // Then confirm the target still exists
         let Some(target_coords) = grid_path.at_distance(attack_range.0) else { continue; };
-        let Field::Building(target_entity, _ ) = obstacle_grid[target_coords] else {
+        let Field::Building(target_entity, .. ) = obstacle_grid[target_coords] else {
             // If not, then either find new target if we were already at our itended target, or continue moving if we were stopped by an obstacle
             if grid_path.distance() <= attack_range.0 {
                 *wisp_state = WispState::NeedTarget;
@@ -158,7 +158,7 @@ pub fn collide_wisps(
         if !matches!(wisp_state, WispState::MovingToTarget) || health.is_dead() { continue; }
         if !grid_path.is_empty() { continue; }
         let building_entity = match &grid[*coords] {
-            Field::Building(entity, _) => *entity,
+            Field::Building(entity, ..) => *entity,
             _ => panic!("Expected a building"),
         };
         let mut health = buildings.get_mut(building_entity).unwrap();

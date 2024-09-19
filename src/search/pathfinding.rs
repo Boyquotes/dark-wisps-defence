@@ -50,7 +50,7 @@ pub fn path_find_energy_beckon(
                 tracking.set_tracked(new_coords, coords);
                 let new_distance = distance + 1;
                 let new_cost = match obstacle_grid[new_coords] {
-                    Field::Building(_, building_type) => {
+                    Field::Building(_, building_type, _) => {
                         if building_type.is_energy_rich() {
                             // Compile the path by backtracking
                             return Some(tracking.compile_path(new_coords, start_coords));
@@ -58,8 +58,6 @@ pub fn path_find_energy_beckon(
                             -emissions_grid[new_coords].energy * BUILDING_FIELD_MODIFIER + new_distance as f32
                         }
                     }
-                    // TODO: This is failed design of obstacles::Field. Need rethinking so MiningComplex can belong to other buildings.
-                    Field::MiningComplex { .. } => -emissions_grid[new_coords].energy * BUILDING_FIELD_MODIFIER + new_distance as f32,
                     _ => -emissions_grid[new_coords].energy * EMPTY_FIELD_MODIFIER + new_distance as f32,
                 };
                 queue.push(State { cost: new_cost, distance: new_distance, coords: new_coords });

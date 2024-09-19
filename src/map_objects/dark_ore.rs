@@ -3,7 +3,6 @@ use std::f32::consts::PI;
 use nanorand::Rng;
 
 use crate::prelude::*;
-use crate::grids::emissions::EmissionsEnergyRecalculateAll;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -81,7 +80,6 @@ pub fn get_dark_ore_sprite_bundle(grid_position: GridCoords, asset_server: &Asse
 
 pub fn remove_dark_ore(
     commands: &mut Commands,
-    emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
     obstacle_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) {
@@ -91,13 +89,11 @@ pub fn remove_dark_ore(
     };
     commands.entity(entity).despawn();
     obstacle_grid.deprint(grid_position, DARK_ORE_GRID_IMPRINT);
-    emissions_energy_recalculate_all.0 = true;
 }
 
 
 pub fn onclick_spawn_system(
     mut commands: Commands,
-    mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
@@ -119,7 +115,7 @@ pub fn onclick_spawn_system(
         match obstacle_grid[mouse_coords] {
             Field::DarkOre(entity) => {
                 if let Ok(dark_ore_coords) = dark_ores_query.get(entity) {
-                    remove_dark_ore(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, *dark_ore_coords);
+                    remove_dark_ore(&mut commands, &mut obstacle_grid, *dark_ore_coords);
                 }
             },
             _ => {}

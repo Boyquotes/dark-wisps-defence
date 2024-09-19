@@ -1,3 +1,4 @@
+use core::panic;
 use std::fs::File;
 use crate::prelude::*;
 use bevy::utils::HashMap;
@@ -107,10 +108,11 @@ pub fn apply_map(
                 }
             }
             BuildingType::MiningComplex => {
-                let entity = commands.spawn_empty().id();
-                commands.add(BuilderMiningComplex::new(entity, building.coords));
-                entity
                 // TODO: This won't work as MiningComplex needs special place(type) on obstacle grid, see placing code
+                panic!("Not implemented, read the comment");
+                // let entity = commands.spawn_empty().id();
+                // commands.add(BuilderMiningComplex::new(entity, building.coords));
+                // entity
             }
         };
         obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type), building.building_type.grid_imprint());

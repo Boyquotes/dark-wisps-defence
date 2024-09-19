@@ -9,7 +9,8 @@ pub enum Field {
     Building(Entity, BuildingType),
     Wall(Entity),
     DarkOre(Entity),
-    MiningComplex{dark_ore: Entity, mining_complex: Entity},
+    // Mining Complex covers dark ore field so we need to retain that information when replacing DarkOre with MiningComplex
+    MiningComplex{dark_ore: Option<Entity>, mining_complex: Entity},
     QuantumField(Entity),
 }
 impl Field {
@@ -58,13 +59,10 @@ impl ObstacleGrid {
         }
         self.version = self.version.wrapping_add(1);
     }
-
     pub fn reprint(&mut self, old_coords: GridCoords, new_coords: GridCoords, field: Field, imprint: GridImprint) {
         self.deprint(old_coords, imprint);
         self.imprint(new_coords, field, imprint);
     }
-
-
     pub fn imprint_query_all(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
         match imprint {
             GridImprint::Rectangle { width, height } => {
@@ -80,4 +78,20 @@ impl ObstacleGrid {
         }
         true
     }
+    pub fn imprint_query_any(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let inner_coords = coords.shifted((x, y));
+                        if inner_coords.is_in_bounds(self.bounds()) && query(&self[inner_coords]) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        false
+    }
+
 }

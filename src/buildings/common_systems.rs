@@ -92,16 +92,20 @@ pub fn onclick_building_spawn_system(
             }
         }
         GridObjectPlacer::MiningComplex => {
-            if !obstacle_grid.imprint_query_all(mouse_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore()) { return; }
+            if !obstacle_grid.imprint_query_any(mouse_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore()) { return; }
             let dark_ore_price = almanach.get_building_cost(BuildingType::MiningComplex);
             if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
             dark_ore_stock.amount -= dark_ore_price;
-            let Field::DarkOre(dark_ore) = obstacle_grid[mouse_coords] else { unreachable!() };
+            let maybe_dark_ore_entity = match obstacle_grid[mouse_coords] {
+                Field::DarkOre(entity) => Some(entity),
+                Field::Empty => None,
+                _ => unreachable!(),
+            };
 
             let entity = commands.spawn_empty().id();
             commands.add(BuilderMiningComplex::new(entity, mouse_coords));
 
-            obstacle_grid.imprint(mouse_coords, Field::MiningComplex {dark_ore, mining_complex: entity}, MINING_COMPLEX_GRID_IMPRINT);
+            obstacle_grid.imprint(mouse_coords, Field::MiningComplex {dark_ore: maybe_dark_ore_entity, mining_complex: entity}, MINING_COMPLEX_GRID_IMPRINT);
         }
         _ => { return; }
     };

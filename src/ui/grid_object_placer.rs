@@ -79,7 +79,7 @@ pub fn update_grid_object_placer_system(
         GridObjectPlacer::None => false,
         GridObjectPlacer::MiningComplex => {
             transform.translation += MINING_COMPLEX_GRID_IMPRINT.world_center().extend(0.);
-            obstacle_grid.imprint_query_all(mouse_info.grid_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore())
+            obstacle_grid.imprint_query_any(mouse_info.grid_coords, MINING_COMPLEX_GRID_IMPRINT, |field| field.is_dark_ore())
 
         }
         placed => {

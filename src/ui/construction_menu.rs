@@ -10,7 +10,7 @@ use crate::buildings::mining_complex::MINING_COMPLEX_BASE_IMAGE;
 use crate::buildings::tower_blaster::TOWER_BLASTER_BASE_IMAGE;
 use crate::buildings::tower_cannon::TOWER_CANNON_BASE_IMAGE;
 use crate::buildings::tower_rocket_launcher::TOWER_ROCKET_LAUNCHER_BASE_IMAGE;
-use crate::map_objects::dark_ore::DARK_ORE_BASE_IMAGE;
+use crate::map_objects::dark_ore::DARK_ORE_BASE_IMAGES;
 use crate::map_objects::quantum_field::QuantumField;
 use crate::ui::common::AdvancedInteraction;
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
@@ -129,7 +129,7 @@ impl ConstructObjectButtonBundle {
                 BuildingType::ExplorationCenter => Some(EXPLORATION_CENTER_BASE_IMAGE),
                 _ => None,
             },
-            GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGE),
+            GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGES[0]),
             _ => None,
         };
         builder.spawn(ConstructObjectButtonBundle::new(grid_object_placer)).with_children(|parent| {

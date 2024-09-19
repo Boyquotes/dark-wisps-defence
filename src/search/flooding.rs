@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
+
 use crate::grids::common::GridCoords;
 use crate::grids::emissions::{EmissionsGrid, EmissionsType};
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::ObstacleGrid;
+use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::visited::VisitedGrid;
 use crate::search::common::CARDINAL_DIRECTIONS;
 
@@ -47,8 +48,7 @@ pub fn flood_emissions(
     obstacles_grid: &ObstacleGrid,
     start_coords: &Vec<GridCoords>,
     emissions_details: &Vec<FloodEmissionsDetails>,
-    ignore_natural_obstacles: bool,
-    ignore_buildings: bool
+    should_field_be_flooded: fn(&Field) -> bool,
 ) {
     let mut visited_grid = VisitedGrid::new_with_size(obstacles_grid.width, obstacles_grid.height);
     let mut queue = VecDeque::new();
@@ -65,8 +65,7 @@ pub fn flood_emissions(
             let new_coords = coords.shifted((delta_x, delta_y));
             if !new_coords.is_in_bounds(obstacles_grid.bounds())
                 || visited_grid.is_visited(new_coords)
-                || (!ignore_natural_obstacles && obstacles_grid[new_coords].is_natural_obstacle())
-                || (!ignore_buildings && obstacles_grid[new_coords].is_building())
+                || !should_field_be_flooded(&obstacles_grid[new_coords])
             {
                 continue;
             }

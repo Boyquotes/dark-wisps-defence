@@ -98,9 +98,7 @@ pub fn emissions_calculations_system(
                 &obstacle_grid,
                 &building.grid_imprint.covered_coords(*coords),
                 &vec![emitter.0.clone()],
-
-                false,
-                true,
+                |field| !field.is_wall(),
             );
             recalculated_emissions.insert(emitter_entity);
         }
@@ -113,8 +111,7 @@ pub fn emissions_calculations_system(
                     &obstacle_grid,
                     &event.coords,
                     &event.emissions_details,
-                    false,
-                    true,
+                    |field| !field.is_wall(),
                 );
             }
         }
@@ -125,8 +122,7 @@ pub fn emissions_calculations_system(
                 &obstacle_grid,
                 &event.coords,
                 &event.emissions_details,
-                false,
-                true,
+                |field| !field.is_wall(),
             );
         }
     }

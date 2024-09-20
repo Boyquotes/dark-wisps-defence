@@ -1,6 +1,6 @@
 use nanorand::Rng;
 
-use crate::grids::obstacles::{self, ObstacleGrid};
+use crate::grids::obstacles::{self, Field, ObstacleGrid};
 use crate::map_objects::dark_ore::DarkOre;
 use crate::prelude::*;
 use crate::grids::energy_supply::EnergySupplyGrid;
@@ -49,11 +49,7 @@ impl BuilderMiningComplex {
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderMiningComplex{ entity, grid_position } in events.read() {
-            let ore_entities_in_range = obstacle_grid.imprint_query_element(
-                grid_position, 
-                MINING_COMPLEX_GRID_IMPRINT, 
-                |field|  if let obstacles::Field::Building(_, BuildingType::MiningComplex, obstacles::BelowField::DarkOre(dark_ore_entity)) = field { Some(*dark_ore_entity) } else { None },
-            );
+            let ore_entities_in_range = obstacle_grid.imprint_query_element(grid_position, MINING_COMPLEX_GRID_IMPRINT, query_dark_ore_helper);
             commands.entity(entity).insert((
                 get_mining_complex_sprite_bundle(&asset_server, grid_position),
                 TechnicalState{ 
@@ -78,6 +74,11 @@ impl Command for BuilderMiningComplex {
     }
 }
 
+// Helper to execute on every obstacle grid field to gather the dark_ore entities
+fn query_dark_ore_helper(field: &Field) -> Option<Entity> {
+    if let obstacles::Field::Building(_, BuildingType::MiningComplex, obstacles::BelowField::DarkOre(dark_ore_entity)) = field { Some(*dark_ore_entity) } else { None }
+}
+
 pub fn get_mining_complex_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
@@ -90,7 +91,7 @@ pub fn get_mining_complex_sprite_bundle(asset_server: &AssetServer, coords: Grid
     }
 }
 
-pub fn mine_ore_system(
+fn mine_ore_system(
     mut dark_ore_stock: ResMut<DarkOreStock>,
     mut mining_complexes: Query<(&mut MiningComplex, &mut MiningComplexDeliveryTimer, &mut TechnicalState)>,
     mut dark_ores: Query<&mut DarkOre>,

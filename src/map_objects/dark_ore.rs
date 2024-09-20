@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use nanorand::Rng;
 
 use crate::prelude::*;
-use crate::grids::obstacles::{Field, ObstacleGrid};
+use crate::grids::obstacles::{BelowField, Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 
@@ -17,6 +17,7 @@ impl Plugin for DarkOrePlugin {
             ))
             .add_systems(Update, (
                 onclick_spawn_system,
+                remove_empty_dark_ore_system,
             ));
     }
 }
@@ -26,7 +27,7 @@ pub const DARK_ORE_BASE_IMAGES: [&str; 2] = ["map_objects/dark_ore_1.png", "map_
 
 #[derive(Component)]
 pub struct DarkOre {
-    amount: usize,
+    pub amount: i32,
 }
 
 #[derive(Event)]
@@ -83,16 +84,17 @@ pub fn remove_dark_ore(
     obstacle_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) {
-    let entity = match &obstacle_grid[grid_position] {
-        Field::DarkOre(entity) => *entity,
+    let (dark_ore_entity, new_field) = match &obstacle_grid[grid_position] {
+        Field::DarkOre(entity) => (*entity, Field::Empty),
+        Field::Building(building_entity, BuildingType::MiningComplex, BelowField::DarkOre(entity)) => (*entity, Field::Building(*building_entity, BuildingType::MiningComplex, BelowField::Empty)),
         _ => panic!("Cannot remove a dark_ore from a non-dark_ore field"),
     };
-    commands.entity(entity).despawn();
-    obstacle_grid.deprint(grid_position, DARK_ORE_GRID_IMPRINT);
+    commands.entity(dark_ore_entity).despawn();
+    obstacle_grid.imprint_custom(grid_position, DARK_ORE_GRID_IMPRINT, &|field| *field = new_field.clone());
 }
 
 
-pub fn onclick_spawn_system(
+fn onclick_spawn_system(
     mut commands: Commands,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -119,6 +121,18 @@ pub fn onclick_spawn_system(
                 }
             },
             _ => {}
+        }
+    }
+}
+
+fn remove_empty_dark_ore_system(
+    mut commands: Commands,
+    mut obstacle_grid: ResMut<ObstacleGrid>,
+    dark_ores_query: Query<(&GridCoords, &DarkOre), Changed<DarkOre>>,
+) {
+    for (grid_coords, dark_ore) in dark_ores_query.iter() {
+        if dark_ore.amount <= 0 {
+            remove_dark_ore(&mut commands, &mut obstacle_grid, *grid_coords);
         }
     }
 }

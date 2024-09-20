@@ -77,7 +77,7 @@ pub fn remove_wall(
         _ => panic!("Cannot remove a wall on a non-wall"),
     };
     commands.entity(entity).despawn();
-    obstacle_grid.deprint(grid_position, WALL_GRID_IMPRINT);
+    obstacle_grid.deprint_all(grid_position, WALL_GRID_IMPRINT);
     emissions_energy_recalculate_all.0 = true;
 }
 

@@ -51,7 +51,7 @@ impl BuilderEnergyRelay {
                 ENERGY_RELAY_GRID_IMPRINT,
                 EmitterEnergy(emmision_details.clone()),
                 supplier_energy.clone(),
-                TechnicalState{ has_energy_supply: true },
+                TechnicalState{ has_energy_supply: true, ..default() },
                 ColorPulsation::new(1.0, 1.8, 3.0),
             ));
             let covered_coords = ENERGY_RELAY_GRID_IMPRINT.covered_coords(grid_position);

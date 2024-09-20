@@ -1,3 +1,7 @@
+use nanorand::Rng;
+
+use crate::grids::obstacles::{self, ObstacleGrid};
+use crate::map_objects::dark_ore::DarkOre;
 use crate::prelude::*;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::inventory::resources::DarkOreStock;
@@ -20,10 +24,13 @@ pub const MINING_COMPLEX_BASE_IMAGE: &str = "buildings/mining_complex.png";
 
 
 #[derive(Component)]
-pub struct MarkerMiningComplex;
-
+pub struct MiningComplex {
+    ore_entities_in_range: Vec<Entity>,
+}
 #[derive(Component)]
 pub struct MiningComplexDeliveryTimer(pub Timer);
+#[derive(Component)]
+pub struct MiningRange(GridImprint);
 
 #[derive(Event)]
 pub struct BuilderMiningComplex {
@@ -36,20 +43,30 @@ impl BuilderMiningComplex {
     }
     pub fn spawn_system(
         mut commands: Commands,
+        obstacle_grid: Res<ObstacleGrid>,
         mut events: EventReader<BuilderMiningComplex>,
         asset_server: Res<AssetServer>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderMiningComplex{ entity, grid_position } in events.read() {
+            let ore_entities_in_range = obstacle_grid.imprint_query_element(
+                grid_position, 
+                MINING_COMPLEX_GRID_IMPRINT, 
+                |field|  if let obstacles::Field::Building(_, BuildingType::MiningComplex, obstacles::BelowField::DarkOre(dark_ore_entity)) = field { Some(*dark_ore_entity) } else { None },
+            );
             commands.entity(entity).insert((
                 get_mining_complex_sprite_bundle(&asset_server, grid_position),
-                MarkerMiningComplex,
+                TechnicalState{ 
+                    has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, MINING_COMPLEX_GRID_IMPRINT),
+                    has_ore_fields: Some(!ore_entities_in_range.is_empty()),
+                },
+                MiningComplex { ore_entities_in_range },
                 grid_position,
                 Health(100),
                 Building,
                 BuildingType::MiningComplex,
                 MINING_COMPLEX_GRID_IMPRINT,
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, MINING_COMPLEX_GRID_IMPRINT) },
+                MiningRange(MINING_COMPLEX_GRID_IMPRINT),
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
             ));
         }
@@ -75,14 +92,32 @@ pub fn get_mining_complex_sprite_bundle(asset_server: &AssetServer, coords: Grid
 
 pub fn mine_ore_system(
     mut dark_ore_stock: ResMut<DarkOreStock>,
-    mut mining_complexes: Query<(&mut MiningComplexDeliveryTimer, &TechnicalState), With<MarkerMiningComplex>>,
+    mut mining_complexes: Query<(&mut MiningComplex, &mut MiningComplexDeliveryTimer, &mut TechnicalState)>,
+    mut dark_ores: Query<&mut DarkOre>,
     time: Res<Time>,
 ) {
-    for (mut timer, technical_state) in mining_complexes.iter_mut() {
+    let mut rng = nanorand::tls_rng();
+    for (mut mining_complex, mut timer, mut technical_state) in mining_complexes.iter_mut() {
         if !technical_state.is_operational() { continue; }
         timer.0.tick(time.delta());
         if timer.0.just_finished() {
-            dark_ore_stock.add(10);
+            let ore_index = rng.generate_range(0..mining_complex.ore_entities_in_range.len());
+            let ore_entity = mining_complex.ore_entities_in_range[ore_index];
+            if let Ok(mut dark_ore) = dark_ores.get_mut(ore_entity) {
+                let mined_amount = std::cmp::min(dark_ore.amount, 100);
+                dark_ore_stock.add(mined_amount);
+                dark_ore.amount -= mined_amount;
+                if dark_ore.amount == 0 {
+                    // Ore is already fully exhausted
+                    mining_complex.ore_entities_in_range.swap_remove(ore_index);
+                }
+            } else {
+                // This ore is gone
+                mining_complex.ore_entities_in_range.swap_remove(ore_index);
+            };
+            if mining_complex.ore_entities_in_range.is_empty() {
+                technical_state.has_ore_fields = Some(false);
+            }
         }
     }
 }

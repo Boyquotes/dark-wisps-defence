@@ -96,7 +96,7 @@ pub fn remove_quantum_field(
     grid_imprint: GridImprint,
 ) {
     commands.entity(entity).despawn();
-    obstacle_grid.deprint(grid_position, grid_imprint);
+    obstacle_grid.deprint_all(grid_position, grid_imprint);
 }
 
 

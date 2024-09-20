@@ -52,7 +52,7 @@ impl BuilderTowerCannon {
                 TOWER_CANNON_GRID_IMPRINT,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_CANNON_GRID_IMPRINT) },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_CANNON_GRID_IMPRINT), ..default() },
             ));
         }
     }

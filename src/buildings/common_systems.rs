@@ -11,7 +11,7 @@ use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::grids::base::GridVersion;
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, SupplierEnergy};
-use crate::grids::obstacles::{Field, ObstacleGrid};
+use crate::grids::obstacles::{BelowField, Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::inventory::almanach::Almanach;
 use crate::inventory::resources::DarkOreStock;
@@ -95,7 +95,16 @@ pub fn onclick_building_spawn_system(
             };
             match grid_action {
                 GridAction::Imprint(entity) => obstacle_grid.imprint(mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint),
-                GridAction::ImprintMiningComplex(entity) => obstacle_grid.imprint_mining_complex(mouse_coords, entity, *grid_imprint),
+                GridAction::ImprintMiningComplex(entity) => obstacle_grid.imprint_custom(mouse_coords, *grid_imprint, &|field| {
+                    // Retain information about dark ore that will be below the mining complex
+                    let below_field = match field {
+                        Field::Empty => BelowField::Empty,
+                        Field::DarkOre(entity) => BelowField::DarkOre(*entity),
+                        _ => panic!("imprint_mining_complex() can only be used with an Empty or DarkOre Field"),
+                    };
+                    *field = Field::Building(entity, BuildingType::MiningComplex, below_field);
+                    
+                }),
                 GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint(
                     old_coords, mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint
                 ),
@@ -170,7 +179,7 @@ pub fn damage_control_system(
     for (entity, health, grid_imprint, grid_coords, has_emitter_energy, maybe_supplier_energy) in buildings.iter() {
         if health.is_dead() {
             commands.entity(entity).despawn_recursive();
-            obstacle_grid.deprint(*grid_coords, *grid_imprint);
+            obstacle_grid.deprint_main_floor(*grid_coords, *grid_imprint);
             if has_emitter_energy {
                 emissions_energy_recalculate_all.0 = true;
             }

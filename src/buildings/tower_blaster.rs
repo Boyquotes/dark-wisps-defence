@@ -54,7 +54,7 @@ impl BuilderTowerBlaster {
                 TOWER_BLASTER_GRID_IMPRINT,
                 TowerShootingTimer::from_seconds(0.2),
                 TowerWispTarget::default(),
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_BLASTER_GRID_IMPRINT) },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_BLASTER_GRID_IMPRINT), ..default() },
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
             )).id();
             commands.spawn((

@@ -50,7 +50,7 @@ impl BuilderExplorationCenter {
                 Building,
                 BuildingType::ExplorationCenter,
                 EXPLORATION_CENTER_GRID_IMPRINT,
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, EXPLORATION_CENTER_GRID_IMPRINT) },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, EXPLORATION_CENTER_GRID_IMPRINT), ..default() },
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
             ));
         }

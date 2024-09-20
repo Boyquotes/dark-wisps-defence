@@ -27,9 +27,25 @@ impl Field {
     pub fn is_natural_obstacle(&self) -> bool {
         matches!(self, Field::Wall(_) | Field::DarkOre(_) | Field::Building(_, BuildingType::MiningComplex, BelowField::DarkOre(_)) | Field::QuantumField(_))
     }
+    //If there is BelowField, turn into it. If not, become empty
+    pub fn clear_main_floor(&mut self) {
+        *self = match self {
+            Field::Building(_, _, below_field) => (*below_field).into(),
+            _ => Field::Empty,
+        };
+    }
+}
+impl From<BelowField> for Field {
+    fn from(below_field: BelowField) -> Self {
+        match below_field {
+            BelowField::Empty => Field::Empty,
+            BelowField::DarkOre(entity) => Field::DarkOre(entity),
+            _ => unreachable!(),
+        }
+    }
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub enum BelowField {
     #[default]
     Empty,
@@ -44,8 +60,8 @@ impl BelowField {
 pub type ObstacleGrid = BaseGrid<Field, GridVersion>;
 
 impl ObstacleGrid {
+    // Naive imprint that replaced the fields without regards to anything above or under
     pub fn imprint(&mut self, coords: GridCoords, field: Field, imprint: GridImprint) {
-        if matches!(field, Field::Building(_, BuildingType::MiningComplex, _)) { panic!("Don't use `imprint()` with MiningComplex, use `imprint_mining_complex()`"); }
         match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
@@ -58,7 +74,7 @@ impl ObstacleGrid {
         }
         self.version = self.version.wrapping_add(1);
     }
-    pub fn deprint(&mut self, coords: GridCoords, imprint: GridImprint) {
+    pub fn deprint_all(&mut self, coords: GridCoords, imprint: GridImprint) {
         match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
@@ -71,8 +87,22 @@ impl ObstacleGrid {
         }
         self.version = self.version.wrapping_add(1);
     }
+    pub fn deprint_main_floor(&mut self, coords: GridCoords, imprint: GridImprint) {
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let index = self.index(coords.shifted((x, y)));
+                        self.grid[index].clear_main_floor();
+                    }
+                }
+            }
+        }
+        self.version = self.version.wrapping_add(1);
+    }
+    // Naive reprint that deprints all in old coords and hard imprints in new coords
     pub fn reprint(&mut self, old_coords: GridCoords, new_coords: GridCoords, field: Field, imprint: GridImprint) {
-        self.deprint(old_coords, imprint);
+        self.deprint_all(old_coords, imprint);
         self.imprint(new_coords, field, imprint);
     }
     pub fn imprint_query_all(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
@@ -105,6 +135,40 @@ impl ObstacleGrid {
         }
         false
     }
+    pub fn imprint_query_count(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> usize {
+        let mut count = 0;
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let inner_coords = coords.shifted((x, y));
+                        if inner_coords.is_in_bounds(self.bounds()) && query(&self[inner_coords]) {
+                            count += 1;
+                        }
+                    }
+                }
+            }
+        }
+        count
+    }
+    pub fn imprint_query_element<T>(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> Option<T>) -> Vec<T> {
+        let mut vec = Vec::new();
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let inner_coords = coords.shifted((x, y));
+                        if inner_coords.is_in_bounds(self.bounds()) {
+                            if let Some(element) = query(&self[inner_coords]) {
+                                vec.push(element);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        vec
+    }
 
     pub fn query_building_placement(&self, coords: GridCoords, building_type: BuildingType, imprint: GridImprint) -> bool {
         match building_type {
@@ -129,24 +193,17 @@ impl ObstacleGrid {
         }
     }
 
-    // Special imprint version that ensure DarkOre info under the MiningComplex is retained
-    pub fn imprint_mining_complex(&mut self, coords: GridCoords, mining_complex_entity: Entity, imprint: GridImprint) {
+    pub fn imprint_custom(&mut self, coords: GridCoords, imprint: GridImprint, imprint_fn: &dyn Fn(&mut Field)) {
         match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
                     for x in 0..width {
                         let index = self.index(coords.shifted((x, y)));
-                        let below_field = match &self.grid[index] {
-                            Field::Empty => BelowField::Empty,
-                            Field::DarkOre(entity) => BelowField::DarkOre(*entity),
-                            _ => panic!("imprint_mining_complex() can only be used with an Empty or DarkOre Field"),
-                        };
-                        self.grid[index] = Field::Building(mining_complex_entity, BuildingType::MiningComplex, below_field);
+                        imprint_fn(&mut self.grid[index]);
                     }
                 }
             }
         }
         self.version = self.version.wrapping_add(1);
-    }
-
+    } 
 }

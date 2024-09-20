@@ -70,7 +70,7 @@ impl BuilderMainBase {
                 MAIN_BASE_GRID_IMPRINT,
                 emitter_energy,
                 supplier_energy,
-                TechnicalState { has_energy_supply: true },
+                TechnicalState { has_energy_supply: true, ..default() },
             ));
         }
     }

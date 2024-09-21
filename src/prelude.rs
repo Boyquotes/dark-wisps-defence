@@ -1,3 +1,4 @@
+pub use nanorand::Rng;
 pub use bevy::prelude::*;
 pub use bevy::ecs::world::Command;
 pub use bevy::utils::{HashMap, HashSet};

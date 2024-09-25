@@ -1,5 +1,6 @@
 use bevy::color::palettes::css::{TURQUOISE, WHITE};
 use crate::buildings::tower_emitter::TOWER_EMITTER_BASE_IMAGE;
+use crate::mouse::MouseInfo;
 use crate::prelude::*;
 use bevy::ui::FocusPolicy;
 use crate::buildings::energy_relay::ENERGY_RELAY_BASE_IMAGE;
@@ -15,6 +16,8 @@ use crate::ui::common::AdvancedInteraction;
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
 
 const NOT_HOVERED_ALPHA: f32 = 0.2;
+const CONSTRUCT_MENU_BUTTON_WIDTH: f32 = 65.;
+const CONSTRUCT_MENU_BUTTON_HEIGHT: f32 = 64.;
 
 #[derive(Component, Default)]
 pub struct ConstructMenuButton {
@@ -30,8 +33,8 @@ impl ConstructButtonBundle {
         Self {
             button: ButtonBundle {
                 style: Style {
-                    width: Val::Px(65.),
-                    height: Val::Px(64.),
+                    width: Val::Px(CONSTRUCT_MENU_BUTTON_WIDTH),
+                    height: Val::Px(CONSTRUCT_MENU_BUTTON_HEIGHT),
                     ..Default::default()
                 },
                 image: UiImage::new(image).with_color(WHITE.with_alpha(NOT_HOVERED_ALPHA).into()),
@@ -221,13 +224,18 @@ pub fn initialize_construction_menu_system(
 }
 
 pub fn menu_activation_system(
-    mut menu_buttons: Query<(&Interaction, &mut UiImage, &Children), With<ConstructMenuButton>>,
-    mut list_pickers: Query<(&Interaction, &mut Visibility), With<ConstructMenuListPicker>>,
+    mouse_info: Res<MouseInfo>,
+    mut menu_buttons: Query<(&Interaction, &mut UiImage, &Children, &GlobalTransform), With<ConstructMenuButton>>,
+    mut list_pickers: Query<(&Interaction, &mut Visibility, &ViewVisibility), With<ConstructMenuListPicker>>,
 ) {
-    for (menu_interaction, mut ui_image, children) in menu_buttons.iter_mut() {
+    for (menu_interaction, mut ui_image, children, button_transform) in menu_buttons.iter_mut() {
         let list_picker_entity = children.get(0).unwrap();
-        let (list_picker_interaction, mut list_picker_visibility) = list_pickers.get_mut(*list_picker_entity).unwrap();
-        if !matches!(menu_interaction, Interaction::None) || !matches!(list_picker_interaction, Interaction::None) {
+        let (list_picker_interaction, mut list_picker_visibility, list_picker_is_visible) = list_pickers.get_mut(*list_picker_entity).unwrap();
+        if !matches!(menu_interaction, Interaction::None)
+            || !matches!(list_picker_interaction, Interaction::None)
+            // If the list picker is already visible, give it some leeway so it does not disappear when player moves mouse from the button to the list picker
+            || (list_picker_is_visible.get() && get_extended_construct_button_world_rect(button_transform.translation()).contains(mouse_info.screen_position)) 
+        {
             ui_image.color.set_alpha(1.);
             *list_picker_visibility = Visibility::Inherited;
         } else {
@@ -248,4 +256,14 @@ pub fn construct_building_on_click_system(
             list_pickers.iter_mut().for_each(|(mut interaction, mut visibility)| { *visibility = Visibility::Hidden; *interaction = Interaction::None; });
         }
     }
+}
+
+// Helper function to get the construct button rect that is elongated to the right so when player hovers from it to the list picker it stays visible
+fn get_extended_construct_button_world_rect(translation: Vec3) -> Rect {
+    Rect::new(
+        translation.x - CONSTRUCT_MENU_BUTTON_WIDTH / 2.,
+        translation.y - CONSTRUCT_MENU_BUTTON_HEIGHT / 2.,
+        translation.x + CONSTRUCT_MENU_BUTTON_WIDTH / 2. + 20., 
+        translation.y + CONSTRUCT_MENU_BUTTON_HEIGHT / 2.,
+    )
 }

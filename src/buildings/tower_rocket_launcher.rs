@@ -39,9 +39,8 @@ impl BuilderTowerRocketLauncher {
     ) {
         for &BuilderTowerRocketLauncher{ entity, grid_position } in events.read() {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::RocketLauncher));
-            let (tower_base, tower_top) = get_tower_rocket_launcher_sprite_bundle(&asset_server, grid_position, grid_imprint);
             let tower_base_entity = commands.entity(entity).insert((
-                tower_base,
+                get_building_sprite_bundle(&asset_server, TOWER_ROCKET_LAUNCHER_BASE_IMAGE, grid_position, grid_imprint),
                 MarkerTower,
                 MarkerTowerRocketLauncher,
                 grid_position,
@@ -56,7 +55,7 @@ impl BuilderTowerRocketLauncher {
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
             )).id();
             commands.spawn((
-                tower_top,
+                get_tower_top_sprite_bundle(&asset_server, grid_position, grid_imprint),
                 MarkerTowerRotationalTop(tower_base_entity.into()),
             ));
         }
@@ -68,29 +67,18 @@ impl Command for BuilderTowerRocketLauncher {
     }
 }
 
-pub fn get_tower_rocket_launcher_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> (SpriteBundle, SpriteBundle) {
-    let world_position = coords.to_world_position_centered(grid_imprint);
+pub fn get_tower_top_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
     let world_size = grid_imprint.world_size();
-    let tower_base = SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(world_size),
-            ..Default::default()
-        },
-        texture: asset_server.load(TOWER_ROCKET_LAUNCHER_BASE_IMAGE),
-        transform: Transform::from_translation(world_position.extend(Z_BUILDING)),
-        ..Default::default()
-    };
-    let tower_top = SpriteBundle {
+    SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
             anchor: Anchor::Custom(Vec2::new(-0.20, 0.0)),
             ..Default::default()
         },
         texture: asset_server.load("buildings/tower_rocket_launcher_top.png"),
-        transform: Transform::from_translation(world_position.extend(Z_TOWER_TOP)),
+        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_TOWER_TOP)),
         ..Default::default()
-    };
-    (tower_base, tower_top)
+    }
 }
 
 pub fn shooting_system(

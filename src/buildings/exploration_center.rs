@@ -1,4 +1,3 @@
-use crate::inventory::almanach;
 use crate::prelude::*;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::map_objects::common::ExpeditionZone;
@@ -45,7 +44,7 @@ impl BuilderExplorationCenter {
         for &BuilderExplorationCenter{ entity, grid_position } in events.read() {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::ExplorationCenter);
             commands.entity(entity).insert((
-                get_exploration_center_sprite_bundle(&asset_server, grid_position, grid_imprint),
+                get_building_sprite_bundle(&asset_server, EXPLORATION_CENTER_BASE_IMAGE,grid_position, grid_imprint),
                 MarkerExplorationCenter,
                 grid_position,
                 Health(100),
@@ -61,19 +60,6 @@ impl BuilderExplorationCenter {
 impl Command for BuilderExplorationCenter {
     fn apply(self, world: &mut World) {
         world.send_event(self);
-    }
-}
-
-
-pub fn get_exploration_center_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
-    SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(grid_imprint.world_size()),
-            ..Default::default()
-        },
-        texture: asset_server.load(EXPLORATION_CENTER_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
-        ..Default::default()
     }
 }
 

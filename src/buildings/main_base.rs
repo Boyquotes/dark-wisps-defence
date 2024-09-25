@@ -62,7 +62,7 @@ impl BuilderMainBase {
             });
 
             commands.entity(entity).insert((
-                get_main_base_sprite_bundle(grid_position, grid_imprint, &asset_server),
+                get_building_sprite_bundle(&asset_server, MAIN_BASE_BASE_IMAGE, grid_position, grid_imprint),
                 MarkerMainBase,
                 grid_position,
                 Health(10000),
@@ -79,18 +79,6 @@ impl BuilderMainBase {
 impl Command for BuilderMainBase {
     fn apply(self, world: &mut World) {
         world.send_event(self);
-    }
-}
-
-pub fn get_main_base_sprite_bundle(coords: GridCoords, grid_imprint: GridImprint, asset_server: &AssetServer) -> SpriteBundle {
-    SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(grid_imprint.world_size()),
-            ..Default::default()
-        },
-        texture: asset_server.load(MAIN_BASE_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
-        ..Default::default()
     }
 }
 

@@ -1,4 +1,3 @@
-use bevy::math::Vec3Swizzles;
 use crate::prelude::*;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::projectiles::laser_dart::BuilderLaserDart;
@@ -42,9 +41,8 @@ impl BuilderTowerBlaster {
     ) {
         for &BuilderTowerBlaster{ entity, grid_position } in events.read() {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::Blaster));
-            let (tower_base, tower_top) = get_tower_blaster_sprite_bundle(&asset_server, grid_position, grid_imprint);
             let tower_base_entity = commands.entity(entity).insert((
-                tower_base,
+                get_building_sprite_bundle(&asset_server, TOWER_BLASTER_BASE_IMAGE, grid_position, grid_imprint),
                 MarkerTower,
                 MarkerTowerBlaster,
                 grid_position,
@@ -59,7 +57,7 @@ impl BuilderTowerBlaster {
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
             )).id();
             commands.spawn((
-                tower_top,
+                get_tower_top_sprite_bundle(&asset_server, grid_position, grid_imprint),
                 MarkerTowerRotationalTop(tower_base_entity.into()),
             ));
         }
@@ -71,30 +69,17 @@ impl Command for BuilderTowerBlaster {
     }
 }
 
-/// Returns (tower base sprite bundle, tower top sprite bundle)
-pub fn get_tower_blaster_sprite_bundle(asset_server: &AssetServer, grid_position: GridCoords, grid_imprint: GridImprint) -> (SpriteBundle, SpriteBundle) {
-    let world_position = grid_position.to_world_position_centered(grid_imprint);
+pub fn get_tower_top_sprite_bundle(asset_server: &AssetServer, grid_position: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
     let world_size = grid_imprint.world_size();
-    let tower_base = SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(world_size),
-            ..Default::default()
-        },
-        texture: asset_server.load(TOWER_BLASTER_BASE_IMAGE),
-        transform: Transform::from_translation(world_position.extend(Z_BUILDING)),
-        ..Default::default()
-    };
-
-    let tower_top = SpriteBundle {
+    SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
             ..Default::default()
         },
         texture: asset_server.load(TOWER_BLASTER_TOP_IMAGE),
-        transform: Transform::from_translation(world_position.extend(Z_TOWER_TOP)),
+        transform: Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_TOWER_TOP)),
         ..Default::default()
-    };
-    (tower_base, tower_top)
+    }
 }
 
 pub fn shooting_system(

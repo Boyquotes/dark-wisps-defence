@@ -49,7 +49,7 @@ impl BuilderMiningComplex {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::MiningComplex);
             let ore_entities_in_range = obstacle_grid.imprint_query_element(grid_position, grid_imprint, query_dark_ore_helper);
             commands.entity(entity).insert((
-                get_mining_complex_sprite_bundle(&asset_server, grid_position, grid_imprint),
+                get_building_sprite_bundle(&asset_server, MINING_COMPLEX_BASE_IMAGE, grid_position, grid_imprint),
                 TechnicalState{ 
                     has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint),
                     has_ore_fields: Some(!ore_entities_in_range.is_empty()),
@@ -75,18 +75,6 @@ impl Command for BuilderMiningComplex {
 // Helper to execute on every obstacle grid field to gather the dark_ore entities
 fn query_dark_ore_helper(field: &Field) -> Option<Entity> {
     if let obstacles::Field::Building(_, BuildingType::MiningComplex, obstacles::BelowField::DarkOre(dark_ore_entity)) = field { Some(*dark_ore_entity) } else { None }
-}
-
-pub fn get_mining_complex_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
-    SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(grid_imprint.world_size()),
-            ..Default::default()
-        },
-        texture: asset_server.load(MINING_COMPLEX_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
-        ..Default::default()
-    }
 }
 
 fn mine_ore_system(

@@ -42,7 +42,7 @@ impl BuilderTowerCannon {
         for &BuilderTowerCannon{ entity, grid_position } in events.read() {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::Cannon));
             commands.entity(entity).insert((
-                get_tower_cannon_sprite_bundle(&asset_server, grid_position, grid_imprint),
+                get_building_sprite_bundle(&asset_server, TOWER_CANNON_BASE_IMAGE, grid_position, grid_imprint),
                 MarkerTower,
                 MarkerTowerCannon,
                 grid_position,
@@ -61,18 +61,6 @@ impl BuilderTowerCannon {
 impl Command for BuilderTowerCannon {
     fn apply(self, world: &mut World) {
         world.send_event(self);
-    }
-}
-
-pub fn get_tower_cannon_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
-    SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(grid_imprint.world_size()),
-            ..Default::default()
-        },
-        texture: asset_server.load(TOWER_CANNON_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
-        ..Default::default()
     }
 }
 

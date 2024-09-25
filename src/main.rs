@@ -1,23 +1,24 @@
-mod camera;
-mod common;
 mod buildings;
-mod wisps;
+mod camera;
 mod common_components;
+mod common_systems;
+mod common;
+mod data_loader;
+mod effects;
+mod grids;
+mod inventory;
+mod map_editor;
 mod map_loader;
 mod map_objects;
-mod ui;
-mod map_editor;
 mod mouse;
-mod utils;
-mod projectiles;
-mod grids;
-mod search;
 mod overlays;
-mod inventory;
-mod effects;
-mod units;
-mod common_systems;
 mod prelude;
+mod projectiles;
+mod search;
+mod ui;
+mod units;
+mod utils;
+mod wisps;
 
 use crate::prelude::*;
 use crate::grids::obstacles::ObstacleGrid;
@@ -28,19 +29,20 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb_u8(30, 31, 34)))
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
-            camera::CameraPlugin,
-            grids::GridsPlugin,
-            wisps::WispsPlugin,
-            ui::UiPlugin,
-            map_editor::MapEditorPlugin,
-            mouse::MousePlugin,
-            map_objects::MapObjectsPlugin,
             buildings::BuildingsPlugin,
-            projectiles::ProjectilesPlugin,
-            overlays::OverlaysPlugin,
-            inventory::InventoryPlugin,
+            camera::CameraPlugin,
+            data_loader::DataLoaderPlugin,
             effects::EffectsPlugin,
+            grids::GridsPlugin,
+            inventory::InventoryPlugin,
+            map_editor::MapEditorPlugin,
+            map_objects::MapObjectsPlugin,
+            mouse::MousePlugin,
+            overlays::OverlaysPlugin,
+            projectiles::ProjectilesPlugin,
+            ui::UiPlugin,
             units::UnitsPlugin,
+            wisps::WispsPlugin,
         ))
         .insert_resource(GameConfig{
             mode: GameMode::Editor,
@@ -54,6 +56,7 @@ pub fn generate_default_map(
     mut commands: Commands,
     mut obstacles_grid: ResMut<ObstacleGrid>,
     mut map_info: ResMut<MapInfo>,
+    almanach: Res<Almanach>,
 ) {
     let map = map_loader::load_map("test_map");
     map_info.name = "test_map".to_string();
@@ -65,5 +68,6 @@ pub fn generate_default_map(
         map,
         &mut commands, 
         &mut obstacles_grid,
+        &almanach,
     );
 }

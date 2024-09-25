@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::inventory::resources::DarkOreStock;
 
 #[derive(Component)]
 pub struct MarkerDarkOreBadgeText;
@@ -49,9 +48,9 @@ pub fn initialize_badges_system(
 }
 
 pub fn sync_dark_ore_badge_system(
-    mut query: Query<&mut Text, With<MarkerDarkOreBadgeText>>,
-    dark_ore_stock: Res<DarkOreStock>,
+    mut dark_ore_text: Query<&mut Text, With<MarkerDarkOreBadgeText>>,
+    dark_ore_stock: Res<Stock>,
 ) {
-    let mut text = query.single_mut();
-    text.sections[0].value = dark_ore_stock.amount.to_string();
+    let mut text = dark_ore_text.single_mut();
+    text.sections[0].value = dark_ore_stock.get(ResourceType::DarkOre).to_string();
 }

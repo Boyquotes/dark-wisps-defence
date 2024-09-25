@@ -18,7 +18,6 @@ impl Plugin for TowerBlasterPlugin {
     }
 }
 
-pub const TOWER_BLASTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 2, height: 2 };
 pub const TOWER_BLASTER_BASE_IMAGE: &str = "buildings/tower_blaster.png";
 pub const TOWER_BLASTER_TOP_IMAGE: &str = "buildings/tower_blaster_top.png";
 
@@ -38,10 +37,12 @@ impl BuilderTowerBlaster {
         mut commands: Commands,
         mut events: EventReader<BuilderTowerBlaster>,
         asset_server: Res<AssetServer>,
+        almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderTowerBlaster{ entity, grid_position } in events.read() {
-            let (tower_base, tower_top) = get_tower_blaster_sprite_bundle(&asset_server, grid_position);
+            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::Blaster));
+            let (tower_base, tower_top) = get_tower_blaster_sprite_bundle(&asset_server, grid_position, grid_imprint);
             let tower_base_entity = commands.entity(entity).insert((
                 tower_base,
                 MarkerTower,
@@ -51,10 +52,10 @@ impl BuilderTowerBlaster {
                 TowerRange(15),
                 Building,
                 BuildingType::Tower(TowerType::Blaster),
-                TOWER_BLASTER_GRID_IMPRINT,
+                grid_imprint,
                 TowerShootingTimer::from_seconds(0.2),
                 TowerWispTarget::default(),
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_BLASTER_GRID_IMPRINT), ..default() },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
             )).id();
             commands.spawn((
@@ -71,9 +72,9 @@ impl Command for BuilderTowerBlaster {
 }
 
 /// Returns (tower base sprite bundle, tower top sprite bundle)
-pub fn get_tower_blaster_sprite_bundle(asset_server: &AssetServer, grid_position: GridCoords) -> (SpriteBundle, SpriteBundle) {
-    let world_position = grid_position.to_world_position_centered(TOWER_BLASTER_GRID_IMPRINT);
-    let world_size = TOWER_BLASTER_GRID_IMPRINT.world_size();
+pub fn get_tower_blaster_sprite_bundle(asset_server: &AssetServer, grid_position: GridCoords, grid_imprint: GridImprint) -> (SpriteBundle, SpriteBundle) {
+    let world_position = grid_position.to_world_position_centered(grid_imprint);
+    let world_size = grid_imprint.world_size();
     let tower_base = SpriteBundle {
         sprite: Sprite {
             custom_size: Some(world_size),
@@ -98,10 +99,10 @@ pub fn get_tower_blaster_sprite_bundle(asset_server: &AssetServer, grid_position
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_blasters: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), With<MarkerTowerBlaster>>,
+    mut tower_blasters: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), With<MarkerTowerBlaster>>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
-    for (transform, technical_state, mut timer, mut target, top_rotation) in tower_blasters.iter_mut() {
+    for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation) in tower_blasters.iter_mut() {
         if !technical_state.is_operational() { continue; }
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
@@ -118,7 +119,7 @@ pub fn shooting_system(
         if angle_difference(target_angle, top_rotation.current_angle).abs() > std::f32::consts::PI / 36. { continue; }
 
         // Calculate transform offset in the direction we are aiming
-        let tower_world_width = TOWER_BLASTER_GRID_IMPRINT.world_size().x;
+        let tower_world_width = grid_imprint.world_size().x;
         let offset = Vec2::new(
             top_rotation.current_angle.cos() * tower_world_width * 0.4,
             top_rotation.current_angle.sin() * tower_world_width * 0.4,

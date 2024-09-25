@@ -17,7 +17,6 @@ impl Plugin for TowerCannonPlugin {
     }
 }
 
-pub const TOWER_CANNON_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 pub const TOWER_CANNON_BASE_IMAGE: &str = "buildings/tower_cannon.png";
 
 #[derive(Component)]
@@ -37,11 +36,13 @@ impl BuilderTowerCannon {
         mut commands: Commands,
         mut events: EventReader<BuilderTowerCannon>,
         asset_server: Res<AssetServer>,
+        almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderTowerCannon{ entity, grid_position } in events.read() {
+            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::Cannon));
             commands.entity(entity).insert((
-                get_tower_cannon_sprite_bundle(&asset_server, grid_position),
+                get_tower_cannon_sprite_bundle(&asset_server, grid_position, grid_imprint),
                 MarkerTower,
                 MarkerTowerCannon,
                 grid_position,
@@ -49,10 +50,10 @@ impl BuilderTowerCannon {
                 TowerRange(15),
                 Building,
                 BuildingType::Tower(TowerType::Cannon),
-                TOWER_CANNON_GRID_IMPRINT,
+                grid_imprint,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_CANNON_GRID_IMPRINT), ..default() },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
             ));
         }
     }
@@ -63,14 +64,14 @@ impl Command for BuilderTowerCannon {
     }
 }
 
-pub fn get_tower_cannon_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> SpriteBundle {
+pub fn get_tower_cannon_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(TOWER_CANNON_GRID_IMPRINT.world_size()),
+            custom_size: Some(grid_imprint.world_size()),
             ..Default::default()
         },
         texture: asset_server.load(TOWER_CANNON_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(TOWER_CANNON_GRID_IMPRINT).extend(Z_BUILDING)),
+        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
         ..Default::default()
     }
 }

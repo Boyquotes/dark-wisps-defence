@@ -14,7 +14,6 @@ use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, Suppli
 use crate::grids::obstacles::{BelowField, Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::inventory::almanach::Almanach;
-use crate::inventory::resources::DarkOreStock;
 use crate::mouse::MouseInfo;
 use crate::search::flooding::FloodEnergySupplyMode;
 use crate::search::targetfinding::target_find_closest_wisp;
@@ -28,7 +27,7 @@ pub fn onclick_building_spawn_system(
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     almanach: Res<Almanach>,
-    mut dark_ore_stock: ResMut<DarkOreStock>,
+    mut stock: ResMut<Stock>,
     grid_object_placer: Query<(&GridObjectPlacer, &GridImprint)>,
     mut main_base: Query<(Entity, &GridCoords), With<MarkerMainBase>>,
 ) {
@@ -40,9 +39,8 @@ pub fn onclick_building_spawn_system(
             // Grid Placement Validation
             if !obstacle_grid.query_building_placement(mouse_coords, *building_type, *grid_imprint) { return; }
             // Payment
-            let dark_ore_price = almanach.get_building_cost(*building_type);
-            if dark_ore_stock.amount < dark_ore_price { println!("Not enough dark ore"); return; }
-            dark_ore_stock.amount -= dark_ore_price;
+            let building_costs = almanach.get_building_cost(*building_type);
+            if !stock.try_pay_costs(building_costs) { println!("Not enough dark ore"); return; }
             // Creation
             // ---
             enum GridAction {

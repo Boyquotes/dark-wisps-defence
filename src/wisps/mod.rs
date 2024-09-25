@@ -10,7 +10,9 @@ pub struct WispsPlugin;
 impl Plugin for WispsPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_plugins((Material2dPlugin::<spawning::WispMaterial>::default()))
+            .add_plugins((
+                Material2dPlugin::<spawning::WispMaterial>::default(),
+            ))
             .add_event::<spawning::BuilderWisp>()
             .add_systems(PostUpdate, (
                 spawning::BuilderWisp::spawn_system,

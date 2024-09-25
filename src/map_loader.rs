@@ -1,7 +1,6 @@
 use core::panic;
 use std::fs::File;
 use serde::{Deserialize, Serialize};
-use bevy::utils::HashMap;
 use crate::prelude::*;
 use crate::buildings::energy_relay::BuilderEnergyRelay;
 use crate::buildings::exploration_center::BuilderExplorationCenter;
@@ -51,6 +50,7 @@ pub fn apply_map(
     map: Map,
     commands: &mut Commands,
     obstacle_grid: &mut ObstacleGrid,
+    almanach: &Almanach,
 ) {
     map.walls.iter().for_each(|wall_coords| {
         let wall_entity = commands.spawn_empty().id();
@@ -112,7 +112,7 @@ pub fn apply_map(
                 // entity
             }
         };
-        obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type, default()), building.building_type.grid_imprint());
+        obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type, default()), almanach.get_building_grid_imprint(building.building_type));
     });
     map.quantum_fields.iter().for_each(|quantum_field| {
         let quantum_field_entity = commands.spawn_empty().id();

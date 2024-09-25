@@ -1,3 +1,4 @@
+use crate::inventory::almanach;
 use crate::prelude::*;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::map_objects::common::ExpeditionZone;
@@ -16,7 +17,6 @@ impl Plugin for ExplorationCenterPlugin {
     }
 }
 
-pub const EXPLORATION_CENTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 4, height: 4 };
 pub const EXPLORATION_CENTER_BASE_IMAGE: &str = "buildings/exploration_center.png";
 
 
@@ -39,18 +39,20 @@ impl BuilderExplorationCenter {
         mut commands: Commands,
         mut events: EventReader<BuilderExplorationCenter>,
         asset_server: Res<AssetServer>,
+        almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderExplorationCenter{ entity, grid_position } in events.read() {
+            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::ExplorationCenter);
             commands.entity(entity).insert((
-                get_exploration_center_sprite_bundle(&asset_server, grid_position),
+                get_exploration_center_sprite_bundle(&asset_server, grid_position, grid_imprint),
                 MarkerExplorationCenter,
                 grid_position,
                 Health(100),
                 Building,
                 BuildingType::ExplorationCenter,
-                EXPLORATION_CENTER_GRID_IMPRINT,
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, EXPLORATION_CENTER_GRID_IMPRINT), ..default() },
+                grid_imprint,
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
             ));
         }
@@ -63,14 +65,14 @@ impl Command for BuilderExplorationCenter {
 }
 
 
-pub fn get_exploration_center_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> SpriteBundle {
+pub fn get_exploration_center_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(EXPLORATION_CENTER_GRID_IMPRINT.world_size()),
+            custom_size: Some(grid_imprint.world_size()),
             ..Default::default()
         },
         texture: asset_server.load(EXPLORATION_CENTER_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(EXPLORATION_CENTER_GRID_IMPRINT).extend(Z_BUILDING)),
+        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
         ..Default::default()
     }
 }

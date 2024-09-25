@@ -14,8 +14,6 @@ impl Plugin for EnergyRelayPlugin {
     }
 }
 
-
-pub const ENERGY_RELAY_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 2, height: 2 };
 pub const ENERGY_RELAY_BASE_IMAGE: &str = "buildings/energy_relay.png";
 
 #[derive(Event)]
@@ -31,10 +29,12 @@ impl BuilderEnergyRelay {
         mut commands: Commands,
         mut events: EventReader<BuilderEnergyRelay>,
         asset_server: Res<AssetServer>,
+        almanach: Res<Almanach>,
         mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
         mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     ) {
         for &BuilderEnergyRelay{ entity, grid_position } in events.read() {
+            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::EnergyRelay);
             let emmision_details = FloodEmissionsDetails {
                 emissions_type: EmissionsType::Energy,
                 range: usize::MAX,
@@ -43,18 +43,18 @@ impl BuilderEnergyRelay {
             };
             let supplier_energy = SupplierEnergy { range: 15 };
             commands.entity(entity).insert((
-                get_energy_relay_sprite_bundle(grid_position, &asset_server),
+                get_energy_relay_sprite_bundle(grid_position, grid_imprint, &asset_server),
                 grid_position,
                 Health(100),
                 Building,
                 BuildingType::EnergyRelay,
-                ENERGY_RELAY_GRID_IMPRINT,
+                grid_imprint,
                 EmitterEnergy(emmision_details.clone()),
                 supplier_energy.clone(),
                 TechnicalState{ has_energy_supply: true, ..default() },
                 ColorPulsation::new(1.0, 1.8, 3.0),
             ));
-            let covered_coords = ENERGY_RELAY_GRID_IMPRINT.covered_coords(grid_position);
+            let covered_coords = grid_imprint.covered_coords(grid_position);
             emitter_created_event_writer.send(EmitterChangedEvent {
                 emitter_entity: entity,
                 coords: covered_coords.clone(),
@@ -74,15 +74,15 @@ impl Command for BuilderEnergyRelay {
     }
 }
 
-pub fn get_energy_relay_sprite_bundle(coords: GridCoords, asset_server: &AssetServer) -> SpriteBundle {
+pub fn get_energy_relay_sprite_bundle(coords: GridCoords, grid_imprint: GridImprint, asset_server: &AssetServer) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(ENERGY_RELAY_GRID_IMPRINT.world_size()),
+            custom_size: Some(grid_imprint.world_size()),
             color: Color::hsla(0., 0.2, 1.0, 1.0), // 1.6 is a good value if the pulsation is off.
             ..Default::default()
         },
         texture: asset_server.load(ENERGY_RELAY_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(ENERGY_RELAY_GRID_IMPRINT).extend(Z_BUILDING)),
+        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
         ..Default::default()
     }
 }

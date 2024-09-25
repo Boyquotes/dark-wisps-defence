@@ -48,9 +48,9 @@ pub enum GridObjectPlacer {
     QuantumField(QuantumField),
 }
 impl GridObjectPlacer {
-    pub fn as_grid_imprint(&self) -> GridImprint {
+    pub fn as_grid_imprint(&self, almanach: &Almanach) -> GridImprint {
         match self {
-            GridObjectPlacer::Building(building_type) => building_type.grid_imprint(),
+            GridObjectPlacer::Building(building_type) => almanach.get_building_grid_imprint(*building_type),
             GridObjectPlacer::Wall => WALL_GRID_IMPRINT,
             GridObjectPlacer::DarkOre => DARK_ORE_GRID_IMPRINT,
             GridObjectPlacer::QuantumField(quantum_field) => quantum_field.grid_imprint,
@@ -154,6 +154,7 @@ pub fn keyboard_input_system(
 }
 
 pub fn on_request_grid_object_placer_system(
+    almanach: Res<Almanach>,
     mut ui_interaction_state: ResMut<UiInteractionState>,
     mut placer: Query<(&mut Sprite, &mut Visibility, &mut GridObjectPlacer, &mut GridImprint)>,
     mut placer_request: ResMut<GridObjectPlacerRequest>,
@@ -169,7 +170,7 @@ pub fn on_request_grid_object_placer_system(
     match &*grid_object_placer {
         GridObjectPlacer::None => panic!("GridObjectPlacer::None should not be possible here"),
         placer => {
-            *grid_imprint = placer.as_grid_imprint();
+            *grid_imprint = placer.as_grid_imprint(&almanach);
             sprite.custom_size = Some(grid_imprint.world_size());
         }
     }

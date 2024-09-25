@@ -18,7 +18,6 @@ impl Plugin for TowerRocketLauncherPlugin {
     }
 }
 
-pub const TOWER_ROCKET_LAUNCHER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 pub const TOWER_ROCKET_LAUNCHER_BASE_IMAGE: &str = "buildings/tower_rocket_launcher.png";
 
 #[derive(Component)]
@@ -35,10 +34,12 @@ impl BuilderTowerRocketLauncher {
         mut commands: Commands,
         mut events: EventReader<BuilderTowerRocketLauncher>,
         asset_server: Res<AssetServer>,
+        almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderTowerRocketLauncher{ entity, grid_position } in events.read() {
-            let (tower_base, tower_top) = get_tower_rocket_launcher_sprite_bundle(&asset_server, grid_position);
+            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::RocketLauncher));
+            let (tower_base, tower_top) = get_tower_rocket_launcher_sprite_bundle(&asset_server, grid_position, grid_imprint);
             let tower_base_entity = commands.entity(entity).insert((
                 tower_base,
                 MarkerTower,
@@ -48,10 +49,10 @@ impl BuilderTowerRocketLauncher {
                 TowerRange(30),
                 Building,
                 BuildingType::Tower(TowerType::RocketLauncher),
-                TOWER_ROCKET_LAUNCHER_GRID_IMPRINT,
+                grid_imprint,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_ROCKET_LAUNCHER_GRID_IMPRINT), ..default() },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
             )).id();
             commands.spawn((
@@ -67,9 +68,9 @@ impl Command for BuilderTowerRocketLauncher {
     }
 }
 
-pub fn get_tower_rocket_launcher_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> (SpriteBundle, SpriteBundle) {
-    let world_position = coords.to_world_position_centered(TOWER_ROCKET_LAUNCHER_GRID_IMPRINT);
-    let world_size = TOWER_ROCKET_LAUNCHER_GRID_IMPRINT.world_size();
+pub fn get_tower_rocket_launcher_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> (SpriteBundle, SpriteBundle) {
+    let world_position = coords.to_world_position_centered(grid_imprint);
+    let world_size = grid_imprint.world_size();
     let tower_base = SpriteBundle {
         sprite: Sprite {
             custom_size: Some(world_size),
@@ -94,10 +95,10 @@ pub fn get_tower_rocket_launcher_sprite_bundle(asset_server: &AssetServer, coord
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_rocket_launchers: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), (With<MarkerTowerRocketLauncher>, Without<Wisp>)>,
+    mut tower_rocket_launchers: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), (With<MarkerTowerRocketLauncher>, Without<Wisp>)>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
-    for (transform, technical_state, mut timer, mut target, top_rotation) in tower_rocket_launchers.iter_mut() {
+    for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation) in tower_rocket_launchers.iter_mut() {
         if !technical_state.is_operational() { continue; }
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
@@ -114,7 +115,7 @@ pub fn shooting_system(
         if angle_difference(target_angle, top_rotation.current_angle).abs() > std::f32::consts::PI / 72. { continue; }
 
         // Calculate transform offset in the direction we are aiming
-        let tower_world_width = TOWER_ROCKET_LAUNCHER_GRID_IMPRINT.world_size().x;
+        let tower_world_width = grid_imprint.world_size().x;
         let offset = Vec2::new(
             top_rotation.current_angle.cos() * tower_world_width * 0.4,
             top_rotation.current_angle.sin() * tower_world_width * 0.4,

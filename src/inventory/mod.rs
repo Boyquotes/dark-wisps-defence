@@ -5,16 +5,20 @@ pub mod stats;
 
 use crate::prelude::*;
 
+pub mod prelude {
+    pub use super::resources::{ResourceType, Stock, Cost};
+    pub use super::almanach::Almanach;
+}
+
 pub struct InventoryPlugin;
 impl Plugin for InventoryPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins((
+                almanach::AlmanachPlugin,
                 objectives::ObjectivesPlugin,
+                resources::ResourcesPlugin,
                 stats::StatsPlugin,
-            ))
-            .insert_resource(almanach::Almanach::default())
-            .insert_resource(objectives::ObjectivesReassesInactiveFlag::default())
-            .insert_resource(resources::DarkOreStock::default());
+            ));
     }
 }

@@ -1,29 +1,32 @@
 use crate::prelude::*;
 
-#[derive(Resource)]
-pub struct Almanach {
-    building_costs: HashMap<BuildingType, i32>,
-}
-
-impl Almanach {
-    pub fn get_building_cost(&self, building_type: BuildingType) -> i32 {
-        *self.building_costs.get(&building_type).expect(format!("Building {building_type:?} not found in almanach").as_str())
+pub struct AlmanachPlugin;
+impl Plugin for AlmanachPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<Almanach>();
     }
 }
 
-impl Default for Almanach {
-    fn default() -> Self {
-        let building_costs = [
-            (BuildingType::MainBase, 0),
-            (BuildingType::MiningComplex, 100),
-            (BuildingType::EnergyRelay, 300),
-            (BuildingType::ExplorationCenter, 500),
-            (BuildingType::Tower(TowerType::Blaster), 150),
-            (BuildingType::Tower(TowerType::Cannon), 250),
-            (BuildingType::Tower(TowerType::RocketLauncher), 350),
-            (BuildingType::Tower(TowerType::Emitter), 450),
-        ].into_iter().collect();
+#[derive(Resource, Default)]
+pub struct Almanach {
+    buildings: HashMap<BuildingType, AlmanachBuildingInfo>,
+}
 
-        Self { building_costs }
+struct AlmanachBuildingInfo {
+    pub cost: Vec<Cost>,
+    pub grid_imprint: GridImprint,
+}
+
+impl Almanach {
+    pub fn get_building_cost(&self, building_type: BuildingType) -> &Vec<Cost> {
+        let info = self.buildings.get(&building_type).expect(format!("Building {building_type:?} not found in almanach").as_str());
+        &info.cost
+    }
+    pub fn get_building_grid_imprint(&self, building_type: BuildingType) -> GridImprint {
+        let info = self.buildings.get(&building_type).expect(format!("Building {building_type:?} not found in almanach").as_str());
+        info.grid_imprint
+    }
+    pub fn add_building(&mut self, building_type: BuildingType, cost: Vec<Cost>, grid_imprint: GridImprint) {
+        self.buildings.insert(building_type, AlmanachBuildingInfo { cost, grid_imprint });
     }
 }

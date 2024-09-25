@@ -59,7 +59,7 @@ impl Into<(i32, i32)> for GridCoords {
 }
 
 
-#[derive(Component, Clone, Copy, Debug, PartialEq)]
+#[derive(Component, Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub enum GridImprint {
     Rectangle{width: i32, height: i32},
 }

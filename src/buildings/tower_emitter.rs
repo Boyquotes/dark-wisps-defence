@@ -18,7 +18,6 @@ impl Plugin for TowerEmitterPlugin {
     }
 }
 
-pub const TOWER_EMITTER_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 2, height: 2 };
 pub const TOWER_EMITTER_BASE_IMAGE: &str = "buildings/tower_emitter.png";
 
 #[derive(Component)]
@@ -38,11 +37,13 @@ impl BuilderTowerEmitter {
         mut commands: Commands,
         mut events: EventReader<BuilderTowerEmitter>,
         asset_server: Res<AssetServer>,
+        almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderTowerEmitter{ entity, grid_position } in events.read() {
+            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::Emitter));
             commands.entity(entity).insert((
-                get_tower_emitter_sprite_bundle(&asset_server, grid_position),
+                get_tower_emitter_sprite_bundle(&asset_server, grid_position, grid_imprint),
                 MarkerTower,
                 MarkerTowerEmitter,
                 grid_position,
@@ -50,10 +51,10 @@ impl BuilderTowerEmitter {
                 TowerRange(4),
                 Building,
                 BuildingType::Tower(TowerType::Emitter),
-                TOWER_EMITTER_GRID_IMPRINT,
+                grid_imprint,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, TOWER_EMITTER_GRID_IMPRINT), ..default() },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
             ));
         }
     }
@@ -64,14 +65,14 @@ impl Command for BuilderTowerEmitter {
     }
 }
 
-pub fn get_tower_emitter_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> SpriteBundle {
+pub fn get_tower_emitter_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(TOWER_EMITTER_GRID_IMPRINT.world_size()),
+            custom_size: Some(grid_imprint.world_size()),
             ..Default::default()
         },
         texture: asset_server.load(TOWER_EMITTER_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(TOWER_EMITTER_GRID_IMPRINT).extend(Z_BUILDING)),
+        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
         ..Default::default()
     }
 }

@@ -7,6 +7,7 @@ pub struct ObjectivesPlugin;
 impl Plugin for ObjectivesPlugin {
     fn build(&self, app: &mut App) {
         app
+            .init_resource::<ObjectivesReassesInactiveFlag>()
             .add_event::<BuilderObjective>()
             .add_systems(PostUpdate, (
                 BuilderObjective::spawn_system.run_if(on_event::<BuilderObjective>()),

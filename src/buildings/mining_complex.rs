@@ -1,10 +1,7 @@
-use nanorand::Rng;
-
 use crate::grids::obstacles::{self, Field, ObstacleGrid};
 use crate::map_objects::dark_ore::DarkOre;
 use crate::prelude::*;
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::inventory::resources::DarkOreStock;
 
 pub struct MiningComplexPlugin;
 impl Plugin for MiningComplexPlugin {
@@ -19,7 +16,6 @@ impl Plugin for MiningComplexPlugin {
     }
 }
 
-pub const MINING_COMPLEX_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 3, height: 3 };
 pub const MINING_COMPLEX_BASE_IMAGE: &str = "buildings/mining_complex.png";
 
 
@@ -46,14 +42,16 @@ impl BuilderMiningComplex {
         obstacle_grid: Res<ObstacleGrid>,
         mut events: EventReader<BuilderMiningComplex>,
         asset_server: Res<AssetServer>,
+        almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderMiningComplex{ entity, grid_position } in events.read() {
-            let ore_entities_in_range = obstacle_grid.imprint_query_element(grid_position, MINING_COMPLEX_GRID_IMPRINT, query_dark_ore_helper);
+            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::MiningComplex);
+            let ore_entities_in_range = obstacle_grid.imprint_query_element(grid_position, grid_imprint, query_dark_ore_helper);
             commands.entity(entity).insert((
-                get_mining_complex_sprite_bundle(&asset_server, grid_position),
+                get_mining_complex_sprite_bundle(&asset_server, grid_position, grid_imprint),
                 TechnicalState{ 
-                    has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, MINING_COMPLEX_GRID_IMPRINT),
+                    has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint),
                     has_ore_fields: Some(!ore_entities_in_range.is_empty()),
                 },
                 MiningComplex { ore_entities_in_range },
@@ -61,8 +59,8 @@ impl BuilderMiningComplex {
                 Health(100),
                 Building,
                 BuildingType::MiningComplex,
-                MINING_COMPLEX_GRID_IMPRINT,
-                MiningRange(MINING_COMPLEX_GRID_IMPRINT),
+                grid_imprint,
+                MiningRange(grid_imprint),
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
             ));
         }
@@ -79,20 +77,20 @@ fn query_dark_ore_helper(field: &Field) -> Option<Entity> {
     if let obstacles::Field::Building(_, BuildingType::MiningComplex, obstacles::BelowField::DarkOre(dark_ore_entity)) = field { Some(*dark_ore_entity) } else { None }
 }
 
-pub fn get_mining_complex_sprite_bundle(asset_server: &AssetServer, coords: GridCoords) -> SpriteBundle {
+pub fn get_mining_complex_sprite_bundle(asset_server: &AssetServer, coords: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(MINING_COMPLEX_GRID_IMPRINT.world_size()),
+            custom_size: Some(grid_imprint.world_size()),
             ..Default::default()
         },
         texture: asset_server.load(MINING_COMPLEX_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(MINING_COMPLEX_GRID_IMPRINT).extend(Z_BUILDING)),
+        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
         ..Default::default()
     }
 }
 
 fn mine_ore_system(
-    mut dark_ore_stock: ResMut<DarkOreStock>,
+    mut stock: ResMut<Stock>,
     mut mining_complexes: Query<(&mut MiningComplex, &mut MiningComplexDeliveryTimer, &mut TechnicalState)>,
     mut dark_ores: Query<&mut DarkOre>,
     time: Res<Time>,
@@ -106,7 +104,7 @@ fn mine_ore_system(
             let ore_entity = mining_complex.ore_entities_in_range[ore_index];
             if let Ok(mut dark_ore) = dark_ores.get_mut(ore_entity) {
                 let mined_amount = std::cmp::min(dark_ore.amount, 100);
-                dark_ore_stock.add(mined_amount);
+                stock.add(ResourceType::DarkOre, mined_amount);
                 dark_ore.amount -= mined_amount;
                 if dark_ore.amount == 0 {
                     // Ore is already fully exhausted

@@ -17,7 +17,6 @@ impl Plugin for MainBasePlugin {
     }
 }
 
-pub const MAIN_BASE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 6, height: 6 };
 pub const MAIN_BASE_BASE_IMAGE: &str = "buildings/main_base.png";
 
 #[derive(Component)]
@@ -37,11 +36,13 @@ impl BuilderMainBase {
         mut commands: Commands,
         mut events: EventReader<BuilderMainBase>,
         asset_server: Res<AssetServer>,
+        almanach: Res<Almanach>,
         mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
         mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     ) {
         for &BuilderMainBase { entity, grid_position } in events.read() {
-            let covered_coords = MAIN_BASE_GRID_IMPRINT.covered_coords(grid_position);
+            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::MainBase);
+            let covered_coords = grid_imprint.covered_coords(grid_position);
             let emitter_energy = EmitterEnergy(FloodEmissionsDetails {
                 emissions_type: EmissionsType::Energy,
                 range: usize::MAX,
@@ -61,13 +62,13 @@ impl BuilderMainBase {
             });
 
             commands.entity(entity).insert((
-                get_main_base_sprite_bundle(grid_position, &asset_server),
+                get_main_base_sprite_bundle(grid_position, grid_imprint, &asset_server),
                 MarkerMainBase,
                 grid_position,
                 Health(10000),
                 Building,
                 BuildingType::MainBase,
-                MAIN_BASE_GRID_IMPRINT,
+                grid_imprint,
                 emitter_energy,
                 supplier_energy,
                 TechnicalState { has_energy_supply: true, ..default() },
@@ -81,14 +82,14 @@ impl Command for BuilderMainBase {
     }
 }
 
-pub fn get_main_base_sprite_bundle(coords: GridCoords, asset_server: &AssetServer) -> SpriteBundle {
+pub fn get_main_base_sprite_bundle(coords: GridCoords, grid_imprint: GridImprint, asset_server: &AssetServer) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(MAIN_BASE_GRID_IMPRINT.world_size()),
+            custom_size: Some(grid_imprint.world_size()),
             ..Default::default()
         },
         texture: asset_server.load(MAIN_BASE_BASE_IMAGE),
-        transform: Transform::from_translation(coords.to_world_position_centered(MAIN_BASE_GRID_IMPRINT).extend(Z_BUILDING)),
+        transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
         ..Default::default()
     }
 }
@@ -107,23 +108,23 @@ pub fn move_main_base_system(
     mut events: EventReader<EventMoveMainBase>,
     mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
     mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
-    mut main_base: Query<(Entity, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
+    mut main_base: Query<(Entity, &GridImprint, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
 ) {
     for &EventMoveMainBase { new_grid_position } in events.read() {
-        let (entity, mut main_base_location, supplier_energy, mut transform) = main_base.single_mut();
+        let (entity, grid_imprint, mut main_base_location, supplier_energy, mut transform) = main_base.single_mut();
         supplier_created_event_writer.send(SupplierChangedEvent {
-            coords: MAIN_BASE_GRID_IMPRINT.covered_coords(*main_base_location),
+            coords: grid_imprint.covered_coords(*main_base_location),
             supplier: supplier_energy.clone(),
             mode: FloodEnergySupplyMode::Decrease,
         });
         supplier_created_event_writer.send(SupplierChangedEvent {
-            coords: MAIN_BASE_GRID_IMPRINT.covered_coords(new_grid_position),
+            coords: grid_imprint.covered_coords(new_grid_position),
             supplier: supplier_energy.clone(),
             mode: FloodEnergySupplyMode::Increase,
         });
         emitter_created_event_writer.send(EmitterChangedEvent {
             emitter_entity: entity,
-            coords: MAIN_BASE_GRID_IMPRINT.covered_coords(*main_base_location),
+            coords: grid_imprint.covered_coords(*main_base_location),
             emissions_details: vec![FloodEmissionsDetails {
                 emissions_type: EmissionsType::Energy,
                 range: usize::MAX,
@@ -133,7 +134,7 @@ pub fn move_main_base_system(
         });
         emitter_created_event_writer.send(EmitterChangedEvent {
             emitter_entity: entity,
-            coords: MAIN_BASE_GRID_IMPRINT.covered_coords(new_grid_position),
+            coords: grid_imprint.covered_coords(new_grid_position),
             emissions_details: vec![FloodEmissionsDetails {
                 emissions_type: EmissionsType::Energy,
                 range: usize::MAX,
@@ -142,6 +143,6 @@ pub fn move_main_base_system(
             }]
         });
         *main_base_location = new_grid_position;
-        transform.translation = new_grid_position.to_world_position_centered(MAIN_BASE_GRID_IMPRINT).extend(Z_BUILDING);
+        transform.translation = new_grid_position.to_world_position_centered(*grid_imprint).extend(Z_BUILDING);
     }
 }

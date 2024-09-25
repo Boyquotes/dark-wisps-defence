@@ -50,12 +50,14 @@ impl BuilderWisp {
                         speed: rng.generate::<f32>() * 3. + 4., // 4 - 7
                         sinus_direction: [-1., 1.][rng.generate::<usize>() % 2],
                         cosinus_direction: [-1., 1.][rng.generate::<usize>() % 2],
-                        wisp_tex1: asset_server.load("wisps/tri_wisp.png"),
+                        wisp_tex1: asset_server.load("wisps/big_wisp.png"),
                         wisp_tex2: asset_server.load("wisps/big_wisp.png"),
                     }),
-                    transform: Transform::from_translation(
-                        grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP)
-                    ),
+                    transform: Transform {
+                        translation: grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP),
+                        rotation: Quat::from_rotation_z(rng.generate::<f32>() * 2. * std::f32::consts::PI),
+                        ..default()
+                    },
                     ..default()
                 },
                 Wisp,

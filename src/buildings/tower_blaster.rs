@@ -56,10 +56,11 @@ impl BuilderTowerBlaster {
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
             )).id();
-            commands.spawn((
-                get_tower_top_sprite_bundle(&asset_server, grid_position, grid_imprint),
+            let tower_top = commands.spawn((
+                get_tower_top_sprite_bundle(&asset_server, grid_imprint),
                 MarkerTowerRotationalTop(tower_base_entity.into()),
-            ));
+            )).id();
+            commands.entity(entity).add_child(tower_top);
         }
     }
 }
@@ -69,7 +70,7 @@ impl Command for BuilderTowerBlaster {
     }
 }
 
-pub fn get_tower_top_sprite_bundle(asset_server: &AssetServer, grid_position: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
+pub fn get_tower_top_sprite_bundle(asset_server: &AssetServer, grid_imprint: GridImprint) -> SpriteBundle {
     let world_size = grid_imprint.world_size();
     SpriteBundle {
         sprite: Sprite {
@@ -77,7 +78,7 @@ pub fn get_tower_top_sprite_bundle(asset_server: &AssetServer, grid_position: Gr
             ..Default::default()
         },
         texture: asset_server.load(TOWER_BLASTER_TOP_IMAGE),
-        transform: Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_TOWER_TOP)),
+        transform: Transform::from_translation(Vec3::new(0., 0., Z_TOWER_TOP)),
         ..Default::default()
     }
 }

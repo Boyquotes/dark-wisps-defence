@@ -13,6 +13,7 @@ pub struct Almanach {
 }
 
 struct AlmanachBuildingInfo {
+    pub name: String,
     pub cost: Vec<Cost>,
     pub grid_imprint: GridImprint,
 }
@@ -26,7 +27,11 @@ impl Almanach {
         let info = self.buildings.get(&building_type).expect(format!("Building {building_type:?} not found in almanach").as_str());
         info.grid_imprint
     }
-    pub fn add_building(&mut self, building_type: BuildingType, cost: Vec<Cost>, grid_imprint: GridImprint) {
-        self.buildings.insert(building_type, AlmanachBuildingInfo { cost, grid_imprint });
+    pub fn get_building_name(&self, building_type: BuildingType) -> &str {
+        let info = self.buildings.get(&building_type).expect(format!("Building {building_type:?} not found in almanach").as_str());
+        &info.name
+    }
+    pub fn add_building(&mut self, building_type: BuildingType, name: String, cost: Vec<Cost>, grid_imprint: GridImprint) {
+        self.buildings.insert(building_type, AlmanachBuildingInfo { name, cost, grid_imprint });
     }
 }

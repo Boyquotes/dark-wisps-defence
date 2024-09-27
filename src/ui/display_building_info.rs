@@ -1,6 +1,7 @@
-use bevy::color::palettes::css::YELLOW;
+use bevy::color::palettes::css::{BLUE, YELLOW};
 use bevy::render::camera::RenderTarget;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
+use crate::inventory::almanach;
 use crate::prelude::*;
 use crate::grids::energy_supply::SupplierEnergy;
 use crate::grids::obstacles::{Field, ObstacleGrid};
@@ -26,11 +27,13 @@ impl Plugin for DisplayBuildingInfoPlugin {
 }
 
 #[derive(Component)]
-pub struct DisplayBuildingInfoCamera;
-#[derive(Component)]
 pub struct DisplayBuildingInfo {
     pub building_entity: Entity,
 }
+#[derive(Component)]
+struct DisplayBuildingInfoCamera;
+#[derive(Component)]
+struct BuildingNameText;
 
 /// Event emitted when the user clicks on a building
 #[derive(Event)]
@@ -44,7 +47,7 @@ fn initialize_display_building_info_system(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
 ) {
-    let image_handle = {
+    let camera_image_handle = {
         let size = Extent3d {
             width: 128,
             height: 128,
@@ -73,7 +76,7 @@ fn initialize_display_building_info_system(
             camera: Camera {
                 order: 1,
                 hdr: true,
-                target: RenderTarget::Image(image_handle.clone()),
+                target: RenderTarget::Image(camera_image_handle.clone()),
                 is_active: false,
                 ..default()
             },
@@ -109,6 +112,7 @@ fn initialize_display_building_info_system(
         },
         DisplayBuildingInfo { building_entity: Entity::PLACEHOLDER },
     )).with_children(|parent| {
+        // Camera image (Left side)
         parent.spawn((
             NodeBundle {
                 style: Style {
@@ -120,15 +124,42 @@ fn initialize_display_building_info_system(
                 border_color: YELLOW.into(),
                 ..default()
             },
-            UiImage::new(image_handle),
+            UiImage::new(camera_image_handle),
         ));
+        // Right panel
+        parent.spawn((
+            NodeBundle {
+                style: Style {
+                    height: Val::Percent(100.),
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::Start,
+                    align_items: AlignItems::Start,
+                    padding: UiRect::all(Val::Px(2.0)),
+                    ..default()
+                },
+                ..default()
+            },
+        )).with_children(|parent| {
+            // Building name
+            parent.spawn((
+                TextBundle {
+                    text: Text::from_section("### Building Name ###", TextStyle{ color: BLUE.into(), ..default() }),
+                    style: Style {
+                        margin: UiRect{ left: Val::Px(4.), ..default() },
+                        ..default()
+                    },
+                    ..default()
+                },
+                BuildingNameText,
+            ));
+        });
     });
 
 }
 
 fn on_display_enter_system(
     mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
-    mut building_info_camera: Query<(&mut Camera), With<DisplayBuildingInfoCamera>>,
+    mut building_info_camera: Query<&mut Camera, With<DisplayBuildingInfoCamera>>,
 ) {
     *display_building_info.single_mut() = Visibility::Inherited;
     building_info_camera.single_mut().is_active = true;
@@ -136,7 +167,7 @@ fn on_display_enter_system(
 
 fn on_display_exit_system(
     mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
-    mut building_info_camera: Query<(&mut Camera), With<DisplayBuildingInfoCamera>>,
+    mut building_info_camera: Query<&mut Camera, With<DisplayBuildingInfoCamera>>,
 ) {
     *display_building_info.single_mut() = Visibility::Hidden;
     building_info_camera.single_mut().is_active = false;
@@ -152,6 +183,7 @@ fn hide_system(
 }
 
 fn show_on_click_system(
+    almanach: Res<Almanach>,
     mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
@@ -159,26 +191,26 @@ fn show_on_click_system(
     mut building_ui_focus_changed_events: EventWriter<BuildingUiFocusChangedEvent>,
     mut display_building_info: Query<&mut DisplayBuildingInfo>,
     mut building_info_camera: Query<&mut Transform, With<DisplayBuildingInfoCamera>>,
-    buildings: Query<(&GridImprint, &GridCoords), With<Building>>,
+    mut building_name_text: Query<&mut Text, With<BuildingNameText>>,
+    buildings: Query<(&BuildingType, &GridImprint, &GridCoords), With<Building>>,
 ) {
     if !mouse.just_pressed(MouseButton::Left) || !mouse_info.grid_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
 
-    match &obstacle_grid[mouse_info.grid_coords] {
-        Field::Building(entity, _, _) => {
-            let Ok((grid_imprint, grid_coords)) = buildings.get(*entity) else { return; };
-            let mut camera_transform = building_info_camera.single_mut();
-            let building_world_position = grid_coords.to_world_position_centered(*grid_imprint);
-            camera_transform.translation.x = building_world_position.x;
-            camera_transform.translation.y = building_world_position.y;
+    let Field::Building(entity, _, _) = &obstacle_grid[mouse_info.grid_coords] else { return; };
+    let Ok((building_type, grid_imprint, grid_coords)) = buildings.get(*entity) else { return; };
+    // Center the camera on the building
+    let mut camera_transform = building_info_camera.single_mut();
+    let building_world_position = grid_coords.to_world_position_centered(*grid_imprint);
+    camera_transform.translation.x = building_world_position.x;
+    camera_transform.translation.y = building_world_position.y;
+    // Update the building name
+    building_name_text.single_mut().sections[0].value = almanach.get_building_name(*building_type).to_string();
 
-            let mut display_building_info = display_building_info.single_mut();
-            display_building_info.building_entity = *entity;
+    let mut display_building_info = display_building_info.single_mut();
+    display_building_info.building_entity = *entity;
 
-            building_ui_focus_changed_events.send(BuildingUiFocusChangedEvent { building_entity: *entity });
-            ui_interaction_state.set(UiInteraction::DisplayBuildingInfo);
-        }
-        _ => {}
-    }
+    building_ui_focus_changed_events.send(BuildingUiFocusChangedEvent { building_entity: *entity });
+    ui_interaction_state.set(UiInteraction::DisplayBuildingInfo);
 }
 
 fn on_building_destroyed_system(

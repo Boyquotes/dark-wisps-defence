@@ -1,32 +1,40 @@
 buildings:
   - type: EnergyRelay
+    name: Energy Relay
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 300 }
   - type: ExplorationCenter
+    name: Exploration Center
     grid_imprint: !Rectangle { width: 4, height: 4 }
     cost:
       - { resource_type: DarkOre, amount: 500 }
   - type: MainBase
+    name: Main Base
     grid_imprint: !Rectangle { width: 6, height: 6 }
     cost: []
   - type: MiningComplex
+    name: Mining Complex
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 100 }
   - type: !Tower Blaster
+    name: Blaster Tower
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 150 }
   - type: !Tower Cannon
+    name: Cannon Tower
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 250 }
   - type: !Tower Emitter
+    name: Emitter Tower
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 450 }
   - type: !Tower RocketLauncher
+    name: Rocket Launcher Tower
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 350 }

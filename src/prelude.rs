@@ -9,3 +9,4 @@ pub use crate::common_components::prelude::*;
 pub use crate::grids::common::prelude::*;
 pub use crate::buildings::prelude::*;
 pub use crate::inventory::prelude::*;
+pub use crate::ui::prelude::*;

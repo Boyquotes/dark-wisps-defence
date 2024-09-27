@@ -5,26 +5,38 @@ use crate::prelude::*;
 use crate::grids::energy_supply::SupplierEnergy;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
-use crate::ui::interaction_state::UiInteractionState;
 
 pub struct DisplayBuildingInfoPlugin;
 impl Plugin for DisplayBuildingInfoPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_event::<BuildingUiFocusChangedEvent>()
             .add_systems(Startup, (
                 initialize_display_building_info_system,
             ))
             .add_systems(Update, (
-                on_click_building_display_info_system,
-                display_building_info_system,
-            ));
+                hide_system.run_if(in_state(UiInteraction::DisplayBuildingInfo)),
+                show_on_click_system.run_if(in_state(UiInteraction::Free).or_else(in_state(UiInteraction::DisplayBuildingInfo))),
+                on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayBuildingInfo).and_then(on_event::<BuildingDestroyedEvent>())),
+                display_building_info_system.run_if(in_state(UiInteraction::DisplayBuildingInfo)),
+            ))
+            .add_systems(OnEnter(UiInteraction::DisplayBuildingInfo), on_display_enter_system)
+            .add_systems(OnExit(UiInteraction::DisplayBuildingInfo), on_display_exit_system);
     }
 }
 
 #[derive(Component)]
 pub struct DisplayBuildingInfoCamera;
 #[derive(Component)]
-pub struct DisplayBuildingInfo;
+pub struct DisplayBuildingInfo {
+    pub building_entity: Entity,
+}
+
+/// Event emitted when the user clicks on a building
+#[derive(Event)]
+pub struct BuildingUiFocusChangedEvent {
+    pub building_entity: Entity,
+}
 
 
 
@@ -62,6 +74,7 @@ fn initialize_display_building_info_system(
                 order: 1,
                 hdr: true,
                 target: RenderTarget::Image(image_handle.clone()),
+                is_active: false,
                 ..default()
             },
             projection: OrthographicProjection {
@@ -91,9 +104,10 @@ fn initialize_display_building_info_system(
             background_color: Color::linear_rgba(0.46, 0.62, 0.67, 1.).into(),
             border_radius: BorderRadius::all(Val::Px(7.)),
             border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+            visibility: Visibility::Hidden,
             ..default()
         },
-        DisplayBuildingInfo,
+        DisplayBuildingInfo { building_entity: Entity::PLACEHOLDER },
     )).with_children(|parent| {
         parent.spawn((
             NodeBundle {
@@ -112,50 +126,81 @@ fn initialize_display_building_info_system(
 
 }
 
-pub fn on_click_building_display_info_system(
-    mut ui_interaction_state: ResMut<UiInteractionState>,
+fn on_display_enter_system(
+    mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
+    mut building_info_camera: Query<(&mut Camera), With<DisplayBuildingInfoCamera>>,
+) {
+    *display_building_info.single_mut() = Visibility::Inherited;
+    building_info_camera.single_mut().is_active = true;
+}
+
+fn on_display_exit_system(
+    mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
+    mut building_info_camera: Query<(&mut Camera), With<DisplayBuildingInfoCamera>>,
+) {
+    *display_building_info.single_mut() = Visibility::Hidden;
+    building_info_camera.single_mut().is_active = false;
+}
+
+fn hide_system(
+    mouse: Res<ButtonInput<MouseButton>>,
+    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
+) {
+    if mouse.just_pressed(MouseButton::Right) {
+        ui_interaction_state.set(UiInteraction::Free);
+    }
+}
+
+fn show_on_click_system(
+    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     obstacle_grid: Res<ObstacleGrid>,
-    mut building_info_camera: Query<(&mut Camera, &mut Transform), With<DisplayBuildingInfoCamera>>,
+    mut building_ui_focus_changed_events: EventWriter<BuildingUiFocusChangedEvent>,
+    mut display_building_info: Query<&mut DisplayBuildingInfo>,
+    mut building_info_camera: Query<&mut Transform, With<DisplayBuildingInfoCamera>>,
     buildings: Query<(&GridImprint, &GridCoords), With<Building>>,
 ) {
-    if mouse.just_pressed(MouseButton::Right) && matches!(*ui_interaction_state, UiInteractionState::DisplayBuildingInfo(_)) {
-        *ui_interaction_state = UiInteractionState::Free;
-
-        return;
-    }
-    if !mouse.just_pressed(MouseButton::Left)
-        || !mouse_info.grid_coords.is_in_bounds(obstacle_grid.bounds())
-        || !matches!(*ui_interaction_state, UiInteractionState::Free | UiInteractionState::DisplayBuildingInfo(_))
-    {
-        return;
-    }
+    if !mouse.just_pressed(MouseButton::Left) || !mouse_info.grid_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
 
     match &obstacle_grid[mouse_info.grid_coords] {
         Field::Building(entity, _, _) => {
-            *ui_interaction_state = UiInteractionState::DisplayBuildingInfo((*entity).into());
             let Ok((grid_imprint, grid_coords)) = buildings.get(*entity) else { return; };
-            let (mut camera, mut transform) = building_info_camera.single_mut();
-            camera.is_active = true;
-            let building_world_position = grid_coords.to_world_position_centered(grid_imprint);
-            transform.translation.x = building_world_position.x;
-            transform.translation.y = building_world_position.y;
+            let mut camera_transform = building_info_camera.single_mut();
+            let building_world_position = grid_coords.to_world_position_centered(*grid_imprint);
+            camera_transform.translation.x = building_world_position.x;
+            camera_transform.translation.y = building_world_position.y;
+
+            let mut display_building_info = display_building_info.single_mut();
+            display_building_info.building_entity = *entity;
+
+            building_ui_focus_changed_events.send(BuildingUiFocusChangedEvent { building_entity: *entity });
+            ui_interaction_state.set(UiInteraction::DisplayBuildingInfo);
         }
         _ => {}
     }
 }
 
-pub fn display_building_info_system(
-    mut gizmos: Gizmos,
-    ui_interaction_state: Res<UiInteractionState>,
-    buildings: Query<(&GridImprint, &GridCoords, Option<&SupplierEnergy>), With<Building>>,
+fn on_building_destroyed_system(
+    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
+    mut events: EventReader<BuildingDestroyedEvent>,
+    display_building_info: Query<&DisplayBuildingInfo>,
 ) {
-    let UiInteractionState::DisplayBuildingInfo(building_id) = &*ui_interaction_state else {
-        return;
-    };
+    let display_building_info = display_building_info.single();
+    for event in events.read() {
+        if event.0 == display_building_info.building_entity {
+            ui_interaction_state.set(UiInteraction::Free);
+        }
+    }
+}
 
-    let Ok((grid_imprint, grid_coords, energy_provider)) = buildings.get(**building_id) else { return; };
+fn display_building_info_system(
+    mut gizmos: Gizmos,
+    buildings: Query<(&GridImprint, &GridCoords, Option<&SupplierEnergy>), With<Building>>,
+    display_building_info: Query<&DisplayBuildingInfo>,
+) {
+    let building_entity = display_building_info.single().building_entity;
+    let Ok((grid_imprint, grid_coords, energy_provider)) = buildings.get(building_entity) else { return; };
     if let Some(energy_provider) = energy_provider {
         let position = grid_coords.to_world_position() + match *grid_imprint {
             GridImprint::Rectangle { width, height } => Vec2::new(width as f32 * CELL_SIZE / 2., height as f32 * CELL_SIZE / 2.),
@@ -165,7 +210,5 @@ pub fn display_building_info_system(
             energy_provider.range as f32 * CELL_SIZE,
             YELLOW,
         );
-
     }
-
 }

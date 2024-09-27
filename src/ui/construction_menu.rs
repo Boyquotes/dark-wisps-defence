@@ -12,7 +12,6 @@ use crate::buildings::tower_cannon::TOWER_CANNON_BASE_IMAGE;
 use crate::buildings::tower_rocket_launcher::TOWER_ROCKET_LAUNCHER_BASE_IMAGE;
 use crate::map_objects::dark_ore::DARK_ORE_BASE_IMAGES;
 use crate::map_objects::quantum_field::QuantumField;
-use crate::ui::common::AdvancedInteraction;
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
 
 const NOT_HOVERED_ALPHA: f32 = 0.2;

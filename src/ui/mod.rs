@@ -1,31 +1,30 @@
-pub mod grid_display;
-pub mod interaction_state;
-pub mod grid_object_placer;
-pub mod display_building_info;
-pub mod badges;
 mod construction_menu;
-pub mod common;
 mod objectives_panel;
+mod badges;
+pub mod common;
+pub mod display_building_info;
+pub mod grid_display;
+pub mod grid_object_placer;
 
 use crate::prelude::*;
+
+pub mod prelude {
+    pub use super::common::{AdvancedInteraction, UiInteraction};
+}
 
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
+            common::UiCommonPlugin,
+            display_building_info::DisplayBuildingInfoPlugin,
             grid_object_placer::GridObjectPlacerPlugin,
             objectives_panel::ObjectivesPanelPlugin,
-            display_building_info::DisplayBuildingInfoPlugin,
         ));
         app.insert_resource(UiConfig::default());
-        app.insert_resource(interaction_state::UiInteractionState::default());
         app.add_systems(Startup, (
             badges::initialize_badges_system,
             construction_menu::initialize_construction_menu_system,
-        ));
-        app.add_systems(PreUpdate, (
-            common::mouse_release_system,
-            interaction_state::keyboard_input_system,
         ));
         app.add_systems(Update, (
             badges::sync_dark_ore_badge_system,

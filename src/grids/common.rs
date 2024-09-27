@@ -30,11 +30,15 @@ impl GridCoords {
     pub fn is_in_bounds(&self, (width, height): (i32, i32)) -> bool {
         self.x >= 0 && self.x < width && self.y >= 0 && self.y < height
     }
+    pub fn is_imprint_in_bounds(&self, imprint: impl Borrow<GridImprint>, (width, height): (i32, i32)) -> bool {
+        let imprint_world_size = imprint.borrow().bounds();
+        self.x >= 0 && self.x + imprint_world_size.0 as i32 <= width && self.y >= 0 && self.y + imprint_world_size.1 as i32 <= height
+    }
     pub fn to_world_position(&self) -> Vec2 {
         Vec2::new(self.x as f32 * CELL_SIZE, self.y as f32 * CELL_SIZE)
     }
-    pub fn to_world_position_centered(&self, imprint: impl Borrow<GridImprint>) -> Vec2 {
-        self.to_world_position() + imprint.borrow().world_center()
+    pub fn to_world_position_centered(&self, imprint: GridImprint) -> Vec2 {
+        self.to_world_position() + imprint.world_center()
     }
     pub fn shifted(&self, (dx, dy): (i32, i32)) -> Self {
         Self {
@@ -75,7 +79,13 @@ impl GridImprint {
             }
         }
     }
-
+    pub fn bounds(&self) -> (i32, i32) {
+        match self {
+            GridImprint::Rectangle{width, height} => {
+                (*width, *height)
+            }
+        }
+    }
     pub fn world_size(&self) -> Vec2 {
         match self {
             GridImprint::Rectangle{width, height} => {

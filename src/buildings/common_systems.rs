@@ -1,25 +1,26 @@
 use crate::effects::explosions::BuilderExplosion;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterEnergy};
 use crate::prelude::*;
-use crate::buildings::energy_relay::BuilderEnergyRelay;
-use crate::buildings::exploration_center::BuilderExplorationCenter;
-use crate::buildings::main_base::{EventMoveMainBase, MarkerMainBase};
-use crate::buildings::mining_complex::BuilderMiningComplex;
-use crate::buildings::tower_blaster::BuilderTowerBlaster;
-use crate::buildings::tower_emitter::BuilderTowerEmitter;
-use crate::buildings::tower_cannon::BuilderTowerCannon;
-use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::grids::base::GridVersion;
 use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, SupplierEnergy};
 use crate::grids::obstacles::{BelowField, Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
-use crate::inventory::almanach::Almanach;
 use crate::mouse::MouseInfo;
 use crate::search::flooding::FloodEnergySupplyMode;
 use crate::search::targetfinding::target_find_closest_wisp;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
+use super::{
+    energy_relay::BuilderEnergyRelay,
+    exploration_center::BuilderExplorationCenter,
+    main_base::{EventMoveMainBase, MarkerMainBase},
+    mining_complex::BuilderMiningComplex,
+    tower_blaster::BuilderTowerBlaster,
+    tower_emitter::BuilderTowerEmitter,
+    tower_cannon::BuilderTowerCannon,
+    tower_rocket_launcher::BuilderTowerRocketLauncher,
+};
 
 pub fn onclick_building_spawn_system(
     mut commands: Commands,
@@ -32,84 +33,81 @@ pub fn onclick_building_spawn_system(
     mut main_base: Query<(Entity, &GridCoords), With<MarkerMainBase>>,
 ) {
     let mouse_coords = mouse_info.grid_coords;
-    if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
+    if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) { return; }
     let (grid_object_placer, grid_imprint) = grid_object_placer.single();
-    match &*grid_object_placer {
-        GridObjectPlacer::Building(building_type) => {
-            // Grid Placement Validation
-            if !obstacle_grid.query_building_placement(mouse_coords, *building_type, *grid_imprint) { return; }
-            // Payment
-            let building_costs = almanach.get_building_cost(*building_type);
-            if !stock.try_pay_costs(building_costs) { println!("Not enough dark ore"); return; }
-            // Creation
-            // ---
-            enum GridAction {
-                Imprint(Entity),
-                ImprintMiningComplex(Entity),
-                Reprint{entity: Entity, old_coords: GridCoords},
-            }
-            // ---
-            let grid_action = match building_type {
-                BuildingType::EnergyRelay => {
-                    let entity = commands.spawn_empty().id();
-                    commands.add(BuilderEnergyRelay::new(entity, mouse_coords));
-                    GridAction::Imprint(entity)
-                }
-                BuildingType::ExplorationCenter => {
-                    let entity = commands.spawn_empty().id();
-                    commands.add(BuilderExplorationCenter::new(entity, mouse_coords));
-                    GridAction::Imprint(entity)
-                }
-                BuildingType::Tower(TowerType::Blaster) => {
-                    let entity = commands.spawn_empty().id();
-                    commands.add(BuilderTowerBlaster::new(entity, mouse_coords));
-                    GridAction::Imprint(entity)
-                },
-                BuildingType::Tower(TowerType::Cannon) => {
-                    let entity = commands.spawn_empty().id();
-                    commands.add(BuilderTowerCannon::new(entity, mouse_coords));
-                    GridAction::Imprint(entity)
-                },
-                BuildingType::Tower(TowerType::RocketLauncher) => {
-                    let entity = commands.spawn_empty().id();
-                    commands.add(BuilderTowerRocketLauncher::new(entity, mouse_coords));
-                    GridAction::Imprint(entity)
-                },
-                BuildingType::Tower(TowerType::Emitter) => {
-                    let entity = commands.spawn_empty().id();
-                    commands.add(BuilderTowerEmitter::new(entity, mouse_coords));
-                    GridAction::Imprint(entity)
-                },
-                BuildingType::MainBase => {
-                    let (main_base_entity, main_base_coords) = main_base.single_mut();
-                    commands.add(EventMoveMainBase { new_grid_position: mouse_coords });
-                    GridAction::Reprint{entity: main_base_entity, old_coords: *main_base_coords}
-                },
-                BuildingType::MiningComplex => {
-                    let entity = commands.spawn_empty().id();
-                    commands.add(BuilderMiningComplex::new(entity, mouse_coords));
-                    GridAction::ImprintMiningComplex(entity)
-                },
-            };
-            match grid_action {
-                GridAction::Imprint(entity) => obstacle_grid.imprint(mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint),
-                GridAction::ImprintMiningComplex(entity) => obstacle_grid.imprint_custom(mouse_coords, *grid_imprint, &|field| {
-                    // Retain information about dark ore that will be below the mining complex
-                    let below_field = match field {
-                        Field::Empty => BelowField::Empty,
-                        Field::DarkOre(entity) => BelowField::DarkOre(*entity),
-                        _ => panic!("imprint_mining_complex() can only be used with an Empty or DarkOre Field"),
-                    };
-                    *field = Field::Building(entity, BuildingType::MiningComplex, below_field);
-                    
-                }),
-                GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint(
-                    old_coords, mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint
-                ),
-            }
+    let GridObjectPlacer::Building(building_type) = grid_object_placer else { return; };
+    // Grid Placement Validation
+    if !mouse_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds())
+        || !obstacle_grid.query_building_placement(mouse_coords, *building_type, *grid_imprint) { return; }
+    // Payment
+    let building_costs = almanach.get_building_cost(*building_type);
+    if !stock.try_pay_costs(building_costs) { println!("Not enough dark ore"); return; }
+    // Creation
+    // ---
+    enum GridAction {
+        Imprint(Entity),
+        ImprintMiningComplex(Entity),
+        Reprint{entity: Entity, old_coords: GridCoords},
+    }
+    // ---
+    let grid_action = match building_type {
+        BuildingType::EnergyRelay => {
+            let entity = commands.spawn_empty().id();
+            commands.add(BuilderEnergyRelay::new(entity, mouse_coords));
+            GridAction::Imprint(entity)
         }
-        _ => { return; }
+        BuildingType::ExplorationCenter => {
+            let entity = commands.spawn_empty().id();
+            commands.add(BuilderExplorationCenter::new(entity, mouse_coords));
+            GridAction::Imprint(entity)
+        }
+        BuildingType::Tower(TowerType::Blaster) => {
+            let entity = commands.spawn_empty().id();
+            commands.add(BuilderTowerBlaster::new(entity, mouse_coords));
+            GridAction::Imprint(entity)
+        },
+        BuildingType::Tower(TowerType::Cannon) => {
+            let entity = commands.spawn_empty().id();
+            commands.add(BuilderTowerCannon::new(entity, mouse_coords));
+            GridAction::Imprint(entity)
+        },
+        BuildingType::Tower(TowerType::RocketLauncher) => {
+            let entity = commands.spawn_empty().id();
+            commands.add(BuilderTowerRocketLauncher::new(entity, mouse_coords));
+            GridAction::Imprint(entity)
+        },
+        BuildingType::Tower(TowerType::Emitter) => {
+            let entity = commands.spawn_empty().id();
+            commands.add(BuilderTowerEmitter::new(entity, mouse_coords));
+            GridAction::Imprint(entity)
+        },
+        BuildingType::MainBase => {
+            let (main_base_entity, main_base_coords) = main_base.single_mut();
+            commands.add(EventMoveMainBase { new_grid_position: mouse_coords });
+            GridAction::Reprint{entity: main_base_entity, old_coords: *main_base_coords}
+        },
+        BuildingType::MiningComplex => {
+            let entity = commands.spawn_empty().id();
+            commands.add(BuilderMiningComplex::new(entity, mouse_coords));
+            GridAction::ImprintMiningComplex(entity)
+        },
     };
+    match grid_action {
+        GridAction::Imprint(entity) => obstacle_grid.imprint(mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint),
+        GridAction::ImprintMiningComplex(entity) => obstacle_grid.imprint_custom(mouse_coords, *grid_imprint, &|field| {
+            // Retain information about dark ore that will be below the mining complex
+            let below_field = match field {
+                Field::Empty => BelowField::Empty,
+                Field::DarkOre(entity) => BelowField::DarkOre(*entity),
+                _ => panic!("imprint_mining_complex() can only be used with an Empty or DarkOre Field"),
+            };
+            *field = Field::Building(entity, BuildingType::MiningComplex, below_field);
+            
+        }),
+        GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint(
+            old_coords, mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint
+        ),
+    }
 }
 
 pub fn targeting_system(
@@ -190,7 +188,8 @@ pub fn damage_control_system(
             }
             grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
                 commands.add(BuilderExplosion::new(coords));
-            })
+            });
+            commands.add(BuildingDestroyedEvent(entity));
         }
     }
 }

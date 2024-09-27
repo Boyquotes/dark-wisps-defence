@@ -1,12 +1,41 @@
 use crate::prelude::*;
 
+pub struct UiCommonPlugin;
+impl Plugin for UiCommonPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .init_state::<UiInteraction>()
+            .add_systems(PreUpdate, (
+                keyboard_input_system,
+                mouse_release_system,
+            ));
+    }
+}
+
+#[derive(Default, Clone, Debug, States, PartialEq, Eq, Hash)]
+pub enum UiInteraction {
+    #[default]
+    Free, // No interaction
+    PlaceGridObject,
+    DisplayBuildingInfo,
+}
+
+fn keyboard_input_system(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
+) {
+    if keys.just_pressed(KeyCode::Escape) {
+        ui_interaction_state.set(UiInteraction::Free);
+    }
+}
+
 
 #[derive(Component, Default)]
 pub struct AdvancedInteraction {
     pub was_just_released: bool,
 }
 
-pub fn mouse_release_system(
+fn mouse_release_system(
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut advanced_interaction: Query<(&Interaction, &mut AdvancedInteraction)>,
 ) {

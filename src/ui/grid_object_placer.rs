@@ -5,7 +5,6 @@ use crate::map_objects::dark_ore::DARK_ORE_GRID_IMPRINT;
 use crate::map_objects::quantum_field::QuantumField;
 use crate::map_objects::walls::WALL_GRID_IMPRINT;
 use crate::mouse::MouseInfo;
-use crate::ui::interaction_state::UiInteractionState;
 
 pub struct GridObjectPlacerPlugin;
 impl Plugin for GridObjectPlacerPlugin {
@@ -19,9 +18,11 @@ impl Plugin for GridObjectPlacerPlugin {
                 keyboard_input_system,
             ))
             .add_systems(Update, (
-                update_grid_object_placer_system,
+                update_grid_object_placer_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 on_request_grid_object_placer_system.run_if(GridObjectPlacerRequest::there_is_request()),
-            ));
+            ))
+            .add_systems(OnEnter(UiInteraction::PlaceGridObject), on_placing_enter_system)
+            .add_systems(OnExit(UiInteraction::PlaceGridObject), on_placing_exit_system);
     }
 }
 
@@ -73,23 +74,29 @@ pub fn create_grid_object_placer_system(mut commands: Commands) {
     ));
 }
 
-pub fn update_grid_object_placer_system(
+fn on_placing_enter_system(
+    mut placer: Query<&mut Visibility, With<GridObjectPlacer>>,
+) {
+    *placer.single_mut() = Visibility::Inherited;
+}
+
+fn on_placing_exit_system(
+    mut placer: Query<(&mut Visibility, &mut GridObjectPlacer)>,
+) {
+    let (mut visibility, mut placer) = placer.single_mut();
+    *visibility = Visibility::Hidden;
+    *placer = GridObjectPlacer::None;
+}
+
+fn update_grid_object_placer_system(
     obstacle_grid: Res<ObstacleGrid>,
     energy_supply_grid: Res<EnergySupplyGrid>,
-    ui_interaction_state: Res<UiInteractionState>,
     mouse_info: Res<MouseInfo>,
-    mut placer: Query<(&mut Transform, &mut Sprite, &mut Visibility, &mut GridObjectPlacer, &GridImprint)>,
+    mut placer: Query<(&mut Transform, &mut Sprite, &GridObjectPlacer, &GridImprint)>,
 ) {
-    let (mut transform, mut sprite, mut visibility, mut grid_object_placer, grid_imprint) = placer.single_mut();
-    match *ui_interaction_state {
-        UiInteractionState::PlaceGridObject => {}
-        _ => {
-            *visibility = Visibility::Hidden;
-            *grid_object_placer = GridObjectPlacer::None;
-            return;
-        }
-    };
+    let (mut transform, mut sprite, grid_object_placer, grid_imprint) = placer.single_mut();
     transform.translation = mouse_info.grid_coords.to_world_position().extend(10.);
+    let is_imprint_in_bounds = mouse_info.grid_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds());
     let is_imprint_placable = match &*grid_object_placer {
         GridObjectPlacer::None => false,
         GridObjectPlacer::Building(building_type) => {
@@ -112,7 +119,7 @@ pub fn update_grid_object_placer_system(
         _ => (false, false)
     };
 
-    sprite.color = if is_imprint_placable {
+    sprite.color = if is_imprint_placable && is_imprint_in_bounds {
         if needs_energy_supply && !is_imprint_suppliable {
             Color::srgba(1.0, 1.0, 0.0, 0.2)
         } else {
@@ -123,7 +130,7 @@ pub fn update_grid_object_placer_system(
     };
 }
 
-pub fn keyboard_input_system(
+fn keyboard_input_system(
     mut grid_object_placer_request: ResMut<GridObjectPlacerRequest>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
@@ -153,19 +160,14 @@ pub fn keyboard_input_system(
     grid_object_placer_request.set(placer_request);
 }
 
-pub fn on_request_grid_object_placer_system(
+fn on_request_grid_object_placer_system(
     almanach: Res<Almanach>,
-    mut ui_interaction_state: ResMut<UiInteractionState>,
-    mut placer: Query<(&mut Sprite, &mut Visibility, &mut GridObjectPlacer, &mut GridImprint)>,
+    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
+    mut placer: Query<(&mut Sprite, &mut GridObjectPlacer, &mut GridImprint)>,
     mut placer_request: ResMut<GridObjectPlacerRequest>,
 ) {
     let Some(placer_request) = placer_request.take() else { return; };
-    if !matches!(*ui_interaction_state, UiInteractionState::Free | UiInteractionState::PlaceGridObject) {
-        return;
-    }
-    let (mut sprite, mut visibility, mut grid_object_placer, mut grid_imprint) = placer.single_mut();
-    *ui_interaction_state = UiInteractionState::PlaceGridObject;
-    *visibility = Visibility::Visible;
+    let (mut sprite, mut grid_object_placer, mut grid_imprint) = placer.single_mut();
     *grid_object_placer = placer_request;
     match &*grid_object_placer {
         GridObjectPlacer::None => panic!("GridObjectPlacer::None should not be possible here"),
@@ -174,4 +176,5 @@ pub fn on_request_grid_object_placer_system(
             sprite.custom_size = Some(grid_imprint.world_size());
         }
     }
+    ui_interaction_state.set(UiInteraction::PlaceGridObject);
 }

@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -31,8 +33,8 @@ impl GridCoords {
     pub fn to_world_position(&self) -> Vec2 {
         Vec2::new(self.x as f32 * CELL_SIZE, self.y as f32 * CELL_SIZE)
     }
-    pub fn to_world_position_centered(&self, imprint: GridImprint) -> Vec2 {
-        self.to_world_position() + imprint.world_center()
+    pub fn to_world_position_centered(&self, imprint: impl Borrow<GridImprint>) -> Vec2 {
+        self.to_world_position() + imprint.borrow().world_center()
     }
     pub fn shifted(&self, (dx, dy): (i32, i32)) -> Self {
         Self {

@@ -45,7 +45,7 @@ impl BuilderEnergyRelay {
             commands.entity(entity).insert((
                 get_energy_relay_sprite_bundle(grid_position, grid_imprint, &asset_server),
                 grid_position,
-                Health(100),
+                Health::new(100),
                 Building,
                 BuildingType::EnergyRelay,
                 grid_imprint,

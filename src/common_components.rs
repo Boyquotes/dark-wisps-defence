@@ -5,13 +5,28 @@ pub mod prelude {
 }
 
 #[derive(Component, Default)]
-pub struct Health(pub i32);
+pub struct Health {
+    current: i32,
+    max: i32,
+}
 impl Health {
+    pub fn new(max: i32) -> Self {
+        Self { current: max, max }
+    }
+    pub fn get_current(&self) -> i32 {
+        self.current
+    }
+    pub fn get_max(&self) -> i32 {
+        self.max
+    }
+    pub fn get_percent(&self) -> f32 {
+        self.current as f32 / self.max as f32
+    }
     pub fn decrease(&mut self, amount: i32) {
-        self.0 = std::cmp::max(self.0 - amount, 0);
+        self.current = std::cmp::max(self.current - amount, 0);
     }
     pub fn is_dead(&self) -> bool {
-        self.0 <= 0
+        self.current <= 0
     }
 }
 

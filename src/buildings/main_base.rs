@@ -65,7 +65,7 @@ impl BuilderMainBase {
                 get_building_sprite_bundle(&asset_server, MAIN_BASE_BASE_IMAGE, grid_position, grid_imprint),
                 MarkerMainBase,
                 grid_position,
-                Health(10000),
+                Health::new(10000),
                 Building,
                 BuildingType::MainBase,
                 grid_imprint,

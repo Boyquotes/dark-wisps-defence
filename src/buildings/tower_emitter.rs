@@ -47,7 +47,7 @@ impl BuilderTowerEmitter {
                 MarkerTower,
                 MarkerTowerEmitter,
                 grid_position,
-                Health(100),
+                Health::new(100),
                 TowerRange(4),
                 Building,
                 BuildingType::Tower(TowerType::Emitter),

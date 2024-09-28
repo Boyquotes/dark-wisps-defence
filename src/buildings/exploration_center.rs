@@ -47,7 +47,7 @@ impl BuilderExplorationCenter {
                 get_building_sprite_bundle(&asset_server, EXPLORATION_CENTER_BASE_IMAGE,grid_position, grid_imprint),
                 MarkerExplorationCenter,
                 grid_position,
-                Health(100),
+                Health::new(100),
                 Building,
                 BuildingType::ExplorationCenter,
                 grid_imprint,

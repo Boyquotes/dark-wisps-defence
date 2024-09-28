@@ -46,7 +46,7 @@ impl BuilderTowerCannon {
                 MarkerTower,
                 MarkerTowerCannon,
                 grid_position,
-                Health(100),
+                Health::new(100),
                 TowerRange(15),
                 Building,
                 BuildingType::Tower(TowerType::Cannon),

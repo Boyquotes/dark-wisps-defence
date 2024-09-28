@@ -1,7 +1,7 @@
-use bevy::color::palettes::css::{BLUE, YELLOW};
+use bevy::color::palettes::css::{BLACK, BLUE, YELLOW};
 use bevy::render::camera::RenderTarget;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
-use crate::inventory::almanach;
+use bevy::text::BreakLineOn;
 use crate::prelude::*;
 use crate::grids::energy_supply::SupplierEnergy;
 use crate::grids::obstacles::{Field, ObstacleGrid};
@@ -34,6 +34,10 @@ pub struct DisplayBuildingInfo {
 struct DisplayBuildingInfoCamera;
 #[derive(Component)]
 struct BuildingNameText;
+#[derive(Component)]
+struct BuildingHealthbar;
+#[derive(Component)]
+struct BuildingHealthbarValue;
 
 /// Event emitted when the user clicks on a building
 #[derive(Event)]
@@ -41,6 +45,105 @@ pub struct BuildingUiFocusChangedEvent {
     pub building_entity: Entity,
 }
 
+fn on_display_enter_system(
+    mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
+    mut building_info_camera: Query<&mut Camera, With<DisplayBuildingInfoCamera>>,
+) {
+    *display_building_info.single_mut() = Visibility::Inherited;
+    building_info_camera.single_mut().is_active = true;
+}
+
+fn on_display_exit_system(
+    mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
+    mut building_info_camera: Query<&mut Camera, With<DisplayBuildingInfoCamera>>,
+) {
+    *display_building_info.single_mut() = Visibility::Hidden;
+    building_info_camera.single_mut().is_active = false;
+}
+
+fn hide_system(
+    mouse: Res<ButtonInput<MouseButton>>,
+    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
+) {
+    if mouse.just_pressed(MouseButton::Right) {
+        ui_interaction_state.set(UiInteraction::Free);
+    }
+}
+
+fn show_on_click_system(
+    almanach: Res<Almanach>,
+    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    mouse_info: Res<MouseInfo>,
+    obstacle_grid: Res<ObstacleGrid>,
+    mut building_ui_focus_changed_events: EventWriter<BuildingUiFocusChangedEvent>,
+    mut display_building_info: Query<&mut DisplayBuildingInfo>,
+    mut building_info_camera: Query<&mut Transform, With<DisplayBuildingInfoCamera>>,
+    mut building_name_text: Query<&mut Text, With<BuildingNameText>>,
+    buildings: Query<(&BuildingType, &GridImprint, &GridCoords), With<Building>>,
+) {
+    if !mouse.just_pressed(MouseButton::Left) || !mouse_info.grid_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
+
+    let Field::Building(entity, _, _) = &obstacle_grid[mouse_info.grid_coords] else { return; };
+    let Ok((building_type, grid_imprint, grid_coords)) = buildings.get(*entity) else { return; };
+    // Center the camera on the building
+    let mut camera_transform = building_info_camera.single_mut();
+    let building_world_position = grid_coords.to_world_position_centered(*grid_imprint);
+    camera_transform.translation.x = building_world_position.x;
+    camera_transform.translation.y = building_world_position.y;
+    // Update the building name
+    building_name_text.single_mut().sections[0].value = almanach.get_building_name(*building_type).to_string();
+
+    let mut display_building_info = display_building_info.single_mut();
+    display_building_info.building_entity = *entity;
+
+    building_ui_focus_changed_events.send(BuildingUiFocusChangedEvent { building_entity: *entity });
+    ui_interaction_state.set(UiInteraction::DisplayBuildingInfo);
+}
+
+fn on_building_destroyed_system(
+    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
+    mut events: EventReader<BuildingDestroyedEvent>,
+    display_building_info: Query<&DisplayBuildingInfo>,
+) {
+    let display_building_info = display_building_info.single();
+    for event in events.read() {
+        if event.0 == display_building_info.building_entity {
+            ui_interaction_state.set(UiInteraction::Free);
+        }
+    }
+}
+
+fn display_building_info_system(
+    mut gizmos: Gizmos,
+    buildings: Query<(&GridImprint, &GridCoords, &Health, Option<&SupplierEnergy>), With<Building>>,
+    display_building_info: Query<&DisplayBuildingInfo>,
+    mut healthbar: Query<(&mut Style, &mut BackgroundColor), With<BuildingHealthbar>>,
+    mut health_text: Query<&mut Text, With<BuildingHealthbarValue>>,
+) {
+    let building_entity = display_building_info.single().building_entity;
+    let Ok((grid_imprint, grid_coords, health, energy_provider)) = buildings.get(building_entity) else { return; };
+    // Update the healthbar
+    let (mut style, mut background_color) = healthbar.single_mut();
+    let health_percentage = health.get_percent();
+    style.width = Val::Percent(health_percentage * 100.);
+    background_color.0 = Color::linear_rgba(1. - health_percentage, health_percentage, 0., 1.);
+
+    // Update the health text
+    health_text.single_mut().sections[0].value = format!("{} / {}", health.get_current(), health.get_max());
+
+    // Draw energy provider range
+    if let Some(energy_provider) = energy_provider {
+        let position = grid_coords.to_world_position() + match *grid_imprint {
+            GridImprint::Rectangle { width, height } => Vec2::new(width as f32 * CELL_SIZE / 2., height as f32 * CELL_SIZE / 2.),
+        };
+        gizmos.circle_2d(
+            position,
+            energy_provider.range as f32 * CELL_SIZE,
+            YELLOW,
+        );
+    }
+}
 
 
 fn initialize_display_building_info_system(
@@ -116,8 +219,8 @@ fn initialize_display_building_info_system(
         parent.spawn((
             NodeBundle {
                 style: Style {
-                    width: Val::Px(128.0),
-                    height: Val::Px(128.0),
+                    min_width: Val::Px(128.0),
+                    min_height: Val::Px(128.0),
                     border: UiRect::all(Val::Px(2.0)),
                     ..default()
                 },
@@ -131,6 +234,7 @@ fn initialize_display_building_info_system(
             NodeBundle {
                 style: Style {
                     height: Val::Percent(100.),
+                    width: Val::Percent(100.),
                     flex_direction: FlexDirection::Column,
                     justify_content: JustifyContent::Start,
                     align_items: AlignItems::Start,
@@ -140,107 +244,89 @@ fn initialize_display_building_info_system(
                 ..default()
             },
         )).with_children(|parent| {
-            // Building name
+            // Top line of the panel
             parent.spawn((
-                TextBundle {
-                    text: Text::from_section("### Building Name ###", TextStyle{ color: BLUE.into(), ..default() }),
+                NodeBundle {
                     style: Style {
-                        margin: UiRect{ left: Val::Px(4.), ..default() },
+                        width: Val::Percent(100.),
+                        flex_direction: FlexDirection::Row,
+                        justify_content: JustifyContent::Start,
                         ..default()
                     },
                     ..default()
                 },
-                BuildingNameText,
-            ));
+            )).with_children(|parent| {
+                // Building name
+                parent.spawn((
+                    TextBundle {
+                        text: Text {
+                            sections: vec![TextSection::new("### Building Name ###", TextStyle{ color: BLUE.into(), ..default() })],
+                            linebreak_behavior: BreakLineOn::NoWrap,
+                            ..default() 
+                        },
+                        style: Style {
+                            margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    BuildingNameText,
+                ));
+                // Health Bar
+                parent.spawn((
+                    // Bottom rectangle(background)
+                    NodeBundle {
+                        style: Style {
+                            width: Val::Percent(100.),
+                            height: Val::Percent(100.),
+                            border: UiRect::all(Val::Px(2.0)),
+                            ..default()
+                        },
+                        background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
+                        border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+                        ..default()
+                    },
+                )).with_children(|parent| {
+                    // Top rectangle(health)
+                    parent.spawn((
+                        NodeBundle {
+                            style: Style {
+                                width: Val::Percent(100.),
+                                height: Val::Percent(100.),
+                                ..default()
+                            },
+                            background_color: Color::linear_rgba(0., 1., 0., 1.).into(),
+                            ..default()
+                        },
+                        BuildingHealthbar,
+                    ));
+                    // Current hp text
+                    parent.spawn(NodeBundle {
+                        // This additional container is needed to center the text as no combination of flex_direction, justify_content and align_items work
+                        style: Style {
+                            position_type: PositionType::Absolute,
+                            width: Val::Percent(100.),
+                            height: Val::Percent(100.),
+                            padding: UiRect { top: Val::Px(2.0), ..default() },
+                            justify_content: JustifyContent::Center,
+                            ..default()
+                        },
+                        ..default() 
+                    }).with_children(|parent| {
+                        parent.spawn((
+                            TextBundle {
+                                text: Text {
+                                    sections: vec![TextSection::new("### Current Health / Max Health ###", TextStyle{ color: BLACK.into(), font_size: 16.0, ..default() })],
+                                    linebreak_behavior: BreakLineOn::NoWrap,
+                                    ..default() 
+                                },
+                                ..default()
+                            },
+                            BuildingHealthbarValue,
+                        ));
+                    });
+                });
+            });
         });
     });
-
-}
-
-fn on_display_enter_system(
-    mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
-    mut building_info_camera: Query<&mut Camera, With<DisplayBuildingInfoCamera>>,
-) {
-    *display_building_info.single_mut() = Visibility::Inherited;
-    building_info_camera.single_mut().is_active = true;
-}
-
-fn on_display_exit_system(
-    mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
-    mut building_info_camera: Query<&mut Camera, With<DisplayBuildingInfoCamera>>,
-) {
-    *display_building_info.single_mut() = Visibility::Hidden;
-    building_info_camera.single_mut().is_active = false;
-}
-
-fn hide_system(
-    mouse: Res<ButtonInput<MouseButton>>,
-    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
-) {
-    if mouse.just_pressed(MouseButton::Right) {
-        ui_interaction_state.set(UiInteraction::Free);
-    }
-}
-
-fn show_on_click_system(
-    almanach: Res<Almanach>,
-    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
-    mouse: Res<ButtonInput<MouseButton>>,
-    mouse_info: Res<MouseInfo>,
-    obstacle_grid: Res<ObstacleGrid>,
-    mut building_ui_focus_changed_events: EventWriter<BuildingUiFocusChangedEvent>,
-    mut display_building_info: Query<&mut DisplayBuildingInfo>,
-    mut building_info_camera: Query<&mut Transform, With<DisplayBuildingInfoCamera>>,
-    mut building_name_text: Query<&mut Text, With<BuildingNameText>>,
-    buildings: Query<(&BuildingType, &GridImprint, &GridCoords), With<Building>>,
-) {
-    if !mouse.just_pressed(MouseButton::Left) || !mouse_info.grid_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
-
-    let Field::Building(entity, _, _) = &obstacle_grid[mouse_info.grid_coords] else { return; };
-    let Ok((building_type, grid_imprint, grid_coords)) = buildings.get(*entity) else { return; };
-    // Center the camera on the building
-    let mut camera_transform = building_info_camera.single_mut();
-    let building_world_position = grid_coords.to_world_position_centered(*grid_imprint);
-    camera_transform.translation.x = building_world_position.x;
-    camera_transform.translation.y = building_world_position.y;
-    // Update the building name
-    building_name_text.single_mut().sections[0].value = almanach.get_building_name(*building_type).to_string();
-
-    let mut display_building_info = display_building_info.single_mut();
-    display_building_info.building_entity = *entity;
-
-    building_ui_focus_changed_events.send(BuildingUiFocusChangedEvent { building_entity: *entity });
-    ui_interaction_state.set(UiInteraction::DisplayBuildingInfo);
-}
-
-fn on_building_destroyed_system(
-    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
-    mut events: EventReader<BuildingDestroyedEvent>,
-    display_building_info: Query<&DisplayBuildingInfo>,
-) {
-    let display_building_info = display_building_info.single();
-    for event in events.read() {
-        if event.0 == display_building_info.building_entity {
-            ui_interaction_state.set(UiInteraction::Free);
-        }
-    }
-}
-
-fn display_building_info_system(
-    mut gizmos: Gizmos,
-    buildings: Query<(&GridImprint, &GridCoords, Option<&SupplierEnergy>), With<Building>>,
-    display_building_info: Query<&DisplayBuildingInfo>,
-) {
-    let building_entity = display_building_info.single().building_entity;
-    let Ok((grid_imprint, grid_coords, energy_provider)) = buildings.get(building_entity) else { return; };
-    if let Some(energy_provider) = energy_provider {
-        let position = grid_coords.to_world_position() + match *grid_imprint {
-            GridImprint::Rectangle { width, height } => Vec2::new(width as f32 * CELL_SIZE / 2., height as f32 * CELL_SIZE / 2.),
-        };
-        gizmos.circle_2d(
-            position,
-            energy_provider.range as f32 * CELL_SIZE,
-            YELLOW,
-        );
-    }
 }

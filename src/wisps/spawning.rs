@@ -31,7 +31,7 @@ impl BuilderWisp {
             let wisp_world_size = WISP_GRID_IMPRINT.world_size();
             commands.entity(entity).insert((
                 grid_coords,
-                Health(10),
+                Health::new(10),
                 Speed(30.),
                 // OLD PURPLE CIRCLE MATERIAL
                 // MaterialMesh2dBundle {

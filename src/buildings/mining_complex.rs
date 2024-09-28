@@ -56,7 +56,7 @@ impl BuilderMiningComplex {
                 },
                 MiningComplex { ore_entities_in_range },
                 grid_position,
-                Health(100),
+                Health::new(100),
                 Building,
                 BuildingType::MiningComplex,
                 grid_imprint,

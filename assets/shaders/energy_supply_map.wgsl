@@ -55,8 +55,8 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let blockPosition = fract(uv * f32(textureDimensions(heatmap, 0).x));
 
     // Check if we're at the very edge of a block
-    let atEdge = blockPosition.x < (outlineThickness / blockSize) || blockPosition.x > ((blockSize - outlineThickness) / blockSize) ||
-                 blockPosition.y < (outlineThickness / blockSize) || blockPosition.y > ((blockSize - outlineThickness) / blockSize);
+    let atEdge = blockPosition.x <= (outlineThickness / blockSize) || blockPosition.x >= ((blockSize - outlineThickness) / blockSize) ||
+                 blockPosition.y <= (outlineThickness / blockSize) || blockPosition.y >= ((blockSize - outlineThickness) / blockSize);
 
     // Sample the base color from the heatmap
     var baseColor = textureSample(heatmap, heatmap_sampler, uv);

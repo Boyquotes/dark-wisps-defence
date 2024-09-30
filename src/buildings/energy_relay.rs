@@ -41,7 +41,7 @@ impl BuilderEnergyRelay {
                 evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
                 mode: FloodEmissionsMode::Increase,
             };
-            let supplier_energy = SupplierEnergy { range: 15 };
+            let supplier_energy_range = 15;
             commands.entity(entity).insert((
                 get_energy_relay_sprite_bundle(grid_position, grid_imprint, &asset_server),
                 grid_position,
@@ -50,7 +50,7 @@ impl BuilderEnergyRelay {
                 BuildingType::EnergyRelay,
                 grid_imprint,
                 EmitterEnergy(emmision_details.clone()),
-                supplier_energy.clone(),
+                SupplierEnergy{ range: supplier_energy_range },
                 TechnicalState{ has_energy_supply: true, ..default() },
                 ColorPulsation::new(1.0, 1.8, 3.0),
             ));
@@ -61,8 +61,9 @@ impl BuilderEnergyRelay {
                 emissions_details: vec![emmision_details],
             });
             supplier_created_event_writer.send(SupplierChangedEvent {
+                supplier: entity,
                 coords: covered_coords,
-                supplier: supplier_energy,
+                range: supplier_energy_range,
                 mode: FloodEnergySupplyMode::Increase,
             });
         }

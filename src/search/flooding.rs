@@ -4,8 +4,8 @@ use crate::prelude::*;
 use crate::grids::emissions::{EmissionsGrid, EmissionsType};
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::grids::visited::VisitedGrid;
-use crate::search::common::CARDINAL_DIRECTIONS;
+
+use super::common::{VISITED_GRID, CARDINAL_DIRECTIONS};
 
 /// Defines how to calculate the emissions as a function of distance
 /// `Constant` - value is constant regardless of distance
@@ -50,38 +50,44 @@ pub fn flood_emissions(
     emissions_details: &Vec<FloodEmissionsDetails>,
     should_field_be_flooded: fn(&Field) -> bool,
 ) {
-    let mut visited_grid = VisitedGrid::new_with_size(obstacles_grid.width, obstacles_grid.height);
-    let mut queue = VecDeque::new();
-    let max_range = emissions_details.iter().map(|details| details.range).max().unwrap();
-    start_coords.iter().for_each(|coords| {
-        queue.push_back((1, *coords));
-        visited_grid.set_visited(*coords);
-        for details in emissions_details {
-            apply_emissions_details(emissions_grid, *coords, details, 1);
+    VISITED_GRID.with_borrow_mut(|visited_grid| {
+        if visited_grid.bounds() != obstacles_grid.bounds() {
+            visited_grid.resize_and_reset(obstacles_grid.width, obstacles_grid.height);
+        } else {
+            visited_grid.reset();
         }
-    });
-    while let Some((distance, coords)) = queue.pop_front() {
-        for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
-            let new_coords = coords.shifted((delta_x, delta_y));
-            if !new_coords.is_in_bounds(obstacles_grid.bounds())
-                || visited_grid.is_visited(new_coords)
-                || !should_field_be_flooded(&obstacles_grid[new_coords])
-            {
-                continue;
-            }
-
-            visited_grid.set_visited(new_coords);
-            let new_distance = distance + 1;
+        let mut queue = VecDeque::new();
+        let max_range = emissions_details.iter().map(|details| details.range).max().unwrap();
+        start_coords.iter().for_each(|coords| {
+            queue.push_back((1, *coords));
+            visited_grid.set_visited(*coords);
             for details in emissions_details {
-                if new_distance <= details.range {
-                    apply_emissions_details(emissions_grid, new_coords, details, new_distance);
+                apply_emissions_details(emissions_grid, *coords, details, 1);
+            }
+        });
+        while let Some((distance, coords)) = queue.pop_front() {
+            for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
+                let new_coords = coords.shifted((delta_x, delta_y));
+                if !new_coords.is_in_bounds(obstacles_grid.bounds())
+                    || visited_grid.is_visited(new_coords)
+                    || !should_field_be_flooded(&obstacles_grid[new_coords])
+                {
+                    continue;
+                }
+
+                visited_grid.set_visited(new_coords);
+                let new_distance = distance + 1;
+                for details in emissions_details {
+                    if new_distance <= details.range {
+                        apply_emissions_details(emissions_grid, new_coords, details, new_distance);
+                    }
+                }
+                if new_distance < max_range {
+                    queue.push_back((new_distance, new_coords));
                 }
             }
-            if new_distance < max_range {
-                queue.push_back((new_distance, new_coords));
-            }
         }
-    }
+    });
 }
 
 fn apply_emissions_details(
@@ -117,35 +123,42 @@ pub fn flood_energy_supply(
     start_coords: &Vec<GridCoords>,
     mode: FloodEnergySupplyMode,
     range: usize,
+    supplier: Entity,
 ) {
-    let mut visited_grid = VisitedGrid::new_with_size(energy_supply_grid.width, energy_supply_grid.height);
-    let mut queue = VecDeque::new();
-    start_coords.iter().for_each(|coords| {
-         match mode {
-             FloodEnergySupplyMode::Increase => energy_supply_grid.increase_supply(*coords),
-             FloodEnergySupplyMode::Decrease => energy_supply_grid.decrease_supply(*coords),
-         }
-        queue.push_back((0, *coords));
-        visited_grid.set_visited(*coords);
-    });
-    while let Some((distance, coords)) = queue.pop_front() {
-        for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
-            let new_coords = coords.shifted((delta_x, delta_y));
-            if !new_coords.is_in_bounds(energy_supply_grid.bounds())
-                || visited_grid.is_visited(new_coords)
-            {
-                continue;
-            }
-
-            visited_grid.set_visited(new_coords);
+    VISITED_GRID.with_borrow_mut(|visited_grid| {
+        if visited_grid.bounds() != energy_supply_grid.bounds() {
+            visited_grid.resize_and_reset(energy_supply_grid.width, energy_supply_grid.height);
+        } else {
+            visited_grid.reset();
+        }
+        let mut queue = VecDeque::new();
+        start_coords.iter().for_each(|coords| {
             match mode {
-                FloodEnergySupplyMode::Increase => energy_supply_grid.increase_supply(new_coords),
-                FloodEnergySupplyMode::Decrease => energy_supply_grid.decrease_supply(new_coords),
+                FloodEnergySupplyMode::Increase => energy_supply_grid.add_supplier(*coords, supplier),
+                FloodEnergySupplyMode::Decrease => energy_supply_grid.remove_supplier(*coords, supplier),
             }
-            let new_distance = distance + 1;
-            if new_distance < range {
-                queue.push_back((new_distance, new_coords));
+            queue.push_back((0, *coords));
+            visited_grid.set_visited(*coords);
+        });
+        while let Some((distance, coords)) = queue.pop_front() {
+            for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
+                let new_coords = coords.shifted((delta_x, delta_y));
+                if !new_coords.is_in_bounds(energy_supply_grid.bounds())
+                    || visited_grid.is_visited(new_coords)
+                {
+                    continue;
+                }
+
+                visited_grid.set_visited(new_coords);
+                match mode {
+                    FloodEnergySupplyMode::Increase => energy_supply_grid.add_supplier(new_coords, supplier),
+                    FloodEnergySupplyMode::Decrease => energy_supply_grid.remove_supplier(new_coords, supplier),
+                }
+                let new_distance = distance + 1;
+                if new_distance < range {
+                    queue.push_back((new_distance, new_coords));
+                }
             }
         }
-    }
+    });
 }

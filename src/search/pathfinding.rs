@@ -1,14 +1,10 @@
-use std::cell::RefCell;
 use std::collections::BinaryHeap;
 use crate::prelude::*;
 use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::grids::visited::TrackingGrid;
 use crate::search::common::{State, ALL_DIRECTIONS};
 
-thread_local! {
-    pub static TRACKING_GRID: RefCell<TrackingGrid> = RefCell::new(TrackingGrid::new_with_size(0, 0));
-}
+use super::common::TRACKING_GRID;
 
 const EMPTY_FIELD_MODIFIER: f32 = 1.0;
 const BUILDING_FIELD_MODIFIER: f32 = 0.1;

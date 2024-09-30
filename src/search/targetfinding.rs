@@ -1,10 +1,10 @@
 use std::collections::BinaryHeap;
 use crate::prelude::*;
 use crate::grids::obstacles::ObstacleGrid;
-use crate::grids::visited::VisitedGrid;
 use crate::grids::wisps::WispsGrid;
-use crate::search::common::{CARDINAL_DIRECTIONS, State};
 use crate::wisps::components::WispEntity;
+
+use super::common::{VISITED_GRID, CARDINAL_DIRECTIONS, State};
 
 /// Finds the closest wisp
 /// `ignore_obstacles` ignores all grid obstacles
@@ -17,32 +17,38 @@ pub fn target_find_closest_wisp(
     range: usize,
     ignore_obstacles: bool,
 ) -> Option<(GridCoords, WispEntity)> {
-    let mut visited_grid = VisitedGrid::new_with_size(obstacle_grid.width, obstacle_grid.height);
-    let mut queue = BinaryHeap::new();
-    start_coords.into_iter().for_each(
-        |coords| {
-            queue.push(State{cost: usize::MIN, distance: 0, coords });
-            visited_grid.set_visited(coords);
+    VISITED_GRID.with_borrow_mut(|visited_grid| {
+        if visited_grid.bounds() != obstacle_grid.bounds() {
+            visited_grid.resize_and_reset(obstacle_grid.width, obstacle_grid.height);
+        } else {
+            visited_grid.reset();
         }
-    );
-    while let Some(State{ cost, distance, coords }) = queue.pop() {
-        for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
-            let new_coords = coords.shifted((delta_x, delta_y));
-            if distance > range
-                || !new_coords.is_in_bounds(obstacle_grid.bounds())
-                || visited_grid.is_visited(new_coords)
-                || (!ignore_obstacles && !obstacle_grid[new_coords].is_empty())
-            {
-                continue;
+        let mut queue = BinaryHeap::new();
+        start_coords.into_iter().for_each(
+            |coords| {
+                queue.push(State{cost: usize::MIN, distance: 0, coords });
+                visited_grid.set_visited(coords);
             }
+        );
+        while let Some(State{ cost, distance, coords }) = queue.pop() {
+            for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
+                let new_coords = coords.shifted((delta_x, delta_y));
+                if distance > range
+                    || !new_coords.is_in_bounds(obstacle_grid.bounds())
+                    || visited_grid.is_visited(new_coords)
+                    || (!ignore_obstacles && !obstacle_grid[new_coords].is_empty())
+                {
+                    continue;
+                }
 
-            if !wisps_grid[new_coords].is_empty() {
-                return Some((new_coords, wisps_grid[new_coords][0]));
+                if !wisps_grid[new_coords].is_empty() {
+                    return Some((new_coords, wisps_grid[new_coords][0]));
+                }
+
+                visited_grid.set_visited(new_coords);
+                queue.push(State{ cost: cost + 1, distance: distance + 1, coords: new_coords });
             }
-
-            visited_grid.set_visited(new_coords);
-            queue.push(State{ cost: cost + 1, distance: distance + 1, coords: new_coords });
         }
-    }
-    None
+        None
+    })
 }

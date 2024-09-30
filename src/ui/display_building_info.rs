@@ -41,8 +41,14 @@ struct BuildingHealthbarValue;
 
 /// Event emitted when the user clicks on a building
 #[derive(Event)]
-pub struct BuildingUiFocusChangedEvent {
-    pub building_entity: Entity,
+pub enum BuildingUiFocusChangedEvent {
+    Unfocus,
+    Focus(BuildingId),
+}
+impl Command for BuildingUiFocusChangedEvent {
+    fn apply(self, world: &mut World) {
+        world.send_event(self);
+    }
 }
 
 fn on_display_enter_system(
@@ -54,11 +60,13 @@ fn on_display_enter_system(
 }
 
 fn on_display_exit_system(
+    mut commands: Commands,
     mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
     mut building_info_camera: Query<&mut Camera, With<DisplayBuildingInfoCamera>>,
 ) {
     *display_building_info.single_mut() = Visibility::Hidden;
     building_info_camera.single_mut().is_active = false;
+    commands.add(BuildingUiFocusChangedEvent::Unfocus);
 }
 
 fn hide_system(
@@ -97,7 +105,7 @@ fn show_on_click_system(
     let mut display_building_info = display_building_info.single_mut();
     display_building_info.building_entity = *entity;
 
-    building_ui_focus_changed_events.send(BuildingUiFocusChangedEvent { building_entity: *entity });
+    building_ui_focus_changed_events.send(BuildingUiFocusChangedEvent::Focus((*entity).into()));
     ui_interaction_state.set(UiInteraction::DisplayBuildingInfo);
 }
 

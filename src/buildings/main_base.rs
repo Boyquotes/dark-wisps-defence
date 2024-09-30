@@ -54,10 +54,11 @@ impl BuilderMainBase {
                 coords: covered_coords.clone(),
                 emissions_details: vec![emitter_energy.0.clone()],
             });
-            let supplier_energy = SupplierEnergy { range: 15 };
+            let supplier_energy_range = 15;
             supplier_created_event_writer.send(SupplierChangedEvent {
+                supplier: entity,
                 coords: covered_coords,
-                supplier: supplier_energy.clone(),
+                range: supplier_energy_range,
                 mode: FloodEnergySupplyMode::Increase,
             });
 
@@ -70,7 +71,7 @@ impl BuilderMainBase {
                 BuildingType::MainBase,
                 grid_imprint,
                 emitter_energy,
-                supplier_energy,
+                SupplierEnergy { range: supplier_energy_range },
                 TechnicalState { has_energy_supply: true, ..default() },
             ));
         }
@@ -101,13 +102,15 @@ pub fn move_main_base_system(
     for &EventMoveMainBase { new_grid_position } in events.read() {
         let (entity, grid_imprint, mut main_base_location, supplier_energy, mut transform) = main_base.single_mut();
         supplier_created_event_writer.send(SupplierChangedEvent {
+            supplier: entity,
             coords: grid_imprint.covered_coords(*main_base_location),
-            supplier: supplier_energy.clone(),
+            range: supplier_energy.range,
             mode: FloodEnergySupplyMode::Decrease,
         });
         supplier_created_event_writer.send(SupplierChangedEvent {
+            supplier: entity,
             coords: grid_imprint.covered_coords(new_grid_position),
-            supplier: supplier_energy.clone(),
+            range: supplier_energy.range,
             mode: FloodEnergySupplyMode::Increase,
         });
         emitter_created_event_writer.send(EmitterChangedEvent {

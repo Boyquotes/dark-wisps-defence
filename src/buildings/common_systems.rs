@@ -181,8 +181,9 @@ pub fn damage_control_system(
             }
             if let Some(suplier_energy) = maybe_supplier_energy {
                 supplier_created_event_writer.send(SupplierChangedEvent {
-                    supplier: suplier_energy.clone(),
+                    supplier: entity,
                     coords: grid_imprint.covered_coords(*grid_coords),
+                    range: suplier_energy.range,
                     mode: FloodEnergySupplyMode::Decrease,
                 });
             }

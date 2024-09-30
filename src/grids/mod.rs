@@ -29,7 +29,7 @@ impl Plugin for GridsPlugin {
 
         app.add_systems(PostUpdate, (
             emissions::emissions_calculations_system,
-            energy_supply::on_supplier_created_system,
+            energy_supply::on_supplier_changed_system,
         ));
     }
 }

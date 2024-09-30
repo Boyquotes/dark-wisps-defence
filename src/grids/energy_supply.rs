@@ -9,28 +9,30 @@ pub struct SupplierEnergy{
 
 #[derive(Event)]
 pub struct SupplierChangedEvent {
+    pub supplier: Entity,
     pub coords: Vec<GridCoords>,
-    pub supplier: SupplierEnergy,
+    pub range: usize,
     pub mode: FloodEnergySupplyMode,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
-pub struct EnergySupplyField(u32);
+#[derive(Clone, Debug, Default)]
+pub struct EnergySupplyField(HashSet<Entity>);
 impl EnergySupplyField {
-    pub fn has_supply(&self) -> bool { self.0 > 0 }
-    pub fn increase_supply(&mut self) { self.0 += 1 }
-    pub fn decrease_supply(&mut self) { self.0 -= 1 }
+    pub fn has_supply(&self) -> bool { self.0.len() > 0 }
+    pub fn add_supplier(&mut self, supplier: Entity) { self.0.insert(supplier); }
+    pub fn remove_supplier(&mut self, supplier: Entity) { self.0.remove(&supplier); }
+    pub fn has_supplier(&self, supplier: Entity) -> bool { self.0.contains(&supplier) }
 }
 
 pub type EnergySupplyGrid = BaseGrid<EnergySupplyField, GridVersion>;
 
 impl EnergySupplyGrid {
-    pub fn increase_supply(&mut self, coords: GridCoords) {
-        self[coords].increase_supply();
+    pub fn add_supplier(&mut self, coords: GridCoords, supplier: Entity) {
+        self[coords].add_supplier(supplier);
         self.version = self.version.wrapping_add(1);
     }
-    pub fn decrease_supply(&mut self, coords: GridCoords) {
-        self[coords].decrease_supply();
+    pub fn remove_supplier(&mut self, coords: GridCoords, supplier: Entity) {
+        self[coords].remove_supplier(supplier);
         self.version = self.version.wrapping_add(1);
     }
     /// At least one of the imprint's cells mut have energy supply.
@@ -50,21 +52,9 @@ impl EnergySupplyGrid {
         }
         false
     }
-    pub fn imprint_into_heatmap(&self, heatmap: &mut Vec<u8>) {
-        let mut idx = 0;
-        heatmap.chunks_mut(4).for_each(|chunk| {
-            let has_energy_supply = self.grid[idx].has_supply();
-            if has_energy_supply {
-                chunk[3] = 15;
-            } else {
-                chunk[3] = 0;
-            }
-            idx += 1;
-        });
-    }
 }
 
-pub fn on_supplier_created_system(
+pub fn on_supplier_changed_system(
     mut events: EventReader<SupplierChangedEvent>,
     mut energy_supply_grid: ResMut<EnergySupplyGrid>,
 ) {
@@ -73,7 +63,8 @@ pub fn on_supplier_created_system(
             &mut energy_supply_grid,
             &event.coords,
             event.mode,
-            event.supplier.range
+            event.range,
+            event.supplier,
         );
     }
 }

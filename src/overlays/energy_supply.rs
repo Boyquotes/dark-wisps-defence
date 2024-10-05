@@ -42,20 +42,6 @@ pub struct EnergySupplyOverlayConfig {
     pub grid_version: GridVersion, // Grid version for which we show the overlay
     pub highlighted_supplier: Option<BuildingId>,
 }
-// pub struct CommandEnergySupplyOverlayHighlightStart(BuildingId);
-// impl Command for CommandEnergySupplyOverlayHighlightStart {
-//     fn apply(self, world: &mut World) {
-//         let mut config = world.get_resource_mut::<EnergySupplyOverlayConfig>().unwrap();
-//         config.highlighted_supplier = Some(self.0);
-//     }
-// }
-// pub struct CommandEnergySupplyOverlayHighlightEnd;
-// impl Command for CommandEnergySupplyOverlayHighlightEnd {
-//     fn apply(self, world: &mut World) {
-//         let mut config = world.get_resource_mut::<EnergySupplyOverlayConfig>().unwrap();
-//         config.highlighted_supplier = None;
-//     }
-// }
 
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
@@ -63,6 +49,16 @@ pub struct EnergySupplyHeatmapMaterial {
     #[texture(0)]
     #[sampler(1)]
     pub heatmap: Handle<Image>,
+    #[uniform(2)]
+    pub highlight_enabled: u32, // 1 if the display is in highlight mode and should make the specific building range highlighted
+}
+impl EnergySupplyHeatmapMaterial {
+    fn enable_highlight(&mut self) {
+        self.highlight_enabled = 1;
+    }
+    fn disable_highlight(&mut self) {
+        self.highlight_enabled = 0;
+    }
 }
 impl Material2d for EnergySupplyHeatmapMaterial {
     fn fragment_shader() -> ShaderRef {
@@ -110,12 +106,18 @@ fn refresh_display_system(
     energy_supply_grid: Res<EnergySupplyGrid>,
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
     energy_supply_overlay: Query<&Handle<EnergySupplyHeatmapMaterial>, With<EnergySupplyOverlay>>,
-    buildings: Query<(&GridCoords), With<Building>>,
+    mut last_highlighted_supplier: Local<Option<BuildingId>>,
 ) {
-    if overlay_config.grid_version != energy_supply_grid.version || overlay_config.highlighted_supplier.is_some() {
+    if overlay_config.grid_version != energy_supply_grid.version || overlay_config.highlighted_supplier != *last_highlighted_supplier {
+        *last_highlighted_supplier = overlay_config.highlighted_supplier;
         overlay_config.grid_version = energy_supply_grid.version;
         let heatmap_material_handle = energy_supply_overlay.single();
         let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
+        if overlay_config.highlighted_supplier.is_some() {
+            heatmap_material.enable_highlight();
+        } else {
+            heatmap_material.disable_highlight();
+        }
         let heatmap_image = images.get_mut(&heatmap_material.heatmap).unwrap();
         let mut overlay_creator = OverlayHeatmapCreator { energy_supply_grid: &energy_supply_grid, heatmap_data: &mut heatmap_image.data };
         overlay_creator.imprint_current_state(overlay_config.highlighted_supplier); 
@@ -162,9 +164,10 @@ fn create_energy_supply_overlay_startup_system(
     commands.spawn(
         MaterialMesh2dBundle {
             mesh: meshes.add(Rectangle::new(1.0, 1.0)).into(),
-            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 10.)
+            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
                 .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
             material: materials.add(EnergySupplyHeatmapMaterial {
+                highlight_enabled: 0,
                 heatmap: image,
             }),
             visibility: Visibility::Hidden,

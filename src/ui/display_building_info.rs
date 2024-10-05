@@ -3,7 +3,6 @@ use bevy::render::camera::RenderTarget;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 use bevy::text::BreakLineOn;
 use crate::prelude::*;
-use crate::grids::energy_supply::SupplierEnergy;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 
@@ -123,14 +122,13 @@ fn on_building_destroyed_system(
 }
 
 fn display_building_info_system(
-    mut gizmos: Gizmos,
-    buildings: Query<(&GridImprint, &GridCoords, &Health, Option<&SupplierEnergy>), With<Building>>,
+    buildings: Query<&Health, With<Building>>,
     display_building_info: Query<&DisplayBuildingInfo>,
     mut healthbar: Query<(&mut Style, &mut BackgroundColor), With<BuildingHealthbar>>,
     mut health_text: Query<&mut Text, With<BuildingHealthbarValue>>,
 ) {
     let building_entity = display_building_info.single().building_entity;
-    let Ok((grid_imprint, grid_coords, health, energy_provider)) = buildings.get(building_entity) else { return; };
+    let Ok(health) = buildings.get(building_entity) else { return; };
     // Update the healthbar
     let (mut style, mut background_color) = healthbar.single_mut();
     let health_percentage = health.get_percent();
@@ -139,18 +137,6 @@ fn display_building_info_system(
 
     // Update the health text
     health_text.single_mut().sections[0].value = format!("{} / {}", health.get_current(), health.get_max());
-
-    // Draw energy provider range
-    if let Some(energy_provider) = energy_provider {
-        let position = grid_coords.to_world_position() + match *grid_imprint {
-            GridImprint::Rectangle { width, height } => Vec2::new(width as f32 * CELL_SIZE / 2., height as f32 * CELL_SIZE / 2.),
-        };
-        gizmos.circle_2d(
-            position,
-            energy_provider.range as f32 * CELL_SIZE,
-            YELLOW,
-        );
-    }
 }
 
 

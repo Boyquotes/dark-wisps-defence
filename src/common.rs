@@ -66,6 +66,7 @@ macro_rules! define_z_indexes {
 
 define_z_indexes!(
     Z_OBSTACLE,
+    Z_OVERLAY_ENERGY_SUPPLY,
     Z_BUILDING,
     Z_WISP,
     Z_GROUND_EFFECT,

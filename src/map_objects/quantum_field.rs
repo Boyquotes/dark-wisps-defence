@@ -27,7 +27,7 @@ impl Plugin for QuantumFieldPlugin {
 pub const QUANTUM_FIELD_MIN_IMPRINT_SIZE: i32 = 3;
 pub const QUANTUM_FIELD_MAX_IMPRINT_SIZE: i32 = 6;
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, PartialEq)]
 pub struct QuantumField {
     pub grid_imprint: GridImprint,
 }

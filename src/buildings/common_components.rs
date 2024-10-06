@@ -16,7 +16,7 @@ pub enum BuildingType {
     ExplorationCenter,
 }
 impl BuildingType {
-    pub fn is_energy_rich(&self) -> bool {
+    pub fn is_energy_supplier(&self) -> bool {
         matches!(self, BuildingType::MainBase | BuildingType::EnergyRelay)
     }
 }

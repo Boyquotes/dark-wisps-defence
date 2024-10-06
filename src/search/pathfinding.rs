@@ -47,7 +47,7 @@ pub fn path_find_energy_beckon(
                 let new_distance = distance + 1;
                 let new_cost = match obstacle_grid[new_coords] {
                     Field::Building(_, building_type, _) => {
-                        if building_type.is_energy_rich() {
+                        if building_type.is_energy_supplier() {
                             // Compile the path by backtracking
                             return Some(tracking.compile_path(new_coords, start_coords));
                         } else {

@@ -39,7 +39,7 @@ impl GridObjectPlacerRequest {
     }
 }
 
-#[derive(Component, Default, Clone, Debug)]
+#[derive(Component, Default, Clone, Debug, PartialEq)]
 pub enum GridObjectPlacer {
     #[default]
     None,
@@ -71,6 +71,7 @@ pub fn create_grid_object_placer_system(mut commands: Commands) {
         GridObjectPlacer::default(),
         GridImprint::default(),
         SpriteBundle::default(),
+        GridCoords::default(),
     ));
 }
 
@@ -92,20 +93,21 @@ fn update_grid_object_placer_system(
     obstacle_grid: Res<ObstacleGrid>,
     energy_supply_grid: Res<EnergySupplyGrid>,
     mouse_info: Res<MouseInfo>,
-    mut placer: Query<(&mut Transform, &mut Sprite, &GridObjectPlacer, &GridImprint)>,
+    mut placer: Query<(&mut Transform, &mut Sprite, &GridObjectPlacer, &GridImprint, &mut GridCoords)>,
 ) {
-    let (mut transform, mut sprite, grid_object_placer, grid_imprint) = placer.single_mut();
-    transform.translation = mouse_info.grid_coords.to_world_position().extend(10.);
+    let (mut transform, mut sprite, grid_object_placer, grid_imprint, mut grid_coords) = placer.single_mut();
+    *grid_coords = mouse_info.grid_coords;
+    transform.translation = grid_coords.to_world_position().extend(10.);
     let is_imprint_in_bounds = mouse_info.grid_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds());
     let is_imprint_placable = match &*grid_object_placer {
         GridObjectPlacer::None => false,
         GridObjectPlacer::Building(building_type) => {
             transform.translation += grid_imprint.world_center().extend(0.);
-            obstacle_grid.query_building_placement(mouse_info.grid_coords, *building_type, *grid_imprint)
+            obstacle_grid.query_building_placement(*grid_coords, *building_type, *grid_imprint)
         },
         _ => {
             transform.translation += grid_imprint.world_center().extend(0.);
-            obstacle_grid.imprint_query_all(mouse_info.grid_coords, *grid_imprint, |field| field.is_empty())
+            obstacle_grid.imprint_query_all(*grid_coords, *grid_imprint, |field| field.is_empty())
         }
     };
 
@@ -113,7 +115,7 @@ fn update_grid_object_placer_system(
         GridObjectPlacer::Building(building_type) => match building_type {
             BuildingType::MainBase | BuildingType::EnergyRelay => (false, false),
             _ => {
-                (true, energy_supply_grid.is_imprint_suppliable(mouse_info.grid_coords, *grid_imprint))
+                (true, energy_supply_grid.is_imprint_suppliable(*grid_coords, *grid_imprint))
             },
         },
         _ => (false, false)

@@ -22,7 +22,7 @@ struct EdgeDetails {
 
 fn supply_details(uv: vec2<f32>) -> SupplyDetails {
     let pixel = textureSample(heatmap, heatmap_sampler, uv);
-    return SupplyDetails(pixel.a > 0.0, pixel.a > 0.1);
+    return SupplyDetails(pixel.a > 0.0, pixel.a > 0.05);
 }
 fn egde_details_from_supply_details(supply_details1: SupplyDetails, supply_details2: SupplyDetails) -> EdgeDetails {
     return EdgeDetails(supply_details1.has_supply != supply_details2.has_supply, supply_details1.is_highlighted != supply_details2.is_highlighted);

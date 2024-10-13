@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use crate::grids::emissions::{EmissionsType, EmitterChangedEvent, EmitterEnergy};
-use crate::grids::energy_supply::{SupplierChangedEvent, SupplierEnergy};
+use crate::grids::energy_supply::{GeneratorEnergy, SupplierChangedEvent, SupplierEnergy};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode, FloodEnergySupplyMode};
 
 pub struct MainBasePlugin;
@@ -71,6 +71,7 @@ impl BuilderMainBase {
                 BuildingType::MainBase,
                 grid_imprint,
                 emitter_energy,
+                GeneratorEnergy,
                 SupplierEnergy { range: supplier_energy_range },
                 TechnicalState { has_energy_supply: true, ..default() },
             ));

@@ -95,8 +95,8 @@ pub fn emissions_calculations_system(
             flood_emissions(
                 &mut emissions_grid,
                 &obstacle_grid,
-                &grid_imprint.covered_coords(*coords),
-                &vec![emitter.0.clone()],
+                grid_imprint.covered_coords(*coords).iter(),
+                vec![emitter.0.clone()].iter(),
                 |field| !field.is_wall(),
             );
             recalculated_emissions.insert(emitter_entity);
@@ -108,8 +108,8 @@ pub fn emissions_calculations_system(
                 flood_emissions(
                     &mut emissions_grid,
                     &obstacle_grid,
-                    &event.coords,
-                    &event.emissions_details,
+                    event.coords.iter(),
+                    event.emissions_details.iter(),
                     |field| !field.is_wall(),
                 );
             }
@@ -119,8 +119,8 @@ pub fn emissions_calculations_system(
             flood_emissions(
                 &mut emissions_grid,
                 &obstacle_grid,
-                &event.coords,
-                &event.emissions_details,
+                event.coords.iter(),
+                event.emissions_details.iter(),
                 |field| !field.is_wall(),
             );
         }

@@ -35,10 +35,13 @@ impl<FieldType, GridVersionType> BaseGrid<FieldType, GridVersionType> where Fiel
             version: GridVersionType::default(),
         }
     }
-    pub fn resize_and_reset(&mut self, width: i32, height: i32) {
-        self.width = width;
-        self.height = height;
-        self.grid = vec![Default::default(); (width * height) as usize];
+    pub fn resize_and_reset(&mut self, bounds: (i32, i32)) {
+        if self.bounds() != bounds {
+            self.width = bounds.0;
+            self.height = bounds.1;
+            self.grid.resize((bounds.0 * bounds.1) as usize, Default::default());
+        }
+        self.reset();
     }
     pub fn reset(&mut self) {
         self.grid.fill(Default::default());

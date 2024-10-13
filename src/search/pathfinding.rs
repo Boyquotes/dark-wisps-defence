@@ -16,11 +16,7 @@ pub fn path_find_energy_beckon(
 ) -> Option<Vec<GridCoords>> {
     // BFS to find closest building field
     TRACKING_GRID.with_borrow_mut(|tracking| {
-        if tracking.bounds() != obstacle_grid.bounds() {
-            tracking.resize_and_reset(obstacle_grid.width, obstacle_grid.height);
-        } else {
-            tracking.reset();
-        }
+        tracking.resize_and_reset(obstacle_grid.bounds());
         let mut queue = BinaryHeap::new();
         queue.push(State{ cost: f32::MIN, distance: 0, coords: start_coords });
         tracking.set_tracked(start_coords, start_coords);

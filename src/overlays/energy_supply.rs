@@ -145,7 +145,10 @@ fn refresh_display_system(
             EnergySupplyOverlaySecondaryMode::Placing{grid_coords, grid_imprint, range} => {
                 overlay_creator.imprint_current_state(None); 
                 if grid_coords.is_in_bounds(energy_supply_grid.bounds()) {
-                    overlay_creator.flood_potential_energy_supply_to_overlay_heatmap(&grid_imprint.covered_coords(*grid_coords), *range); 
+                    overlay_creator.flood_potential_energy_supply_to_overlay_heatmap(
+                        grid_imprint.covered_coords(*grid_coords).iter().filter(|coords| coords.is_in_bounds(energy_supply_grid.bounds())), 
+                        *range
+                    ); 
                 }
             }
         }
@@ -213,7 +216,7 @@ fn create_energy_supply_overlay_startup_system(
                 depth_or_array_layers: 1,
             },
             TextureDimension::D2,
-            &[255, 255, 0, 127],
+            &[0, 0, 0, 0],
             TextureFormat::Rgba8Unorm,
             RenderAssetUsages::default(),
         )
@@ -241,17 +244,28 @@ pub struct OverlayHeatmapCreator<'a> {
 }
 impl OverlayHeatmapCreator<'_> {
     const ALPHA_VALUE: u8 = 15;
+
+    /// Imprint the current state of the energy supply grid into the heatmap
+    /// Rules as as follows:
+    /// - Alpha value(chunk[3]) above 0 means it has energy supply
+    /// - Red value(chunk[0]) == 255 means it has supply but no power
     fn imprint_current_state(&mut self, highlight_supplier: Option<BuildingId>) {
         let mut idx = 0;
         let alpha_value = if highlight_supplier.is_some() { 5 } else { Self::ALPHA_VALUE };
         self.heatmap_data.chunks_mut(4).for_each(|chunk| {
+            chunk[0] = 0;
             let grid_field =  &self.energy_supply_grid.grid[idx];
             if grid_field.has_supply() {
+                // Mark as has supply
                 chunk[3] = alpha_value;
                 if let Some(highlighted_supplier) = highlight_supplier {
                     if grid_field.has_supplier(*highlighted_supplier) {
                         chunk[3] = Self::ALPHA_VALUE;
                     }
+                }
+                // Additional mark if it has no power
+                if !grid_field.has_power() {
+                    chunk[0] = 255;
                 }
             } else {
                 chunk[3] = 0;
@@ -265,19 +279,15 @@ impl OverlayHeatmapCreator<'_> {
 
     /// Special version of `flooding::flood_energy_supply` to add the energy supply of a building we are currently placing to the overlay heatmap.
     /// It writes directly to the overlay texture, so it's only a visual cue that does not affect the actual grid.
-    fn flood_potential_energy_supply_to_overlay_heatmap(
+    fn flood_potential_energy_supply_to_overlay_heatmap<'a>(
         &mut self,
-        start_coords: &Vec<GridCoords>,
+        start_coords: impl Iterator<Item = &'a GridCoords>,
         range: usize,
     ) {
         VISITED_GRID.with_borrow_mut(|visited_grid| {
-            if visited_grid.bounds() != self.energy_supply_grid.bounds() {
-                visited_grid.resize_and_reset(self.energy_supply_grid.width, self.energy_supply_grid.height);
-            } else {
-                visited_grid.reset();
-            }
+            visited_grid.resize_and_reset(self.energy_supply_grid.bounds());
             let mut queue = VecDeque::new();
-            start_coords.iter().for_each(|coords| {
+            start_coords.for_each(|coords| {
                 let heatmap_index = self.coords_to_index(coords) + 3;
                 self.heatmap_data[heatmap_index] = Self::ALPHA_VALUE;
                 queue.push_back((0, *coords));
@@ -293,8 +303,10 @@ impl OverlayHeatmapCreator<'_> {
                     }
 
                     visited_grid.set_visited(new_coords);
+
                     let heatmap_index = self.coords_to_index(&new_coords) + 3;
                     self.heatmap_data[heatmap_index] = Self::ALPHA_VALUE;
+
                     let new_distance = distance + 1;
                     if new_distance < range {
                         queue.push_back((new_distance, new_coords));

@@ -18,11 +18,7 @@ pub fn target_find_closest_wisp(
     ignore_obstacles: bool,
 ) -> Option<(GridCoords, WispEntity)> {
     VISITED_GRID.with_borrow_mut(|visited_grid| {
-        if visited_grid.bounds() != obstacle_grid.bounds() {
-            visited_grid.resize_and_reset(obstacle_grid.width, obstacle_grid.height);
-        } else {
-            visited_grid.reset();
-        }
+        visited_grid.resize_and_reset(obstacle_grid.bounds());
         let mut queue = BinaryHeap::new();
         start_coords.into_iter().for_each(
             |coords| {

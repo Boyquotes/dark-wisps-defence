@@ -1,7 +1,28 @@
+use bevy::gizmos::grid;
+
 use crate::prelude::*;
 use crate::grids::base::{BaseGrid, GridVersion};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::search::flooding::{flood_emissions, FloodEmissionsDetails};
+
+
+pub struct EmissionsPlugin;
+impl Plugin for EmissionsPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .insert_resource(EmissionsGrid::new_with_size(100, 100))
+            .init_resource::<EmissionsEnergyRecalculateAll>()
+            .add_event::<EmitterChangedEvent>()
+            .add_systems(Update, (
+                on_emitter_added_system,
+                on_emitter_position_changed_system,
+            )
+            )
+            .add_systems(PostUpdate, (
+                emissions_calculations_system,
+            ));
+    }
+}
 
 #[derive(Component)]
 pub struct EmitterEnergy(pub FloodEmissionsDetails);
@@ -13,7 +34,7 @@ pub struct EmitterChangedEvent {
     pub emissions_details: Vec<FloodEmissionsDetails>,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct EmissionsEnergyRecalculateAll(pub bool);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -80,18 +101,43 @@ impl EmissionsGrid {
     }
 }
 
-pub fn emissions_calculations_system(
+fn on_emitter_added_system(
+    mut events: EventWriter<EmitterChangedEvent>,
+    suppliers: Query<(Entity, &GridCoords, &GridImprint, &EmitterEnergy), Added<EmitterEnergy>>,
+) {
+    for (entity, grid_coords, grid_imprint, emitter) in suppliers.iter() {
+        events.send(EmitterChangedEvent {
+            emitter_entity: entity,
+            coords: grid_imprint.covered_coords(*grid_coords),
+            emissions_details: vec![emitter.0.clone()],
+        });
+    }
+}
+
+fn on_emitter_position_changed_system(
+    mut recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    suppliers: Query<Ref<GridCoords>, (Changed<GridCoords>, With<EmitterEnergy>)>,
+) {
+    for grid_coords in suppliers.iter() {
+        if !grid_coords.is_added() {
+            recalculate_all.0 = true;
+            break;
+        }
+    }
+}
+
+fn emissions_calculations_system(
     mut recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
     mut events: EventReader<EmitterChangedEvent>,
     mut emissions_grid: ResMut<EmissionsGrid>,
     obstacle_grid: Res<ObstacleGrid>,
-    emitters_buildings: Query<(Entity, &EmitterEnergy, &GridImprint, &GridCoords), With<Building>>,
+    emitters_buildings: Query<(&EmitterEnergy, &GridImprint, &GridCoords), With<Building>>,
 ) {
     if recalculate_all.0 {
+        println!("Recalculating emissions");
         recalculate_all.0 = false;
         emissions_grid.reset_energy_emissions();
-        let mut recalculated_emissions = HashSet::new();
-        for (emitter_entity, emitter, grid_imprint, coords) in emitters_buildings.iter() {
+        for (emitter, grid_imprint, coords) in emitters_buildings.iter() {
             flood_emissions(
                 &mut emissions_grid,
                 &obstacle_grid,
@@ -99,20 +145,6 @@ pub fn emissions_calculations_system(
                 vec![emitter.0.clone()].iter(),
                 |field| !field.is_wall(),
             );
-            recalculated_emissions.insert(emitter_entity);
-        }
-        // Since we recalculated all we don't want to recalculate again per event but sometimes the even arrrives when the entity is not yet spawned.
-        // To account for that we check if the recalculated_emissions contains the entity and if not we apply the event.
-        for event in events.read() {
-            if !recalculated_emissions.contains(&event.emitter_entity) {
-                flood_emissions(
-                    &mut emissions_grid,
-                    &obstacle_grid,
-                    event.coords.iter(),
-                    event.emissions_details.iter(),
-                    |field| !field.is_wall(),
-                );
-            }
         }
     } else {
         for event in events.read() {

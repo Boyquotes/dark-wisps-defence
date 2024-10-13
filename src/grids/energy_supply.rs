@@ -6,8 +6,12 @@ pub struct EnergySupplyPlugin;
 impl Plugin for EnergySupplyPlugin {
     fn build(&self, app: &mut App) {
         app
+            .insert_resource(EnergySupplyGrid::new_with_size(100, 100))
             .init_resource::<EnergySupplyRecalculatePower>()
             .add_event::<SupplierChangedEvent>()
+            .add_systems(Update, (
+                on_supplier_added_system,
+            ))
             .add_systems(PostUpdate, (
                 on_supplier_changed_system,
                 on_recalculate_power_system.after(on_supplier_changed_system).run_if(resource_changed::<EnergySupplyRecalculatePower>),
@@ -83,6 +87,20 @@ impl EnergySupplyGrid {
     pub fn reset_all_power_indicators(&mut self) {
         self.grid.iter_mut().for_each(|field| field.set_power(false));
         self.version = self.version.wrapping_add(1);
+    }
+}
+
+fn on_supplier_added_system(
+    mut events: EventWriter<SupplierChangedEvent>,
+    suppliers: Query<(Entity, &GridCoords, &GridImprint, &SupplierEnergy), Added<SupplierEnergy>>,
+) {
+    for (entity, grid_coords, grid_imprint, supplier) in suppliers.iter() {
+        events.send(SupplierChangedEvent {
+            supplier: entity,
+            coords: grid_imprint.covered_coords(*grid_coords),
+            range: supplier.range,
+            mode: FloodEnergySupplyMode::Increase,
+        });
     }
 }
 

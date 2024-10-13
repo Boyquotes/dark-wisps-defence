@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::grids::emissions::{EmissionsType, EmitterChangedEvent, EmitterEnergy};
+use crate::grids::emissions::{EmissionsType, EmitterEnergy};
 use crate::grids::energy_supply::{GeneratorEnergy, SupplierChangedEvent, SupplierEnergy};
 use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode, FloodEnergySupplyMode};
 
@@ -37,31 +37,9 @@ impl BuilderMainBase {
         mut events: EventReader<BuilderMainBase>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
-        mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
-        mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     ) {
         for &BuilderMainBase { entity, grid_position } in events.read() {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::MainBase);
-            let covered_coords = grid_imprint.covered_coords(grid_position);
-            let emitter_energy = EmitterEnergy(FloodEmissionsDetails {
-                emissions_type: EmissionsType::Energy,
-                range: usize::MAX,
-                evaluator: FloodEmissionsEvaluator::ExponentialDecay { start_value: 100., decay: 0.1 },
-                mode: FloodEmissionsMode::Increase,
-            });
-            emitter_created_event_writer.send(EmitterChangedEvent {
-                emitter_entity: entity,
-                coords: covered_coords.clone(),
-                emissions_details: vec![emitter_energy.0.clone()],
-            });
-            let supplier_energy_range = 15;
-            supplier_created_event_writer.send(SupplierChangedEvent {
-                supplier: entity,
-                coords: covered_coords,
-                range: supplier_energy_range,
-                mode: FloodEnergySupplyMode::Increase,
-            });
-
             commands.entity(entity).insert((
                 get_building_sprite_bundle(&asset_server, MAIN_BASE_BASE_IMAGE, grid_position, grid_imprint),
                 MarkerMainBase,
@@ -70,9 +48,14 @@ impl BuilderMainBase {
                 Building,
                 BuildingType::MainBase,
                 grid_imprint,
-                emitter_energy,
+                EmitterEnergy(FloodEmissionsDetails {
+                    emissions_type: EmissionsType::Energy,
+                    range: usize::MAX,
+                    evaluator: FloodEmissionsEvaluator::ExponentialDecay { start_value: 100., decay: 0.1 },
+                    mode: FloodEmissionsMode::Increase,
+                }),
                 GeneratorEnergy,
-                SupplierEnergy { range: supplier_energy_range },
+                SupplierEnergy { range: 15 },
                 TechnicalState { has_energy_supply: true, ..default() },
             ));
         }
@@ -96,7 +79,6 @@ impl Command for EventMoveMainBase {
 }
 pub fn move_main_base_system(
     mut events: EventReader<EventMoveMainBase>,
-    mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
     mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     mut main_base: Query<(Entity, &GridImprint, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
 ) {
@@ -114,26 +96,7 @@ pub fn move_main_base_system(
             range: supplier_energy.range,
             mode: FloodEnergySupplyMode::Increase,
         });
-        emitter_created_event_writer.send(EmitterChangedEvent {
-            emitter_entity: entity,
-            coords: grid_imprint.covered_coords(*main_base_location),
-            emissions_details: vec![FloodEmissionsDetails {
-                emissions_type: EmissionsType::Energy,
-                range: usize::MAX,
-                evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
-                mode: FloodEmissionsMode::Decrease,
-            }]
-        });
-        emitter_created_event_writer.send(EmitterChangedEvent {
-            emitter_entity: entity,
-            coords: grid_imprint.covered_coords(new_grid_position),
-            emissions_details: vec![FloodEmissionsDetails {
-                emissions_type: EmissionsType::Energy,
-                range: usize::MAX,
-                evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
-                mode: FloodEmissionsMode::Increase,
-            }]
-        });
+
         *main_base_location = new_grid_position;
         transform.translation = new_grid_position.to_world_position_centered(*grid_imprint).extend(Z_BUILDING);
     }

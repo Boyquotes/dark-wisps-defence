@@ -13,6 +13,7 @@ impl Plugin for GridsPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins((
+                emissions::EmissionsPlugin,
                 energy_supply::EnergySupplyPlugin,
             ));
 
@@ -22,18 +23,5 @@ impl Plugin for GridsPlugin {
         let mut wisps_grid = wisps::WispsGrid::new_empty();
         wisps_grid.resize_and_reset((100, 100));
         app.insert_resource(wisps_grid);
-        let mut emissions_grid = emissions::EmissionsGrid::new_empty();
-        emissions_grid.resize_and_reset((100, 100));
-        app.insert_resource(emissions_grid);
-        app.insert_resource(emissions::EmissionsEnergyRecalculateAll(false));
-        app.add_event::<emissions::EmitterChangedEvent>();
-        let mut energy_supply_grid = energy_supply::EnergySupplyGrid::new_empty();
-        energy_supply_grid.resize_and_reset((100, 100));
-        app.insert_resource(energy_supply_grid);
-        app.add_event::<energy_supply::SupplierChangedEvent>();
-
-        app.add_systems(PostUpdate, (
-            emissions::emissions_calculations_system,
-        ));
     }
 }

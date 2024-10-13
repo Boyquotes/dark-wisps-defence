@@ -1,7 +1,7 @@
 use crate::prelude::*;
-use crate::grids::emissions::{EmissionsType, EmitterChangedEvent, EmitterEnergy};
-use crate::grids::energy_supply::{SupplierChangedEvent, SupplierEnergy};
-use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode, FloodEnergySupplyMode};
+use crate::grids::emissions::{EmissionsType, EmitterEnergy};
+use crate::grids::energy_supply::SupplierEnergy;
+use crate::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode};
 
 pub struct EnergyRelayPlugin;
 impl Plugin for EnergyRelayPlugin {
@@ -30,18 +30,9 @@ impl BuilderEnergyRelay {
         mut events: EventReader<BuilderEnergyRelay>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
-        mut emitter_created_event_writer: EventWriter<EmitterChangedEvent>,
-        mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
     ) {
         for &BuilderEnergyRelay{ entity, grid_position } in events.read() {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::EnergyRelay);
-            let emmision_details = FloodEmissionsDetails {
-                emissions_type: EmissionsType::Energy,
-                range: usize::MAX,
-                evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
-                mode: FloodEmissionsMode::Increase,
-            };
-            let supplier_energy_range = 15;
             commands.entity(entity).insert((
                 get_energy_relay_sprite_bundle(grid_position, grid_imprint, &asset_server),
                 grid_position,
@@ -49,23 +40,16 @@ impl BuilderEnergyRelay {
                 Building,
                 BuildingType::EnergyRelay,
                 grid_imprint,
-                EmitterEnergy(emmision_details.clone()),
-                SupplierEnergy{ range: supplier_energy_range },
+                EmitterEnergy(FloodEmissionsDetails {
+                    emissions_type: EmissionsType::Energy,
+                    range: usize::MAX,
+                    evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
+                    mode: FloodEmissionsMode::Increase,
+                }),
+                SupplierEnergy{ range: 15 },
                 TechnicalState{ has_energy_supply: true, ..default() },
                 ColorPulsation::new(1.0, 1.8, 3.0),
             ));
-            let covered_coords = grid_imprint.covered_coords(grid_position);
-            emitter_created_event_writer.send(EmitterChangedEvent {
-                emitter_entity: entity,
-                coords: covered_coords.clone(),
-                emissions_details: vec![emmision_details],
-            });
-            supplier_created_event_writer.send(SupplierChangedEvent {
-                supplier: entity,
-                coords: covered_coords,
-                range: supplier_energy_range,
-                mode: FloodEnergySupplyMode::Increase,
-            });
         }
     }
 }

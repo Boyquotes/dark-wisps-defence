@@ -112,7 +112,7 @@ fn on_supplier_changed_system(
     for event in events.read() {
         flood_energy_supply(
             &mut energy_supply_grid,
-            event.coords.iter(),
+            &event.coords,
             event.mode,
             event.range,
             event.supplier,
@@ -129,5 +129,5 @@ fn on_recalculate_power_system(
     if !need_recalculate_power.0 { return; }
     need_recalculate_power.0 = false;
 
-    flood_power_coverage(&mut energy_supply_grid, generators_energy.iter());
+    flood_power_coverage(&mut energy_supply_grid, &generators_energy);
 }

@@ -46,18 +46,18 @@ pub enum FloodEmissionsMode {
 pub fn flood_emissions<'a>(
     emissions_grid: &mut EmissionsGrid,
     obstacles_grid: &ObstacleGrid,
-    start_coords: impl Iterator<Item = &'a GridCoords>,
-    emissions_details: impl Iterator<Item = &'a FloodEmissionsDetails> + Clone,
+    start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
+    emissions_details: impl IntoIterator<Item = &'a FloodEmissionsDetails> + Copy,
     should_field_be_flooded: fn(&Field) -> bool,
 ) {
     VISITED_GRID.with_borrow_mut(|visited_grid| {
         visited_grid.resize_and_reset(obstacles_grid.bounds());
         let mut queue = VecDeque::new();
-        let max_range = emissions_details.clone().map(|details| details.range).max().unwrap();
-        start_coords.for_each(|coords| {
+        let max_range = emissions_details.into_iter().map(|details| details.range).max().unwrap();
+        start_coords.into_iter().for_each(|coords| {
             queue.push_back((1, *coords));
             visited_grid.set_visited(*coords);
-            for details in emissions_details.clone() {
+            for details in emissions_details {
                 apply_emissions_details(emissions_grid, *coords, details, 1);
             }
         });
@@ -73,7 +73,7 @@ pub fn flood_emissions<'a>(
 
                 visited_grid.set_visited(new_coords);
                 let new_distance = distance + 1;
-                for details in emissions_details.clone() {
+                for details in emissions_details {
                     if new_distance <= details.range {
                         apply_emissions_details(emissions_grid, new_coords, details, new_distance);
                     }
@@ -117,7 +117,7 @@ pub enum FloodEnergySupplyMode {
 /// Given start_coords, flood the supply in every direction in range
 pub fn flood_energy_supply<'a>(
     energy_supply_grid: &mut EnergySupplyGrid,
-    start_coords: impl Iterator<Item = &'a GridCoords>,
+    start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
     mode: FloodEnergySupplyMode,
     range: usize,
     supplier: Entity,
@@ -125,7 +125,7 @@ pub fn flood_energy_supply<'a>(
     VISITED_GRID.with_borrow_mut(|visited_grid| {
         visited_grid.resize_and_reset(energy_supply_grid.bounds());
         let mut queue = VecDeque::new();
-        start_coords.for_each(|coords| {
+        start_coords.into_iter().for_each(|coords| {
             match mode {
                 FloodEnergySupplyMode::Increase => energy_supply_grid.add_supplier(*coords, supplier),
                 FloodEnergySupplyMode::Decrease => energy_supply_grid.remove_supplier(*coords, supplier),
@@ -160,13 +160,13 @@ pub fn flood_energy_supply<'a>(
 /// Start with the list of generators coords and flood over all connected cells with energy supply
 pub fn flood_power_coverage<'a>(
     energy_supply_grid: &mut EnergySupplyGrid,
-    start_coords: impl Iterator<Item = &'a GridCoords>,
+    start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
 ){
     energy_supply_grid.reset_all_power_indicators();
     VISITED_GRID.with_borrow_mut(|visited_grid| {
         visited_grid.resize_and_reset(energy_supply_grid.bounds());
         let mut queue = VecDeque::new();
-        start_coords.for_each(|coords| {
+        start_coords.into_iter().for_each(|coords| {
             queue.push_back(*coords);
             visited_grid.set_visited(*coords);
             energy_supply_grid[*coords].set_power(true);

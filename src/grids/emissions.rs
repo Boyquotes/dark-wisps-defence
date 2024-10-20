@@ -141,8 +141,8 @@ fn emissions_calculations_system(
             flood_emissions(
                 &mut emissions_grid,
                 &obstacle_grid,
-                grid_imprint.covered_coords(*coords).iter(),
-                vec![emitter.0.clone()].iter(),
+                &grid_imprint.covered_coords(*coords),
+                &vec![emitter.0.clone()],
                 |field| !field.is_wall(),
             );
         }
@@ -151,8 +151,8 @@ fn emissions_calculations_system(
             flood_emissions(
                 &mut emissions_grid,
                 &obstacle_grid,
-                event.coords.iter(),
-                event.emissions_details.iter(),
+                &event.coords,
+                &event.emissions_details,
                 |field| !field.is_wall(),
             );
         }

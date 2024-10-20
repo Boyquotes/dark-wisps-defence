@@ -145,8 +145,9 @@ fn refresh_display_system(
             EnergySupplyOverlaySecondaryMode::Placing{grid_coords, grid_imprint, range} => {
                 overlay_creator.imprint_current_state(None); 
                 if grid_coords.is_in_bounds(energy_supply_grid.bounds()) {
+                    let covered_coords = grid_imprint.covered_coords(*grid_coords).iter().filter(|coords| coords.is_in_bounds(energy_supply_grid.bounds())).copied().collect::<Vec<_>>();
                     overlay_creator.flood_potential_energy_supply_to_overlay_heatmap(
-                        grid_imprint.covered_coords(*grid_coords).iter().filter(|coords| coords.is_in_bounds(energy_supply_grid.bounds())), 
+                        &covered_coords, 
                         *range
                     ); 
                 }
@@ -244,11 +245,12 @@ pub struct OverlayHeatmapCreator<'a> {
 }
 impl OverlayHeatmapCreator<'_> {
     const ALPHA_VALUE: u8 = 15;
+    const RED_VALUE: u8 = 255;
 
     /// Imprint the current state of the energy supply grid into the heatmap
     /// Rules as as follows:
     /// - Alpha value(chunk[3]) above 0 means it has energy supply
-    /// - Red value(chunk[0]) == 255 means it has supply but no power
+    /// - Red value(chunk[0]) == 255 means it has supply but no power(ie, the supplier(s) are not connected to the main power grid)
     fn imprint_current_state(&mut self, highlight_supplier: Option<BuildingId>) {
         let mut idx = 0;
         let alpha_value = if highlight_supplier.is_some() { 5 } else { Self::ALPHA_VALUE };
@@ -265,7 +267,7 @@ impl OverlayHeatmapCreator<'_> {
                 }
                 // Additional mark if it has no power
                 if !grid_field.has_power() {
-                    chunk[0] = 255;
+                    chunk[0] = Self::RED_VALUE;
                 }
             } else {
                 chunk[3] = 0;
@@ -281,18 +283,19 @@ impl OverlayHeatmapCreator<'_> {
     /// It writes directly to the overlay texture, so it's only a visual cue that does not affect the actual grid.
     fn flood_potential_energy_supply_to_overlay_heatmap<'a>(
         &mut self,
-        start_coords: impl Iterator<Item = &'a GridCoords>,
+        start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
         range: usize,
     ) {
         VISITED_GRID.with_borrow_mut(|visited_grid| {
             visited_grid.resize_and_reset(self.energy_supply_grid.bounds());
             let mut queue = VecDeque::new();
-            start_coords.for_each(|coords| {
-                let heatmap_index = self.coords_to_index(coords) + 3;
-                self.heatmap_data[heatmap_index] = Self::ALPHA_VALUE;
+            start_coords.into_iter().for_each(|coords| {
+                let heatmap_index = self.coords_to_index(coords);
+                self.heatmap_data[heatmap_index + 3] = Self::ALPHA_VALUE;
                 queue.push_back((0, *coords));
                 visited_grid.set_visited(*coords);
             });
+            let mut has_power = false;
             while let Some((distance, coords)) = queue.pop_front() {
                 for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
                     let new_coords = coords.shifted((delta_x, delta_y));
@@ -301,15 +304,56 @@ impl OverlayHeatmapCreator<'_> {
                     {
                         continue;
                     }
-
                     visited_grid.set_visited(new_coords);
 
-                    let heatmap_index = self.coords_to_index(&new_coords) + 3;
-                    self.heatmap_data[heatmap_index] = Self::ALPHA_VALUE;
+                    // If we are right over the range - check if that fields has power(it means we have the power too)
+                    if distance == range {
+                        if self.energy_supply_grid[new_coords].has_power() {
+                            has_power = true;
+                            break;
+                        }
+                        continue;
+                    }
+
+                    let heatmap_index = self.coords_to_index(&new_coords);
+                    // By default we assume supply but no power
+                    if self.heatmap_data[heatmap_index + 3] != Self::ALPHA_VALUE {
+                        self.heatmap_data[heatmap_index + 3] = Self::ALPHA_VALUE;
+                        self.heatmap_data[heatmap_index + 0] = Self::RED_VALUE;
+                    }
 
                     let new_distance = distance + 1;
-                    if new_distance < range {
+                    if new_distance < range || (new_distance == range && !has_power) {
                         queue.push_back((new_distance, new_coords));
+                    }
+                }
+            }
+            // If we found that we have power, we need to do another flood to update the heatmap
+            // since the new building being placed may be a bridge between a stranded suppliers and the main power grid
+            if has_power {
+                visited_grid.reset();
+                queue.clear();
+                start_coords.into_iter().for_each(|coords| {
+                    let heatmap_index = self.coords_to_index(coords);
+                    self.heatmap_data[heatmap_index + 0] = 0;
+                    queue.push_back((0, *coords));
+                    visited_grid.set_visited(*coords);
+                });
+                while let Some((_, coords)) = queue.pop_front() {
+                    for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
+                        let new_coords = coords.shifted((delta_x, delta_y));
+                        if !new_coords.is_in_bounds(self.energy_supply_grid.bounds())
+                            || visited_grid.is_visited(new_coords)
+                        {
+                            continue;
+                        }
+                        visited_grid.set_visited(new_coords);
+
+                        let heatmap_index = self.coords_to_index(&new_coords);
+                        if self.heatmap_data[heatmap_index + 0] == Self::RED_VALUE {
+                            self.heatmap_data[heatmap_index + 0] = 0;
+                            queue.push_back((0, new_coords));
+                        }
                     }
                 }
             }

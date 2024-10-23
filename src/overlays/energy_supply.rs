@@ -6,7 +6,7 @@ use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDim
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 use crate::prelude::*;
 use crate::search::common::{CARDINAL_DIRECTIONS, VISITED_GRID};
-use crate::ui::display_building_info::BuildingUiFocusChangedEvent;
+use crate::ui::display_info_panel::UiMapObjectFocusChangedEvent;
 use crate::grids::base::GridVersion;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -27,7 +27,7 @@ impl Plugin for EnergySupplyOverlayPlugin {
                 on_config_change_system.run_if(resource_changed::<EnergySupplyOverlayConfig>),
                 refresh_display_system.run_if(in_state(EnergySupplyOverlayState::Show)),
                 manage_energy_supply_overlay_global_mode_system,
-                on_building_ui_focus_changed_system.run_if(on_event::<BuildingUiFocusChangedEvent>()),
+                on_building_ui_focus_changed_system.run_if(on_event::<UiMapObjectFocusChangedEvent>()),
                 on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
             ));
     }
@@ -157,15 +157,15 @@ fn refresh_display_system(
 }
 
 fn on_building_ui_focus_changed_system(
-    mut events: EventReader<BuildingUiFocusChangedEvent>,
+    mut events: EventReader<UiMapObjectFocusChangedEvent>,
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
 ) {
     for event in events.read() {
         match event {
-            BuildingUiFocusChangedEvent::Focus(building_id) => {
-                overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight(*building_id);
+            UiMapObjectFocusChangedEvent::Focus(entity) => {
+                overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight((*entity).into());
             }
-            BuildingUiFocusChangedEvent::Unfocus => {
+            UiMapObjectFocusChangedEvent::Unfocus => {
                 overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
             }
         }

@@ -2,7 +2,7 @@ mod construction_menu;
 mod objectives_panel;
 mod badges;
 pub mod common;
-pub mod display_building_info;
+pub mod display_info_panel;
 pub mod grid_display;
 pub mod grid_object_placer;
 
@@ -17,7 +17,7 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             common::UiCommonPlugin,
-            display_building_info::DisplayBuildingInfoPlugin,
+            display_info_panel::DisplayInfoPanelPlugin,
             grid_object_placer::GridObjectPlacerPlugin,
             objectives_panel::ObjectivesPanelPlugin,
         ));

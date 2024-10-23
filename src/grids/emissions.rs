@@ -1,5 +1,3 @@
-use bevy::gizmos::grid;
-
 use crate::prelude::*;
 use crate::grids::base::{BaseGrid, GridVersion};
 use crate::grids::obstacles::ObstacleGrid;

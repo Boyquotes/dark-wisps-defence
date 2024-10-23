@@ -59,18 +59,12 @@ impl<FieldType, GridVersionType> Index<GridCoords> for BaseGrid<FieldType, GridV
     type Output = FieldType;
 
     fn index(&self, coords: GridCoords) -> &Self::Output {
-        if !coords.is_in_bounds(self.bounds()) {
-            panic!("Index out of bounds");
-        }
         let index = self.index(coords);
         &self.grid[index]
     }
 }
 impl<FieldType, GridVersionType>  IndexMut<GridCoords> for BaseGrid<FieldType, GridVersionType> where FieldType: FieldTrait, GridVersionType: GridVersionTrait {
     fn index_mut(&mut self, coords: GridCoords) -> &mut Self::Output {
-        if !coords.is_in_bounds(self.bounds()) {
-            panic!("Index out of bounds");
-        }
         let index = self.index(coords);
         &mut self.grid[index]
     }

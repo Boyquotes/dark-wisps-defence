@@ -17,7 +17,7 @@ pub enum UiInteraction {
     #[default]
     Free, // No interaction
     PlaceGridObject,
-    DisplayBuildingInfo,
+    DisplayInfoPanel,
 }
 
 fn keyboard_input_system(

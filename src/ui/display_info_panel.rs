@@ -6,66 +6,68 @@ use crate::prelude::*;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 
-pub struct DisplayBuildingInfoPlugin;
-impl Plugin for DisplayBuildingInfoPlugin {
+pub struct DisplayInfoPanelPlugin;
+impl Plugin for DisplayInfoPanelPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuildingUiFocusChangedEvent>()
+            .add_event::<UiMapObjectFocusChangedEvent>()
             .add_systems(Startup, (
-                initialize_display_building_info_system,
+                initialize_display_info_panel_system,
             ))
             .add_systems(Update, (
-                hide_system.run_if(in_state(UiInteraction::DisplayBuildingInfo)),
-                show_on_click_system.run_if(in_state(UiInteraction::Free).or_else(in_state(UiInteraction::DisplayBuildingInfo))),
-                on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayBuildingInfo).and_then(on_event::<BuildingDestroyedEvent>())),
-                display_building_info_system.run_if(in_state(UiInteraction::DisplayBuildingInfo)),
+                hide_system.run_if(in_state(UiInteraction::DisplayInfoPanel)),
+                show_on_click_system.run_if(in_state(UiInteraction::Free).or_else(in_state(UiInteraction::DisplayInfoPanel))),
+                on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayInfoPanel).and_then(on_event::<BuildingDestroyedEvent>())),
+                display_info_panel_system.run_if(in_state(UiInteraction::DisplayInfoPanel)),
             ))
-            .add_systems(OnEnter(UiInteraction::DisplayBuildingInfo), on_display_enter_system)
-            .add_systems(OnExit(UiInteraction::DisplayBuildingInfo), on_display_exit_system);
+            .add_systems(OnEnter(UiInteraction::DisplayInfoPanel), on_display_enter_system)
+            .add_systems(OnExit(UiInteraction::DisplayInfoPanel), on_display_exit_system);
     }
 }
 
 #[derive(Component)]
-pub struct DisplayBuildingInfo {
-    pub building_entity: Entity,
+pub struct DisplayInfoPanel {
+    pub entity_to_display: Entity,
 }
 #[derive(Component)]
-struct DisplayBuildingInfoCamera;
+struct DisplayInfoPanelCamera;
 #[derive(Component)]
+/// --- Buildings sub-panel ---
 struct BuildingNameText;
 #[derive(Component)]
 struct BuildingHealthbar;
 #[derive(Component)]
 struct BuildingHealthbarValue;
+/// ---------------------------
 
 /// Event emitted when the user clicks on a building
 #[derive(Event)]
-pub enum BuildingUiFocusChangedEvent {
+pub enum UiMapObjectFocusChangedEvent {
     Unfocus,
-    Focus(BuildingId),
+    Focus(Entity),
 }
-impl Command for BuildingUiFocusChangedEvent {
+impl Command for UiMapObjectFocusChangedEvent {
     fn apply(self, world: &mut World) {
         world.send_event(self);
     }
 }
 
 fn on_display_enter_system(
-    mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
-    mut building_info_camera: Query<&mut Camera, With<DisplayBuildingInfoCamera>>,
+    mut display_info_panel: Query<&mut Visibility, With<DisplayInfoPanel>>,
+    mut info_panel_camera: Query<&mut Camera, With<DisplayInfoPanelCamera>>,
 ) {
-    *display_building_info.single_mut() = Visibility::Inherited;
-    building_info_camera.single_mut().is_active = true;
+    *display_info_panel.single_mut() = Visibility::Inherited;
+    info_panel_camera.single_mut().is_active = true;
 }
 
 fn on_display_exit_system(
     mut commands: Commands,
-    mut display_building_info: Query<&mut Visibility, With<DisplayBuildingInfo>>,
-    mut building_info_camera: Query<&mut Camera, With<DisplayBuildingInfoCamera>>,
+    mut display_info_panel: Query<&mut Visibility, With<DisplayInfoPanel>>,
+    mut info_panel_camera: Query<&mut Camera, With<DisplayInfoPanelCamera>>,
 ) {
-    *display_building_info.single_mut() = Visibility::Hidden;
-    building_info_camera.single_mut().is_active = false;
-    commands.add(BuildingUiFocusChangedEvent::Unfocus);
+    *display_info_panel.single_mut() = Visibility::Hidden;
+    info_panel_camera.single_mut().is_active = false;
+    commands.add(UiMapObjectFocusChangedEvent::Unfocus);
 }
 
 fn hide_system(
@@ -83,9 +85,9 @@ fn show_on_click_system(
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     obstacle_grid: Res<ObstacleGrid>,
-    mut building_ui_focus_changed_events: EventWriter<BuildingUiFocusChangedEvent>,
-    mut display_building_info: Query<&mut DisplayBuildingInfo>,
-    mut building_info_camera: Query<&mut Transform, With<DisplayBuildingInfoCamera>>,
+    mut ui_map_object_focus_changed_events: EventWriter<UiMapObjectFocusChangedEvent>,
+    mut display_info_panel: Query<&mut DisplayInfoPanel>,
+    mut info_panel_camera: Query<&mut Transform, With<DisplayInfoPanelCamera>>,
     mut building_name_text: Query<&mut Text, With<BuildingNameText>>,
     buildings: Query<(&BuildingType, &GridImprint, &GridCoords), With<Building>>,
 ) {
@@ -94,40 +96,40 @@ fn show_on_click_system(
     let Field::Building(entity, _, _) = &obstacle_grid[mouse_info.grid_coords] else { return; };
     let Ok((building_type, grid_imprint, grid_coords)) = buildings.get(*entity) else { return; };
     // Center the camera on the building
-    let mut camera_transform = building_info_camera.single_mut();
+    let mut camera_transform = info_panel_camera.single_mut();
     let building_world_position = grid_coords.to_world_position_centered(*grid_imprint);
     camera_transform.translation.x = building_world_position.x;
     camera_transform.translation.y = building_world_position.y;
     // Update the building name
     building_name_text.single_mut().sections[0].value = almanach.get_building_name(*building_type).to_string();
 
-    let mut display_building_info = display_building_info.single_mut();
-    display_building_info.building_entity = *entity;
+    let mut display_building_info = display_info_panel.single_mut();
+    display_building_info.entity_to_display = *entity;
 
-    building_ui_focus_changed_events.send(BuildingUiFocusChangedEvent::Focus((*entity).into()));
-    ui_interaction_state.set(UiInteraction::DisplayBuildingInfo);
+    ui_map_object_focus_changed_events.send(UiMapObjectFocusChangedEvent::Focus((*entity).into()));
+    ui_interaction_state.set(UiInteraction::DisplayInfoPanel);
 }
 
 fn on_building_destroyed_system(
     mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
     mut events: EventReader<BuildingDestroyedEvent>,
-    display_building_info: Query<&DisplayBuildingInfo>,
+    display_info_panel: Query<&DisplayInfoPanel>,
 ) {
-    let display_building_info = display_building_info.single();
+    let display_building_info = display_info_panel.single();
     for event in events.read() {
-        if event.0 == display_building_info.building_entity {
+        if event.0 == display_building_info.entity_to_display {
             ui_interaction_state.set(UiInteraction::Free);
         }
     }
 }
 
-fn display_building_info_system(
+fn display_info_panel_system(
     buildings: Query<&Health, With<Building>>,
-    display_building_info: Query<&DisplayBuildingInfo>,
+    display_info_panel: Query<&DisplayInfoPanel>,
     mut healthbar: Query<(&mut Style, &mut BackgroundColor), With<BuildingHealthbar>>,
     mut health_text: Query<&mut Text, With<BuildingHealthbarValue>>,
 ) {
-    let building_entity = display_building_info.single().building_entity;
+    let building_entity = display_info_panel.single().entity_to_display;
     let Ok(health) = buildings.get(building_entity) else { return; };
     // Update the healthbar
     let (mut style, mut background_color) = healthbar.single_mut();
@@ -140,7 +142,7 @@ fn display_building_info_system(
 }
 
 
-fn initialize_display_building_info_system(
+fn initialize_display_info_panel_system(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -185,7 +187,7 @@ fn initialize_display_building_info_system(
             },
             ..default()
         },
-        DisplayBuildingInfoCamera,
+        DisplayInfoPanelCamera,
     ));
     commands.spawn((
         NodeBundle {
@@ -207,7 +209,7 @@ fn initialize_display_building_info_system(
             visibility: Visibility::Hidden,
             ..default()
         },
-        DisplayBuildingInfo { building_entity: Entity::PLACEHOLDER },
+        DisplayInfoPanel { entity_to_display: Entity::PLACEHOLDER },
     )).with_children(|parent| {
         // Camera image (Left side)
         parent.spawn((

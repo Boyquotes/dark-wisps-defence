@@ -24,7 +24,10 @@ impl Plugin for DisplayInfoPanelPlugin {
             ))
             .add_systems(OnEnter(UiInteraction::DisplayInfoPanel), on_display_enter_system)
             .add_systems(OnExit(UiInteraction::DisplayInfoPanel), on_display_exit_system)
-            .add_systems(OnEnter(DisplayInfoPanelState::DisplayBuilding), on_display_building_enter_system);
+            .add_systems(OnEnter(DisplayInfoPanelState::DisplayBuilding), on_display_building_enter_system)
+            .add_systems(OnExit(DisplayInfoPanelState::DisplayBuilding), on_display_building_exit_system)
+            .add_systems(OnEnter(DisplayInfoPanelState::DisplayQuantumField), on_display_quantum_field_enter_system)
+            .add_systems(OnExit(DisplayInfoPanelState::DisplayQuantumField), on_display_quantum_field_exit_system);
     }
 }
 
@@ -46,11 +49,16 @@ enum DisplayInfoPanel {
 struct DisplayInfoPanelCamera;
 /// --- Buildings sub-panel ---
 #[derive(Component)]
+struct BuildingPanel;
+#[derive(Component)]
 struct BuildingNameText;
 #[derive(Component)]
 struct BuildingHealthbar;
 #[derive(Component)]
 struct BuildingHealthbarValue;
+/// --- Quantum Fields sub-panel ---
+#[derive(Component)]
+struct QuantumFieldPanel;
 /// ---------------------------
 
 /// Event emitted when the user clicks on a building
@@ -97,11 +105,32 @@ fn hide_system(
 fn on_display_building_enter_system(
     almanach: Res<Almanach>,
     display_info_panel: Query<&DisplayInfoPanel>,
+    mut building_panel: Query<&mut Style, With<BuildingPanel>>,
     mut building_name_text: Query<&mut Text, With<BuildingNameText>>,
 ) {
     let DisplayInfoPanel::Building(building_type, _) = display_info_panel.single() else { unreachable!() };
     // Update the building name
     building_name_text.single_mut().sections[0].value = almanach.get_building_name(*building_type).to_string();
+
+    building_panel.single_mut().display = Display::Flex;
+}
+
+fn on_display_building_exit_system(
+    mut building_panel: Query<&mut Style, With<BuildingPanel>>,
+) {
+    building_panel.single_mut().display = Display::None;
+}
+
+fn on_display_quantum_field_enter_system(
+    mut quantum_field_panel: Query<&mut Style, With<QuantumFieldPanel>>,
+) {
+    quantum_field_panel.single_mut().display = Display::Flex;
+}
+
+fn on_display_quantum_field_exit_system(
+    mut quantum_field_panel: Query<&mut Style, With<QuantumFieldPanel>>,
+) {
+    quantum_field_panel.single_mut().display = Display::None;
 }
 
 fn on_display_panel_focus_changed_system(
@@ -265,104 +294,160 @@ fn initialize_display_info_panel_system(
             },
             UiImage::new(camera_image_handle),
         ));
-        // Right panel
+        // Right panels
+        make_building_panel(parent);
+        make_quantum_field_panel(parent);
+    });
+}
+
+fn make_building_panel(parent: &mut ChildBuilder) {
+    parent.spawn((
+        NodeBundle {
+            style: Style {
+                display: Display::None,
+                height: Val::Percent(100.),
+                width: Val::Percent(100.),
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::Start,
+                align_items: AlignItems::Start,
+                padding: UiRect::all(Val::Px(2.0)),
+                ..default()
+            },
+            ..default()
+        },
+        BuildingPanel,
+    )).with_children(|parent| {
+        // Top line of the panel
         parent.spawn((
             NodeBundle {
                 style: Style {
-                    height: Val::Percent(100.),
                     width: Val::Percent(100.),
-                    flex_direction: FlexDirection::Column,
+                    flex_direction: FlexDirection::Row,
                     justify_content: JustifyContent::Start,
-                    align_items: AlignItems::Start,
-                    padding: UiRect::all(Val::Px(2.0)),
                     ..default()
                 },
                 ..default()
             },
         )).with_children(|parent| {
-            // Top line of the panel
+            // Building name
             parent.spawn((
-                NodeBundle {
+                TextBundle {
+                    text: Text {
+                        sections: vec![TextSection::new("### Building Name ###", TextStyle{ color: BLUE.into(), ..default() })],
+                        linebreak_behavior: BreakLineOn::NoWrap,
+                        ..default() 
+                    },
                     style: Style {
-                        width: Val::Percent(100.),
-                        flex_direction: FlexDirection::Row,
-                        justify_content: JustifyContent::Start,
+                        margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
                         ..default()
                     },
                     ..default()
                 },
-            )).with_children(|parent| {
-                // Building name
-                parent.spawn((
-                    TextBundle {
-                        text: Text {
-                            sections: vec![TextSection::new("### Building Name ###", TextStyle{ color: BLUE.into(), ..default() })],
-                            linebreak_behavior: BreakLineOn::NoWrap,
-                            ..default() 
-                        },
-                        style: Style {
-                            margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
-                            ..default()
-                        },
+                BuildingNameText,
+            ));
+            // Health Bar
+            parent.spawn((
+                // Bottom rectangle(background)
+                NodeBundle {
+                    style: Style {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                        border: UiRect::all(Val::Px(2.0)),
                         ..default()
                     },
-                    BuildingNameText,
-                ));
-                // Health Bar
+                    background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
+                    border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+                    ..default()
+                },
+            )).with_children(|parent| {
+                // Top rectangle(health)
                 parent.spawn((
-                    // Bottom rectangle(background)
                     NodeBundle {
                         style: Style {
                             width: Val::Percent(100.),
                             height: Val::Percent(100.),
-                            border: UiRect::all(Val::Px(2.0)),
                             ..default()
                         },
-                        background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
-                        border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+                        background_color: Color::linear_rgba(0., 1., 0., 1.).into(),
                         ..default()
                     },
-                )).with_children(|parent| {
-                    // Top rectangle(health)
+                    BuildingHealthbar,
+                ));
+                // Current hp text
+                parent.spawn(NodeBundle {
+                    // This additional container is needed to center the text as no combination of flex_direction, justify_content and align_items work
+                    style: Style {
+                        position_type: PositionType::Absolute,
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                        padding: UiRect { top: Val::Px(2.0), ..default() },
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    ..default() 
+                }).with_children(|parent| {
                     parent.spawn((
-                        NodeBundle {
-                            style: Style {
-                                width: Val::Percent(100.),
-                                height: Val::Percent(100.),
-                                ..default()
+                        TextBundle {
+                            text: Text {
+                                sections: vec![TextSection::new("### Current Health / Max Health ###", TextStyle{ color: BLACK.into(), font_size: 16.0, ..default() })],
+                                linebreak_behavior: BreakLineOn::NoWrap,
+                                ..default() 
                             },
-                            background_color: Color::linear_rgba(0., 1., 0., 1.).into(),
                             ..default()
                         },
-                        BuildingHealthbar,
+                        BuildingHealthbarValue,
                     ));
-                    // Current hp text
-                    parent.spawn(NodeBundle {
-                        // This additional container is needed to center the text as no combination of flex_direction, justify_content and align_items work
-                        style: Style {
-                            position_type: PositionType::Absolute,
-                            width: Val::Percent(100.),
-                            height: Val::Percent(100.),
-                            padding: UiRect { top: Val::Px(2.0), ..default() },
-                            justify_content: JustifyContent::Center,
-                            ..default()
-                        },
-                        ..default() 
-                    }).with_children(|parent| {
-                        parent.spawn((
-                            TextBundle {
-                                text: Text {
-                                    sections: vec![TextSection::new("### Current Health / Max Health ###", TextStyle{ color: BLACK.into(), font_size: 16.0, ..default() })],
-                                    linebreak_behavior: BreakLineOn::NoWrap,
-                                    ..default() 
-                                },
-                                ..default()
-                            },
-                            BuildingHealthbarValue,
-                        ));
-                    });
                 });
             });
+        });
+    });
+
+}
+
+fn make_quantum_field_panel(parent: &mut ChildBuilder) {
+    parent.spawn((
+        NodeBundle {
+            style: Style {
+                display: Display::None,
+                height: Val::Percent(100.),
+                width: Val::Percent(100.),
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::Start,
+                align_items: AlignItems::Start,
+                padding: UiRect::all(Val::Px(2.0)),
+                ..default()
+            },
+            ..default()
+        },
+        QuantumFieldPanel,
+    )).with_children(|parent| {
+        // Top line of the panel
+        parent.spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::Start,
+                    ..default()
+                },
+                ..default()
+            },
+        )).with_children(|parent| {
+            // Building name
+            parent.spawn((
+                TextBundle {
+                    text: Text {
+                        sections: vec![TextSection::new("Quantum Field", TextStyle{ color: BLUE.into(), ..default() })],
+                        linebreak_behavior: BreakLineOn::NoWrap,
+                        ..default() 
+                    },
+                    style: Style {
+                        margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
+                        ..default()
+                    },
+                    ..default()
+                },
+            ));
         });
     });
 }

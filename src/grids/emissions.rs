@@ -132,7 +132,6 @@ fn emissions_calculations_system(
     emitters_buildings: Query<(&EmitterEnergy, &GridImprint, &GridCoords), With<Building>>,
 ) {
     if recalculate_all.0 {
-        println!("Recalculating emissions");
         recalculate_all.0 = false;
         emissions_grid.reset_energy_emissions();
         for (emitter, grid_imprint, coords) in emitters_buildings.iter() {

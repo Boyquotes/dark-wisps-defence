@@ -11,7 +11,7 @@ use crate::buildings::tower_blaster::TOWER_BLASTER_BASE_IMAGE;
 use crate::buildings::tower_cannon::TOWER_CANNON_BASE_IMAGE;
 use crate::buildings::tower_rocket_launcher::TOWER_ROCKET_LAUNCHER_BASE_IMAGE;
 use crate::map_objects::dark_ore::DARK_ORE_BASE_IMAGES;
-use crate::map_objects::quantum_field::QuantumField;
+use crate::map_objects::quantum_field::QuantumFieldImprintSelector;
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
 
 const NOT_HOVERED_ALPHA: f32 = 0.2;
@@ -208,7 +208,7 @@ pub fn create_construct_menu(
                 ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::MainBase.into());
                 ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::DarkOre);
                 ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::Wall);
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::QuantumField(QuantumField::default()));
+                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default()));
             });
         });
     }).id();

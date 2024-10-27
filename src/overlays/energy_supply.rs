@@ -159,11 +159,16 @@ fn refresh_display_system(
 fn on_building_ui_focus_changed_system(
     mut events: EventReader<UiMapObjectFocusChangedEvent>,
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
+    buildings: Query<&BuildingType>,
 ) {
     for event in events.read() {
         match event {
             UiMapObjectFocusChangedEvent::Focus(entity) => {
-                overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight((*entity).into());
+                if buildings.contains(*entity) {
+                    overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight((*entity).into());
+                } else {
+                    overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
+                }
             }
             UiMapObjectFocusChangedEvent::Unfocus => {
                 overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;

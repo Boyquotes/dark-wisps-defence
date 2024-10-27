@@ -2,7 +2,7 @@ use crate::prelude::*;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::dark_ore::DARK_ORE_GRID_IMPRINT;
-use crate::map_objects::quantum_field::QuantumField;
+use crate::map_objects::quantum_field::QuantumFieldImprintSelector;
 use crate::map_objects::walls::WALL_GRID_IMPRINT;
 use crate::mouse::MouseInfo;
 
@@ -46,7 +46,7 @@ pub enum GridObjectPlacer {
     Building(BuildingType),
     Wall,
     DarkOre,
-    QuantumField(QuantumField),
+    QuantumField(QuantumFieldImprintSelector),
 }
 impl GridObjectPlacer {
     pub fn as_grid_imprint(&self, almanach: &Almanach) -> GridImprint {
@@ -54,7 +54,7 @@ impl GridObjectPlacer {
             GridObjectPlacer::Building(building_type) => almanach.get_building_grid_imprint(*building_type),
             GridObjectPlacer::Wall => WALL_GRID_IMPRINT,
             GridObjectPlacer::DarkOre => DARK_ORE_GRID_IMPRINT,
-            GridObjectPlacer::QuantumField(quantum_field) => quantum_field.grid_imprint,
+            GridObjectPlacer::QuantumField(imprint_selector) => imprint_selector.get(),
             GridObjectPlacer::None => unreachable!(),
         }
     }
@@ -142,7 +142,7 @@ fn keyboard_input_system(
         } else if keys.just_pressed(KeyCode::KeyO) {
             GridObjectPlacer::DarkOre
         } else if keys.just_pressed(KeyCode::KeyQ) {
-            GridObjectPlacer::QuantumField(QuantumField::default())
+            GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default())
         } else if keys.just_pressed(KeyCode::KeyM) {
             GridObjectPlacer::Building(BuildingType::MiningComplex.into())
         } else if keys.just_pressed(KeyCode::KeyE) {

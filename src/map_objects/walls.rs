@@ -54,6 +54,7 @@ impl BuilderWall {
                     ..Default::default()
                 },
                 grid_position,
+                WALL_GRID_IMPRINT,
                 Wall,
             ));
             emissions_energy_recalculate_all.0 = true;

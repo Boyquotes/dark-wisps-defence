@@ -39,7 +39,7 @@ pub fn save_map_system(
     objectives: Query<&ObjectiveDetails>,
     buildings_query: Query<(&BuildingType, &GridCoords), With<Building>>,
     dark_ores_query: Query<(&DarkOre, &GridCoords)>,
-    quantum_fields_query: Query<(&GridCoords, &QuantumField)>,
+    quantum_fields_query: Query<(&GridCoords, &GridImprint), With<QuantumField>>,
 ) {
     if !keys.just_pressed(KeyCode::KeyS) { return; }
     let mut processed_entities = HashSet::new();
@@ -77,9 +77,9 @@ pub fn save_map_system(
                 }
                 Field::QuantumField(entity) => {
                     if processed_entities.insert(entity) {
-                        let (quantum_field_coords, quantum_field) = quantum_fields_query.get(*entity).unwrap();
-                        if let GridImprint::Rectangle { width, .. } = quantum_field.grid_imprint {
-                            quantum_fields.push(MapQuantumField { coords: *quantum_field_coords, size: width });
+                        let (quantum_field_coords, quantum_field_grid_imprint) = quantum_fields_query.get(*entity).unwrap();
+                        if let GridImprint::Rectangle { width, .. } = quantum_field_grid_imprint {
+                            quantum_fields.push(MapQuantumField { coords: *quantum_field_coords, size: *width });
                         } else { panic!("Quantum field imprint size is not a rectangle"); }
                     }
                 }

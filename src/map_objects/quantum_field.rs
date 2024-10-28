@@ -20,6 +20,7 @@ impl Plugin for QuantumFieldPlugin {
             .add_systems(Update, (
                 onclick_spawn_system,
                 operate_arrows_for_grid_placer_ui_for_quantum_field_system,
+                process_expeditions_system,
             ));
     }
 }
@@ -56,8 +57,37 @@ impl Default for QuantumFieldImprintSelector {
     }
 }
 
-#[derive(Component, Clone, Debug, PartialEq)]
-pub struct QuantumField;
+// Marks QuantumField with all its layers solved
+#[derive(Component)]
+struct Solved;
+
+#[derive(Component)]
+pub struct QuantumField {
+    pub layers: Vec<QuantumFieldLayer>,
+    pub current_layer: usize,
+    pub current_layer_progress: i32,
+}
+impl QuantumField {
+    pub fn progress_layer(&mut self, amount: i32) {
+        if self.is_solved() { return; }
+        self.current_layer_progress += amount;
+        if self.current_layer_progress >= self.layers[self.current_layer].value {
+            self.current_layer += 1;
+            self.current_layer_progress = 0;
+        }
+    }
+    pub fn is_solved(&self) -> bool {
+        self.current_layer == self.layers.len()
+    }
+}
+
+// Describes a layer of QuantumField to solve
+// `value` - amount of research needed to solve the layer
+// `costs` - costs needed to pay after solving the layer to finalize it
+pub struct QuantumFieldLayer {
+    pub value: i32,
+    pub costs: Vec<Cost>,
+}
 
 #[derive(Event)]
 pub struct BuilderQuantumField {
@@ -78,7 +108,24 @@ impl BuilderQuantumField {
                 get_quantum_field_sprite_bundle(grid_position, grid_imprint),
                 grid_position,
                 grid_imprint,
-                QuantumField,
+                QuantumField {
+                    current_layer: 0,
+                    current_layer_progress: 0,
+                    layers: vec![
+                        QuantumFieldLayer {
+                            value: 15000,
+                            costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 100}],
+                        },
+                        QuantumFieldLayer {
+                            value: 30000,
+                            costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 200}],
+                        },
+                        QuantumFieldLayer {
+                            value: 45000,
+                            costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 300}],
+                        },
+                    ],
+                },
                 ExpeditionZone::default(),
                 // TODO: Remove ExpeditionTargetMarker as users should set targets themselves
                 ExpeditionTargetMarker,
@@ -106,7 +153,7 @@ pub fn get_quantum_field_sprite_bundle(grid_position: GridCoords, grid_imprint: 
     }
 }
 
-pub fn remove_quantum_field(
+fn remove_quantum_field(
     commands: &mut Commands,
     obstacle_grid: &mut ResMut<ObstacleGrid>,
     entity: Entity,
@@ -117,8 +164,7 @@ pub fn remove_quantum_field(
     obstacle_grid.deprint_all(grid_position, grid_imprint);
 }
 
-
-pub fn onclick_spawn_system(
+fn onclick_spawn_system(
     mut commands: Commands,
     mut obstacles_grid: ResMut<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -146,6 +192,21 @@ pub fn onclick_spawn_system(
                 }
             },
             _ => {}
+        }
+    }
+}
+
+fn process_expeditions_system(
+    mut commands: Commands,
+    mut quantum_fields: Query<(Entity, &mut QuantumField, &mut ExpeditionZone), (Changed<ExpeditionZone>, Without<Solved>)>,
+) {
+    for (entity, mut quantum_field, mut expedition_zone) in quantum_fields.iter_mut() {
+        while expedition_zone.expeditions_arrived > 0 {
+            expedition_zone.expeditions_arrived -= 1;
+            quantum_field.progress_layer(1500); // TODO: It should come from Almanach
+            if quantum_field.is_solved() {
+                commands.entity(entity).insert(Solved);
+            }
         }
     }
 }

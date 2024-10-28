@@ -17,8 +17,8 @@ pub enum ResourceType {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Cost {
-    resource_type: ResourceType,
-    amount: i32,
+    pub resource_type: ResourceType,
+    pub amount: i32,
 }
 
 struct StockInfo {

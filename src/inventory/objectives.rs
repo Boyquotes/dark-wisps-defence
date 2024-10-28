@@ -1,5 +1,7 @@
-use crate::{map_objects::quantum_field::QuantumField, prelude::*};
 use serde::{Deserialize, Serialize};
+
+use crate::prelude::*;
+use crate::map_objects::quantum_field::QuantumField;
 
 use super::stats::StatsWispsKilled;
 

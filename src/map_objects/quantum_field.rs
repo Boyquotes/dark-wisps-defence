@@ -76,6 +76,11 @@ impl QuantumField {
             self.current_layer_progress = 0;
         }
     }
+    /// Returns (current_layer_progress, current_layer_target)
+    pub fn get_progress_details(&self) -> (i32, i32) {
+        if self.is_solved() { return (0, 0); }
+        (self.current_layer_progress, self.layers[self.current_layer].value)
+    }
     pub fn is_solved(&self) -> bool {
         self.current_layer == self.layers.len()
     }

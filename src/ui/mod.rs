@@ -9,7 +9,7 @@ pub mod grid_object_placer;
 use crate::prelude::*;
 
 pub mod prelude {
-    pub use super::common::{AdvancedInteraction, UiInteraction};
+    pub use super::common::{AdvancedInteraction, UiInteraction, Healthbar, HealthbarBundle};
 }
 
 pub struct UiPlugin;

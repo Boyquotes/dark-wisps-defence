@@ -1,7 +1,8 @@
-use bevy::color::palettes::css::{BLACK, BLUE, YELLOW};
+use bevy::color::palettes::css::{AQUA, BLUE, YELLOW};
 use bevy::render::camera::RenderTarget;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 use bevy::text::BreakLineOn;
+use crate::map_objects::quantum_field::QuantumField;
 use crate::prelude::*;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
@@ -20,6 +21,7 @@ impl Plugin for DisplayInfoPanelPlugin {
                 show_on_click_system.run_if(in_state(UiInteraction::Free).or_else(in_state(UiInteraction::DisplayInfoPanel))),
                 on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayInfoPanel).and_then(on_event::<BuildingDestroyedEvent>())),
                 update_building_info_panel_system.run_if(in_state(DisplayInfoPanelState::DisplayBuilding)),
+                update_quantum_field_info_panel_system.run_if(in_state(DisplayInfoPanelState::DisplayQuantumField)),
                 on_display_panel_focus_changed_system.run_if(on_event::<UiMapObjectFocusChangedEvent>())
             ))
             .add_systems(OnEnter(UiInteraction::DisplayInfoPanel), on_display_enter_system)
@@ -54,11 +56,13 @@ struct BuildingPanel;
 struct BuildingNameText;
 #[derive(Component)]
 struct BuildingHealthbar;
-#[derive(Component)]
-struct BuildingHealthbarValue;
 /// --- Quantum Fields sub-panel ---
 #[derive(Component)]
 struct QuantumFieldPanel;
+#[derive(Component)]
+struct QuantumFieldLayerHealthbar;
+#[derive(Component)]
+struct QuantumFieldLayerText;
 /// ---------------------------
 
 /// Event emitted when the user clicks on a building
@@ -195,19 +199,38 @@ fn on_building_destroyed_system(
 fn update_building_info_panel_system(
     buildings: Query<&Health, With<Building>>,
     display_info_panel: Query<&DisplayInfoPanel>,
-    mut healthbar: Query<(&mut Style, &mut BackgroundColor), With<BuildingHealthbar>>,
-    mut health_text: Query<&mut Text, With<BuildingHealthbarValue>>,
+    mut healthbars: Query<&mut Healthbar, With<BuildingHealthbar>>,
 ) {
     let DisplayInfoPanel::Building(_, building_entity) = display_info_panel.single() else { return; };
     let Ok(health) = buildings.get(*building_entity) else { return; };
     // Update the healthbar
-    let (mut style, mut background_color) = healthbar.single_mut();
+    let mut healthbar = healthbars.single_mut();
+    healthbar.value = health.get_current() as f32;
+    healthbar.max_value = health.get_max() as f32;
     let health_percentage = health.get_percent();
-    style.width = Val::Percent(health_percentage * 100.);
-    background_color.0 = Color::linear_rgba(1. - health_percentage, health_percentage, 0., 1.);
+    healthbar.color = Color::linear_rgba(1. - health_percentage, health_percentage, 0., 1.);
+}
 
-    // Update the health text
-    health_text.single_mut().sections[0].value = format!("{} / {}", health.get_current(), health.get_max());
+fn update_quantum_field_info_panel_system(
+    quantum_fields: Query<&QuantumField>,
+    display_info_panel: Query<&DisplayInfoPanel>,
+    mut healthbars: Query<&mut Healthbar, With<QuantumFieldLayerHealthbar>>,
+    mut texts: Query<&mut Text, With<QuantumFieldLayerText>>,
+) {
+    let DisplayInfoPanel::QuantumField(entity) = display_info_panel.single() else { return; };
+    let Ok(quantum_field) = quantum_fields.get(*entity) else { return; };
+    let mut healthbar = healthbars.single_mut();
+    // Update the layer text
+    let mut text = texts.single_mut();
+    text.sections[0].value = if quantum_field.is_solved() {
+        "All Quantum Layers Solved".to_string()
+    } else {
+        format!("Quantum Layer {}/{}", quantum_field.current_layer + 1, quantum_field.layers.len())
+    };
+    // Update the layer progress
+    let (current_layer_progress, current_layer_target) = quantum_field.get_progress_details();
+    healthbar.value = current_layer_progress as f32;
+    healthbar.max_value = current_layer_target as f32;
 }
 
 
@@ -345,60 +368,21 @@ fn make_building_panel(parent: &mut ChildBuilder) {
                 },
                 BuildingNameText,
             ));
-            // Health Bar
+            // Healthbar
             parent.spawn((
-                // Bottom rectangle(background)
-                NodeBundle {
-                    style: Style {
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                        border: UiRect::all(Val::Px(2.0)),
-                        ..default()
-                    },
-                    background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
-                    border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
-                    ..default()
-                },
-            )).with_children(|parent| {
-                // Top rectangle(health)
-                parent.spawn((
-                    NodeBundle {
+                HealthbarBundle{
+                    node: NodeBundle {
                         style: Style {
                             width: Val::Percent(100.),
                             height: Val::Percent(100.),
                             ..default()
                         },
-                        background_color: Color::linear_rgba(0., 1., 0., 1.).into(),
                         ..default()
                     },
-                    BuildingHealthbar,
-                ));
-                // Current hp text
-                parent.spawn(NodeBundle {
-                    // This additional container is needed to center the text as no combination of flex_direction, justify_content and align_items work
-                    style: Style {
-                        position_type: PositionType::Absolute,
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                        padding: UiRect { top: Val::Px(2.0), ..default() },
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    ..default() 
-                }).with_children(|parent| {
-                    parent.spawn((
-                        TextBundle {
-                            text: Text {
-                                sections: vec![TextSection::new("### Current Health / Max Health ###", TextStyle{ color: BLACK.into(), font_size: 16.0, ..default() })],
-                                linebreak_behavior: BreakLineOn::NoWrap,
-                                ..default() 
-                            },
-                            ..default()
-                        },
-                        BuildingHealthbarValue,
-                    ));
-                });
-            });
+                    ..default()
+                },
+                BuildingHealthbar,
+            ));
         });
     });
 
@@ -433,7 +417,7 @@ fn make_quantum_field_panel(parent: &mut ChildBuilder) {
                 ..default()
             },
         )).with_children(|parent| {
-            // Building name
+            // Structure name
             parent.spawn((
                 TextBundle {
                     text: Text {
@@ -447,6 +431,57 @@ fn make_quantum_field_panel(parent: &mut ChildBuilder) {
                     },
                     ..default()
                 },
+            ));
+        });
+        // Panel Body
+        parent.spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    border: UiRect::all(Val::Px(2.0)),
+                    ..default()
+                },
+                //background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
+                //border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+                ..default()
+            },
+        )).with_children(|parent| {
+            parent.spawn(NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                ..default()
+            }).with_children(|parent| {
+                parent.spawn((
+                    TextBundle::from_section(
+                        "Quantum Layer #/#",
+                        TextStyle {font_size: 16.0, color: BLUE.into(), ..default() },
+                    ),
+                    QuantumFieldLayerText,
+                ));
+            });
+            parent.spawn((
+                HealthbarBundle{
+                    node: NodeBundle {
+                        style: Style {
+                            top: Val::Px(2.0),
+                            width: Val::Percent(60.),
+                            height: Val::Px(20.),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    healthbar: Healthbar {
+                        color: AQUA.into(),
+                        ..default()
+                    },
+                },
+                QuantumFieldLayerHealthbar,
             ));
         });
     });

@@ -355,7 +355,7 @@ impl OverlayHeatmapCreator<'_> {
                         visited_grid.set_visited(new_coords);
 
                         let heatmap_index = self.coords_to_index(&new_coords);
-                        if self.heatmap_data[heatmap_index + 0] == Self::RED_VALUE {
+                        if self.heatmap_data[heatmap_index + 3] == Self::ALPHA_VALUE {
                             self.heatmap_data[heatmap_index + 0] = 0;
                             queue.push_back((0, new_coords));
                         }

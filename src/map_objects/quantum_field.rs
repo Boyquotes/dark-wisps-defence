@@ -84,6 +84,10 @@ impl QuantumField {
     pub fn is_solved(&self) -> bool {
         self.current_layer == self.layers.len()
     }
+    pub fn get_current_layer_costs(&self) -> &[Cost] {
+        if self.is_solved() { return &[]; }
+        &self.layers[self.current_layer].costs
+    }
 }
 
 // Describes a layer of QuantumField to solve
@@ -119,7 +123,7 @@ impl BuilderQuantumField {
                     layers: vec![
                         QuantumFieldLayer {
                             value: 15000,
-                            costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 100}],
+                            costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 100}, Cost{ resource_type: ResourceType::DarkOre, amount: 100}, Cost{ resource_type: ResourceType::DarkOre, amount: 100}],
                         },
                         QuantumFieldLayer {
                             value: 30000,

@@ -30,6 +30,7 @@ impl Plugin for DisplayInfoPanelPlugin {
             .add_systems(OnExit(DisplayInfoPanelState::DisplayBuilding), on_display_building_exit_system)
             .add_systems(OnEnter(DisplayInfoPanelState::DisplayQuantumField), on_display_quantum_field_enter_system)
             .add_systems(OnExit(DisplayInfoPanelState::DisplayQuantumField), on_display_quantum_field_exit_system);
+        app.world_mut().observe(on_recreate_quantum_field_cost_panels_trigger);
     }
 }
 
@@ -63,6 +64,10 @@ struct QuantumFieldPanel;
 struct QuantumFieldLayerHealthbar;
 #[derive(Component)]
 struct QuantumFieldLayerText;
+#[derive(Component)]
+struct QuantumFieldLayerCostsContainer;
+#[derive(Component)]
+struct QuantumFieldLayerCostPanel;
 /// ---------------------------
 
 /// Event emitted when the user clicks on a building
@@ -74,6 +79,13 @@ pub enum UiMapObjectFocusChangedEvent {
 impl Command for UiMapObjectFocusChangedEvent {
     fn apply(self, world: &mut World) {
         world.send_event(self);
+    }
+}
+#[derive(Event)]
+pub struct QuantumFieldRecreateCostsTrigger;
+impl Command for QuantumFieldRecreateCostsTrigger {
+    fn apply(self, world: &mut World) {
+        world.trigger(self);
     }
 }
 
@@ -138,7 +150,9 @@ fn on_display_quantum_field_exit_system(
 }
 
 fn on_display_panel_focus_changed_system(
+    mut commands: Commands,
     mut events: EventReader<UiMapObjectFocusChangedEvent>,
+    display_info_panel: Query<&DisplayInfoPanel>,
     mut info_panel_camera: Query<&mut Transform, With<DisplayInfoPanelCamera>>,
     grid_positions: Query<(&GridCoords, &GridImprint)>,
 ) {
@@ -151,6 +165,11 @@ fn on_display_panel_focus_changed_system(
     let mut camera_transform = info_panel_camera.single_mut();
     camera_transform.translation.x = world_position.x;
     camera_transform.translation.y = world_position.y;
+
+    match display_info_panel.single() {
+        DisplayInfoPanel::QuantumField(_) => commands.add(QuantumFieldRecreateCostsTrigger),
+        _ => (),
+    }
 }
 
 fn show_on_click_system(
@@ -231,6 +250,43 @@ fn update_quantum_field_info_panel_system(
     let (current_layer_progress, current_layer_target) = quantum_field.get_progress_details();
     healthbar.value = current_layer_progress as f32;
     healthbar.max_value = current_layer_target as f32;
+}
+
+fn on_recreate_quantum_field_cost_panels_trigger(
+    _trigger: Trigger<QuantumFieldRecreateCostsTrigger>,
+    mut commands: Commands,
+    display_info_panel: Query<&DisplayInfoPanel>,
+    quantum_fields: Query<&QuantumField>,
+    costs_container: Query<Entity, With<QuantumFieldLayerCostsContainer>>,
+    costs_panels: Query<Entity, With<QuantumFieldLayerCostPanel>>,
+) {
+    let DisplayInfoPanel::QuantumField(quantum_field_entity) = display_info_panel.single() else { return; };
+    // Remove the old panels
+    costs_panels.iter().for_each(|entity| commands.entity(entity).despawn_recursive());
+
+    // Create the new panels
+    let costs_container_entity = costs_container.single();
+    let Ok(quantum_field) = quantum_fields.get(*quantum_field_entity) else { return; };
+    for cost in quantum_field.get_current_layer_costs() {
+        commands.entity(costs_container_entity).with_children(|parent| {
+            parent.spawn((
+                CostIndicatorBundle {
+                    node: NodeBundle {
+                        style: Style {
+                            margin: UiRect{ top: Val::Px(4.), bottom: Val::Px(4.), ..default() },
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    cost_indicator: CostIndicator {
+                        cost: *cost,
+                        ..default()
+                    },
+                },
+                QuantumFieldLayerCostPanel,
+            ));
+        });
+    }
 }
 
 
@@ -482,6 +538,19 @@ fn make_quantum_field_panel(parent: &mut ChildBuilder) {
                     },
                 },
                 QuantumFieldLayerHealthbar,
+            ));
+            // Costs Panel - content is dynamic and managed from a dedicated system
+            parent.spawn((
+                NodeBundle {
+                    style: Style {
+                        width: Val::Percent(100.),
+                        flex_direction: FlexDirection::Row,
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    ..default()
+                },
+                QuantumFieldLayerCostsContainer,
             ));
         });
     });

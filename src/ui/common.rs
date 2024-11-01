@@ -1,5 +1,3 @@
-use std::backtrace;
-
 use bevy::{color::palettes::css::{BLACK, GREEN}, text::BreakLineOn};
 
 use crate::prelude::*;
@@ -15,8 +13,10 @@ impl Plugin for UiCommonPlugin {
             ))
             .add_systems(Update, (
                 on_healthbar_changed_system,
-            ))
-            .world_mut().observe(on_healthbar_added_trigger);
+                on_cost_indicator_changed_system,
+            ));
+        app.world_mut().observe(on_healthbar_added_trigger);
+        app.world_mut().observe(on_cost_indicator_added_trigger);
     }
 }
 
@@ -173,5 +173,122 @@ fn on_healthbar_changed_system(
         background_color.0 = healthbar.color;
         let Ok(mut text) = texts.get_mut(children.value_text) else { unreachable!() };
         text.sections[0].value = format!("{} / {}", healthbar.value, healthbar.max_value);
+    }
+}
+
+////////////////////////////////////////////
+////          Cost Indicator            ////
+////////////////////////////////////////////
+#[derive(Bundle, Default)]
+pub struct CostIndicatorBundle {
+    pub node: NodeBundle,
+    pub cost_indicator: CostIndicator,
+}
+#[derive(Component)]
+pub struct CostIndicator {
+    pub cost: Cost,
+    pub is_active: bool,
+    pub has_required_resources: bool,
+    pub font_size: f32,
+    pub color: Color,
+}
+impl Default for CostIndicator {
+    fn default() -> Self {
+        Self {
+            cost: Cost {
+                resource_type: ResourceType::DarkOre,
+                amount: 0,
+            },
+            is_active: false,
+            has_required_resources: false,
+            font_size: 14.,
+            color: GREEN.into(),
+        }
+    }
+}
+#[derive(Component)]
+struct CostIndicatorChildren {
+    border_rectangle: Entity,
+    icon: Entity,
+    value_text: Entity,
+}
+#[derive(Component)]
+struct CostIndicatorIcon;
+#[derive(Component)]
+struct CostIndicatorValueText;
+
+fn on_cost_indicator_added_trigger(
+    trigger: Trigger<OnAdd, CostIndicator>,
+    mut commands: Commands,
+    cost_indicators: Query<&CostIndicator>,
+) {
+    let cost_indicator_entity = trigger.entity();
+    let Ok(cost_indicator) = cost_indicators.get(cost_indicator_entity) else { return; };
+    let mut cost_indicator_children = CostIndicatorChildren {
+        border_rectangle: Entity::PLACEHOLDER,
+        icon: Entity::PLACEHOLDER,
+        value_text: Entity::PLACEHOLDER,
+    };
+    commands.entity(cost_indicator_entity).with_children(|parent| {
+        cost_indicator_children.border_rectangle = parent.spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Px(32.),
+                    height: Val::Px(32.),
+                    border: UiRect::all(Val::Px(2.0)),
+                    ..default()
+                },
+                background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
+                border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+                ..default()
+            },
+        )).id();
+        cost_indicator_children.icon = parent.spawn((
+            ImageBundle {
+                style: Style {
+                    width: Val::Px(16.),
+                    height: Val::Px(16.),
+                    ..default()
+                },
+                ..default()
+            },
+            CostIndicatorIcon,
+        )).id();
+        parent.spawn((
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    bottom: Val::Px(2.0),
+                    left: Val::Px(2.0),
+                    ..Default::default()
+                },
+                ..default()
+            },
+        )).with_children(|parent| {
+            cost_indicator_children.value_text = parent.spawn((
+                TextBundle {
+                    text: Text {
+                        sections: vec![TextSection::new(
+                            format!("{}", cost_indicator.cost.amount),
+                            TextStyle{ color: cost_indicator.color, font_size: cost_indicator.font_size, ..default() })
+                        ],
+                        linebreak_behavior: BreakLineOn::NoWrap,
+                        ..default() 
+                    },
+                    ..default()
+                },
+                CostIndicatorValueText,
+            )).id();
+        });
+    }).insert(cost_indicator_children);
+}
+
+fn on_cost_indicator_changed_system(
+    mut cost_indicators: Query<(&CostIndicator, &CostIndicatorChildren), Changed<CostIndicator>>,
+    mut texts: Query<&mut Text, With<CostIndicatorValueText>>,
+) {
+    for (cost_indicator, children) in cost_indicators.iter_mut() {
+        let Ok(mut text) = texts.get_mut(children.value_text) else { unreachable!() };
+        text.sections[0].value = format!("{}", cost_indicator.cost.amount);
     }
 }

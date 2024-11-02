@@ -2,6 +2,7 @@ use bevy::color::palettes::css::{AQUA, BLUE, YELLOW};
 use bevy::render::camera::RenderTarget;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 use bevy::text::BreakLineOn;
+use crate::map_objects::common::ExpeditionTargetMarker;
 use crate::map_objects::quantum_field::QuantumField;
 use crate::prelude::*;
 use crate::grids::obstacles::{Field, ObstacleGrid};
@@ -21,7 +22,11 @@ impl Plugin for DisplayInfoPanelPlugin {
                 show_on_click_system.run_if(in_state(UiInteraction::Free).or_else(in_state(UiInteraction::DisplayInfoPanel))),
                 on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayInfoPanel).and_then(on_event::<BuildingDestroyedEvent>())),
                 update_building_info_panel_system.run_if(in_state(DisplayInfoPanelState::DisplayBuilding)),
-                update_quantum_field_info_panel_system.run_if(in_state(DisplayInfoPanelState::DisplayQuantumField)),
+                (
+                    update_quantum_field_info_panel_system,
+                    update_quantum_field_action_button_system.after(update_quantum_field_info_panel_system), // This ordering prevents button flickering
+                    on_quantum_field_action_button_click_system.after(update_quantum_field_action_button_system), // This ordering prevents button flickering
+                ).run_if(in_state(DisplayInfoPanelState::DisplayQuantumField)),
                 on_display_panel_focus_changed_system.run_if(on_event::<UiMapObjectFocusChangedEvent>())
             ))
             .add_systems(OnEnter(UiInteraction::DisplayInfoPanel), on_display_enter_system)
@@ -68,6 +73,16 @@ struct QuantumFieldLayerText;
 struct QuantumFieldLayerCostsContainer;
 #[derive(Component)]
 struct QuantumFieldLayerCostPanel;
+#[derive(Component, Default, PartialEq)]
+enum QuantumFieldActionButton {
+    #[default]
+    Hidden,
+    SendExpeditions,
+    StopExpeditions,
+    PayCost,
+}
+#[derive(Component)]
+struct QuantumFieldActionButtonText;
 /// ---------------------------
 
 /// Event emitted when the user clicks on a building
@@ -207,7 +222,7 @@ fn on_building_destroyed_system(
     mut events: EventReader<BuildingDestroyedEvent>,
     display_info_panel: Query<&DisplayInfoPanel>,
 ) {
-    let DisplayInfoPanel::Building(_, building_entity) = display_info_panel.single() else { unreachable!() };
+    let DisplayInfoPanel::Building(_, building_entity) = display_info_panel.single() else { return; };
     for event in events.read() {
         if event.0 == *building_entity {
             ui_interaction_state.set(UiInteraction::Free);
@@ -231,13 +246,14 @@ fn update_building_info_panel_system(
 }
 
 fn update_quantum_field_info_panel_system(
-    quantum_fields: Query<&QuantumField>,
+    quantum_fields: Query<(&QuantumField, Has<ExpeditionTargetMarker>)>,
     display_info_panel: Query<&DisplayInfoPanel>,
+    mut action_button: Query<&mut QuantumFieldActionButton>,
     mut healthbars: Query<&mut Healthbar, With<QuantumFieldLayerHealthbar>>,
     mut texts: Query<&mut Text, With<QuantumFieldLayerText>>,
 ) {
     let DisplayInfoPanel::QuantumField(entity) = display_info_panel.single() else { return; };
-    let Ok(quantum_field) = quantum_fields.get(*entity) else { return; };
+    let Ok((quantum_field, has_expedition_target_marker)) = quantum_fields.get(*entity) else { return; };
     let mut healthbar = healthbars.single_mut();
     // Update the layer text
     let mut text = texts.single_mut();
@@ -250,6 +266,18 @@ fn update_quantum_field_info_panel_system(
     let (current_layer_progress, current_layer_target) = quantum_field.get_progress_details();
     healthbar.value = current_layer_progress as f32;
     healthbar.max_value = current_layer_target as f32;
+    // Update the action button
+    *action_button.single_mut() = {
+        if quantum_field.is_solved() {
+            QuantumFieldActionButton::Hidden
+        } else if quantum_field.is_current_layer_solved() {
+            QuantumFieldActionButton::PayCost
+        } else if  has_expedition_target_marker {
+            QuantumFieldActionButton::StopExpeditions
+        } else {
+            QuantumFieldActionButton::SendExpeditions
+        }
+    };
 }
 
 fn on_recreate_quantum_field_cost_panels_trigger(
@@ -289,6 +317,54 @@ fn on_recreate_quantum_field_cost_panels_trigger(
     }
 }
 
+fn update_quantum_field_action_button_system(
+    mut action_button: Query<(&QuantumFieldActionButton, &mut Style)>,
+    mut action_button_text: Query<&mut Text, With<QuantumFieldActionButtonText>>,
+) {
+    let (action_button, mut style) = action_button.single_mut();
+    let mut text = action_button_text.single_mut();
+    match action_button {
+        QuantumFieldActionButton::SendExpeditions => {
+            text.sections[0].value = "Send Expeditions".to_string();
+            style.display = Display::Flex;
+        },
+        QuantumFieldActionButton::StopExpeditions => {
+            text.sections[0].value = "Stop Expeditions".to_string();
+            style.display = Display::Flex;
+        },
+        QuantumFieldActionButton::PayCost => {
+            text.sections[0].value = "Pay Cost".to_string();
+            style.display = Display::Flex;
+        },
+        QuantumFieldActionButton::Hidden => {
+            style.display = Display::None;
+        },
+    }
+}
+
+fn on_quantum_field_action_button_click_system(
+    mut commands: Commands,
+    display_info_panel: Query<&DisplayInfoPanel>,
+    mut action_button: Query<(&mut QuantumFieldActionButton, &AdvancedInteraction)>,
+) {
+    let DisplayInfoPanel::QuantumField(entity) = display_info_panel.single() else { return; };
+    let (mut action_button, interaction) = action_button.single_mut();
+    if interaction.was_just_released {
+        match *action_button {
+            QuantumFieldActionButton::SendExpeditions => {
+                commands.entity(*entity).insert(ExpeditionTargetMarker);
+            },
+            QuantumFieldActionButton::StopExpeditions => {
+                commands.entity(*entity).remove::<ExpeditionTargetMarker>();
+            },
+            QuantumFieldActionButton::PayCost => {
+                // TODO: Pay cost
+            },
+            QuantumFieldActionButton::Hidden => {},
+        }
+        *action_button = QuantumFieldActionButton::Hidden; // To make sure no multi-trigger occurs
+    }
+}
 
 fn initialize_display_info_panel_system(
     mut commands: Commands,
@@ -552,6 +628,35 @@ fn make_quantum_field_panel(parent: &mut ChildBuilder) {
                 },
                 QuantumFieldLayerCostsContainer,
             ));
+            // [Send Expeditions / Stop Expeditions / Pay Cost] Button.
+            parent.spawn((
+                ButtonBundle {
+                    style: Style {
+                        width: Val::Percent(50.),
+                        height: Val::Px(20.),
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    background_color: Color::linear_rgba(0., 0., 0.2, 0.2).into(),
+                    border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+                    ..default()
+                },
+                AdvancedInteraction::default(),
+                QuantumFieldActionButton::default(),
+            )).with_children(|parent| {
+                parent.spawn((
+                    TextBundle {
+                        text: Text {
+                            sections: vec![TextSection::new("Send Expeditions / Stop Expeditions / Pay cost", TextStyle {font_size: 12.0, color: BLUE.into(), ..default() })],
+                            linebreak_behavior: BreakLineOn::NoWrap,
+                            ..default() 
+                        },
+                        ..default()
+                    },
+                    QuantumFieldActionButtonText,
+                ));
+            });
         });
     });
 }

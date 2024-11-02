@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::map_objects::common::ExpeditionZone;
+use crate::map_objects::common::{ExpeditionTargetMarker, ExpeditionZone};
 use crate::units::expedition_drone::BuilderExpeditionDrone;
 
 pub struct ExplorationCenterPlugin;
@@ -67,7 +67,7 @@ pub fn create_expedition_system(
     mut commands: Commands,
     //mut dark_ore_stock: ResMut<DarkOreStock>,
     mut exploration_centres: Query<(&mut ExplorationCenterNewExpeditionTimer, &TechnicalState, &Transform), With<MarkerExplorationCenter>>,
-    expedition_zones: Query<(Entity, &Transform), With<ExpeditionZone>>,
+    expedition_zones: Query<(Entity, &Transform), (With<ExpeditionZone>, With<ExpeditionTargetMarker>)>,
     time: Res<Time>,
 ) {
     let mut zones_positions = None;
@@ -75,8 +75,8 @@ pub fn create_expedition_system(
         if !technical_state.is_operational() { continue; }
         timer.0.tick(time.delta());
         if timer.0.just_finished() {
-            // Just caching to avoid recomputing every frame when there is no expeditions to create
             if zones_positions.is_none() {
+                // Cache to avoid recomputing zone positions for every exploration center
                 zones_positions = Some(expedition_zones.iter().map(|(entity, transform)| (entity, transform.translation.xy())).collect::<Vec<_>>());
             }
             let center_position = exploration_center_transform.translation.xy();

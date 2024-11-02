@@ -1,7 +1,7 @@
 use bevy::color::palettes::css::INDIGO;
 use crate::prelude::*;
 use crate::grids::obstacles::{Field, ObstacleGrid};
-use crate::map_objects::common::{ExpeditionTargetMarker, ExpeditionZone};
+use crate::map_objects::common::ExpeditionZone;
 use crate::mouse::MouseInfo;
 use crate::ui::common::AdvancedInteraction;
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
@@ -140,8 +140,6 @@ impl BuilderQuantumField {
                     ],
                 },
                 ExpeditionZone::default(),
-                // TODO: Remove ExpeditionTargetMarker as users should set targets themselves
-                ExpeditionTargetMarker,
             ));
         }
     }

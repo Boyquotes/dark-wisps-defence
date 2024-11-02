@@ -32,8 +32,11 @@ impl Stock {
     pub fn get(&self, resource_type: ResourceType) -> i32 {
         self.get_info(resource_type).amount
     }
-    pub fn can_cover(&self, cost: &Vec<Cost>) -> bool {
-        cost.iter().all(|c| self.has(c.resource_type, c.amount))
+    pub fn can_cover(&self, cost: &Cost) -> bool {
+        self.has(cost.resource_type, cost.amount)
+    }
+    pub fn can_cover_all(&self, costs: &[Cost]) -> bool {
+        costs.iter().all(|c| self.has(c.resource_type, c.amount))
     }
     pub fn has(&self, resource_type: ResourceType, amount: i32) -> bool {
         self.get_info(resource_type).amount >= amount
@@ -42,9 +45,12 @@ impl Stock {
         let info = self.get_info_mut(resource_type);
         info.amount = std::cmp::min(info.max_amount, info.amount + amount);
     }
-    pub fn try_pay_costs(&mut self, cost: &Vec<Cost>) -> bool {
-        if !self.can_cover(cost) { return false; }
-        for cost in cost {
+    pub fn try_pay_cost(&mut self, cost: Cost) -> bool {
+        self.try_remove(cost.resource_type, cost.amount)
+    }
+    pub fn try_pay_costs(&mut self, costs: &[Cost]) -> bool {
+        if !self.can_cover_all(costs) { return false; }
+        for cost in costs {
             self.try_remove(cost.resource_type, cost.amount);
         }
         true

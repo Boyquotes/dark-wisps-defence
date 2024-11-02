@@ -344,8 +344,10 @@ fn update_quantum_field_action_button_system(
 
 fn on_quantum_field_action_button_click_system(
     mut commands: Commands,
+    mut stock: ResMut<Stock>,
     display_info_panel: Query<&DisplayInfoPanel>,
     mut action_button: Query<(&mut QuantumFieldActionButton, &AdvancedInteraction)>,
+    mut quantum_fields: Query<&mut QuantumField>,
 ) {
     let DisplayInfoPanel::QuantumField(entity) = display_info_panel.single() else { return; };
     let (mut action_button, interaction) = action_button.single_mut();
@@ -358,7 +360,11 @@ fn on_quantum_field_action_button_click_system(
                 commands.entity(*entity).remove::<ExpeditionTargetMarker>();
             },
             QuantumFieldActionButton::PayCost => {
-                // TODO: Pay cost
+                let Ok(mut quantum_field) = quantum_fields.get_mut(*entity) else { return; };
+                if stock.try_pay_costs(quantum_field.get_current_layer_costs()) {
+                    quantum_field.move_to_next_layer();
+                    commands.add(QuantumFieldRecreateCostsTrigger);
+                }
             },
             QuantumFieldActionButton::Hidden => {},
         }

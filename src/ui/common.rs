@@ -1,4 +1,4 @@
-use bevy::{color::palettes::css::{BLACK, GREEN}, text::BreakLineOn};
+use bevy::{color::palettes::css::{BLACK, BLUE, GREEN, RED}, text::BreakLineOn};
 
 use crate::prelude::*;
 
@@ -14,6 +14,7 @@ impl Plugin for UiCommonPlugin {
             .add_systems(Update, (
                 on_healthbar_changed_system,
                 on_cost_indicator_changed_system,
+                calculate_cost_indicator_has_required_resources_system.run_if(resource_changed::<Stock>),
             ));
         app.world_mut().observe(on_healthbar_added_trigger);
         app.world_mut().observe(on_cost_indicator_added_trigger);
@@ -187,10 +188,9 @@ pub struct CostIndicatorBundle {
 #[derive(Component)]
 pub struct CostIndicator {
     pub cost: Cost,
-    pub is_active: bool,
     pub has_required_resources: bool,
     pub font_size: f32,
-    pub color: Color,
+    pub font_color: Color,
 }
 impl Default for CostIndicator {
     fn default() -> Self {
@@ -199,10 +199,9 @@ impl Default for CostIndicator {
                 resource_type: ResourceType::DarkOre,
                 amount: 0,
             },
-            is_active: false,
             has_required_resources: false,
             font_size: 14.,
-            color: GREEN.into(),
+            font_color: Color::WHITE,
         }
     }
 }
@@ -216,14 +215,20 @@ struct CostIndicatorChildren {
 struct CostIndicatorIcon;
 #[derive(Component)]
 struct CostIndicatorValueText;
+#[derive(Component)]
+struct CostIndicatorBorderRectangle;
 
 fn on_cost_indicator_added_trigger(
     trigger: Trigger<OnAdd, CostIndicator>,
     mut commands: Commands,
-    cost_indicators: Query<&CostIndicator>,
+    stock: Res<Stock>,
+    mut cost_indicators: Query<&mut CostIndicator>,
 ) {
     let cost_indicator_entity = trigger.entity();
-    let Ok(cost_indicator) = cost_indicators.get(cost_indicator_entity) else { return; };
+    let Ok(mut cost_indicator) = cost_indicators.get_mut(cost_indicator_entity) else { return; };
+    // Update the cost indicator state
+    cost_indicator.has_required_resources = stock.can_cover(&cost_indicator.cost);
+    // Spawn the full cost indicator structure
     let mut cost_indicator_children = CostIndicatorChildren {
         border_rectangle: Entity::PLACEHOLDER,
         icon: Entity::PLACEHOLDER,
@@ -239,9 +244,10 @@ fn on_cost_indicator_added_trigger(
                     ..default()
                 },
                 background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
-                border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+                border_color: BLUE.into(),
                 ..default()
             },
+            CostIndicatorBorderRectangle,
         )).id();
         cost_indicator_children.icon = parent.spawn((
             ImageBundle {
@@ -270,7 +276,7 @@ fn on_cost_indicator_added_trigger(
                     text: Text {
                         sections: vec![TextSection::new(
                             format!("{}", cost_indicator.cost.amount),
-                            TextStyle{ color: cost_indicator.color, font_size: cost_indicator.font_size, ..default() })
+                            TextStyle{ color: cost_indicator.font_color, font_size: cost_indicator.font_size, ..default() })
                         ],
                         linebreak_behavior: BreakLineOn::NoWrap,
                         ..default() 
@@ -284,11 +290,24 @@ fn on_cost_indicator_added_trigger(
 }
 
 fn on_cost_indicator_changed_system(
-    mut cost_indicators: Query<(&CostIndicator, &CostIndicatorChildren), Changed<CostIndicator>>,
+    cost_indicators: Query<(&CostIndicator, &CostIndicatorChildren), Changed<CostIndicator>>,
     mut texts: Query<&mut Text, With<CostIndicatorValueText>>,
+    mut border_rectangles: Query<&mut BorderColor, With<CostIndicatorBorderRectangle>>,
 ) {
-    for (cost_indicator, children) in cost_indicators.iter_mut() {
+    for (cost_indicator, children) in cost_indicators.iter() {
         let Ok(mut text) = texts.get_mut(children.value_text) else { unreachable!() };
         text.sections[0].value = format!("{}", cost_indicator.cost.amount);
+
+        let Ok(mut border_color) = border_rectangles.get_mut(children.border_rectangle) else { unreachable!() };
+        border_color.0 = if cost_indicator.has_required_resources{ GREEN.into() } else { RED.into() };
+    }
+}
+
+fn calculate_cost_indicator_has_required_resources_system(
+    stock: Res<Stock>,
+    mut cost_indicators: Query<&mut CostIndicator>,
+) {
+    for mut cost_indicator in cost_indicators.iter_mut() {
+        cost_indicator.has_required_resources = stock.can_cover(&cost_indicator.cost);
     }
 }

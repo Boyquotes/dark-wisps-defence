@@ -4,6 +4,26 @@ use crate::utils::id::Id;
 
 pub type WispEntity = Id<Wisp, Entity>;
 
+#[derive(Component, Copy, Clone)]
+pub enum WispType {
+    Fire,
+    Water,
+}
+impl WispType {
+    pub fn random() -> Self {
+        let mut rng = nanorand::tls_rng();
+        match rng.generate_range(1..=2) {  // Nano-rand is off by 1!
+            0 => WispType::Fire,
+            1 => WispType::Water,
+            _ => unreachable!(),
+        }
+    }
+}
+#[derive(Component)]
+pub struct WispFireType;
+#[derive(Component)]
+pub struct WispWaterType;
+
 
 #[derive(Component, Debug, Default, PartialEq)]
 pub struct Wisp;

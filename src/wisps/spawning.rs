@@ -1,58 +1,36 @@
-use bevy::render::render_resource::{ShaderRef, AsBindGroup};
-use bevy::sprite::{Material2d, MaterialMesh2dBundle};
+use bevy::sprite::Mesh2dHandle;
 
 use crate::prelude::*;
 
-use super::components::{WispAttackRange, WispChargeAttack, WispState, Wisp};
+use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispFireType, WispState, WispType, WispWaterType};
+use super::materials::WispMaterial;
 
 pub const WISP_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
 #[derive(Event)]
 pub struct BuilderWisp {
     pub entity: Entity,
+    pub wisp_type: WispType,
     pub grid_coords: GridCoords,
 }
 
 impl BuilderWisp {
-    pub fn new(entity: Entity, grid_coords: GridCoords) -> Self {
-        Self { entity, grid_coords }
+    pub fn new(entity: Entity, wisp_type: WispType, grid_coords: GridCoords) -> Self {
+        Self { entity, wisp_type, grid_coords }
     }
     pub fn spawn_system(
         mut commands: Commands,
-        asset_server: Res<AssetServer>,
         mut events: EventReader<BuilderWisp>,
-        mut meshes: ResMut<Assets<Mesh>>,
-        //mut materials: ResMut<Assets<ColorMaterial>>,
-        mut materials: ResMut<Assets<WispMaterial>>,
     ) {
         let mut rng = nanorand::tls_rng();
-        for &BuilderWisp { entity, grid_coords } in events.read() {
-
-            let wisp_world_size = WISP_GRID_IMPRINT.world_size();
-            commands.entity(entity).insert((
+        for &BuilderWisp { entity, wisp_type, grid_coords } in events.read() {
+            //let wisp_world_size = WISP_GRID_IMPRINT.world_size();
+            let mut commands = commands.entity(entity);
+            commands.insert((
                 grid_coords,
                 Health::new(10),
                 Speed(30.),
-                // OLD PURPLE CIRCLE MATERIAL
-                // MaterialMesh2dBundle {
-                //     mesh: meshes.add(Circle::new(6.)).into(),
-                //     material: materials.add(ColorMaterial::from_color(PURPLE)),
-                //     transform: Transform::from_translation(
-                //         grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP)
-                //     ),
-                //     ..default()
-                // },
-                MaterialMesh2dBundle {
-                    mesh:  meshes.add(Rectangle::new(wisp_world_size.x, wisp_world_size.y)).into(),
-                    material: materials.add(WispMaterial {
-                        amplitude: rng.generate::<f32>() * 0.2 + 0.25, // 0.25 - 0.45
-                        frequency: rng.generate::<f32>() * 5. + 15., // 15 - 20
-                        speed: rng.generate::<f32>() * 3. + 4., // 4 - 7
-                        sinus_direction: [-1., 1.][rng.generate::<usize>() % 2],
-                        cosinus_direction: [-1., 1.][rng.generate::<usize>() % 2],
-                        wisp_tex1: asset_server.load("wisps/big_wisp.png"),
-                        wisp_tex2: asset_server.load("wisps/big_wisp.png"),
-                    }),
+                SpatialBundle {
                     transform: Transform {
                         translation: grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP),
                         rotation: Quat::from_rotation_z(rng.generate::<f32>() * 2. * std::f32::consts::PI),
@@ -61,11 +39,16 @@ impl BuilderWisp {
                     ..default()
                 },
                 Wisp,
+                wisp_type,
                 WispState::default(),
                 WispChargeAttack::default(),
                 WispAttackRange(1),
                 GridPath::default(),
             ));
+            match wisp_type {
+                WispType::Fire => commands.insert(WispFireType),
+                WispType::Water => commands.insert(WispWaterType),
+            };
         }
     }
 }
@@ -75,28 +58,22 @@ impl Command for BuilderWisp {
     }
 }
 
-#[derive(Asset, TypePath, Debug, Clone, AsBindGroup)]
-pub struct WispMaterial {
-    #[texture(0)]
-    #[sampler(1)]
-    pub wisp_tex1: Handle<Image>,
-    #[texture(2)]
-    pub wisp_tex2: Handle<Image>,
-
-    #[uniform(4)]
-    pub amplitude: f32,
-    #[uniform(4)]
-    pub frequency: f32,
-    #[uniform(4)]
-    pub speed: f32,
-    #[uniform(4)]
-    pub sinus_direction: f32,
-    #[uniform(4)]
-    pub cosinus_direction: f32,
-}
-
-impl Material2d for WispMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/wisp.wgsl".into()
-    }
+pub fn on_wisp_spawn_attach_material<WispT: Component, MaterialT: Asset + WispMaterial>(
+    trigger: Trigger<OnAdd, WispT>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<MaterialT>>,
+    wisps: Query<(), With<WispT>>,
+) {
+    let entity = trigger.entity();
+    if !wisps.contains(entity) { return; }
+    // TODO: Do we need to remove the meash and material if the wisp is removed?
+    let wisp_world_size = WISP_GRID_IMPRINT.world_size();
+    let mesh = meshes.add(Rectangle::new(wisp_world_size.x, wisp_world_size.y));
+    let material = materials.add(MaterialT::make(&asset_server));
+    commands.entity(entity).insert((
+        Mesh2dHandle(mesh),
+        material,
+    ));
 }

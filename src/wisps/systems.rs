@@ -6,7 +6,7 @@ use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::grids::wisps::WispsGrid;
 use crate::search::pathfinding::path_find_energy_beckon;
 
-use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispState};
+use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispState, WispType};
 use super::spawning::BuilderWisp;
 
 pub fn move_wisps(
@@ -186,7 +186,7 @@ pub fn spawn_wisps(
             }
         };
         let wisp_entity = commands.spawn_empty().id();
-        commands.add(BuilderWisp::new(wisp_entity, grid_coords));
+        commands.add(BuilderWisp::new(wisp_entity, WispType::random(), grid_coords));
         wisps_grid.wisp_add(grid_coords, wisp_entity.into());
     }
 }

@@ -1,4 +1,5 @@
 pub mod components;
+mod materials;
 pub mod spawning;
 pub mod systems;
 
@@ -11,7 +12,8 @@ impl Plugin for WispsPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins((
-                Material2dPlugin::<spawning::WispMaterial>::default(),
+                Material2dPlugin::<materials::WispFireMaterial>::default(),
+                Material2dPlugin::<materials::WispWaterMaterial>::default(),
             ))
             .add_event::<spawning::BuilderWisp>()
             .add_systems(PostUpdate, (
@@ -25,5 +27,7 @@ impl Plugin for WispsPlugin {
                 systems::remove_dead_wisps,
                 systems::spawn_wisps.run_if(is_game_mode),
             ));
+        app.observe(spawning::on_wisp_spawn_attach_material::<components::WispFireType, materials::WispFireMaterial>);
+        app.observe(spawning::on_wisp_spawn_attach_material::<components::WispWaterType, materials::WispWaterMaterial>);
     }
 }

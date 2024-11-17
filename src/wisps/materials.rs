@@ -84,3 +84,23 @@ impl WispMaterial for WispWaterMaterial {
         }
     }
 }
+
+
+#[derive(Asset, TypePath, Debug, Clone, AsBindGroup)]
+pub struct WispLightMaterial {
+    #[uniform(4)]
+    pub radiance_speed: f32,
+}
+impl Material2d for WispLightMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/wisps/light.wgsl".into()
+    }
+}
+impl WispMaterial for WispLightMaterial {
+    fn make(_asset_server: &AssetServer) -> Self {
+        let mut rng = nanorand::tls_rng();
+        Self {
+            radiance_speed: rng.generate::<f32>() * 1.5 + 4.5, // 4.5 - 6.0
+        }
+    }
+}

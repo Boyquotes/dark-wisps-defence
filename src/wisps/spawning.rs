@@ -2,7 +2,7 @@ use bevy::sprite::Mesh2dHandle;
 
 use crate::prelude::*;
 
-use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispFireType, WispState, WispType, WispWaterType};
+use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispFireType, WispLightType, WispState, WispType, WispWaterType};
 use super::materials::WispMaterial;
 
 pub const WISP_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
@@ -24,7 +24,6 @@ impl BuilderWisp {
     ) {
         let mut rng = nanorand::tls_rng();
         for &BuilderWisp { entity, wisp_type, grid_coords } in events.read() {
-            //let wisp_world_size = WISP_GRID_IMPRINT.world_size();
             let mut commands = commands.entity(entity);
             commands.insert((
                 grid_coords,
@@ -48,6 +47,7 @@ impl BuilderWisp {
             match wisp_type {
                 WispType::Fire => commands.insert(WispFireType),
                 WispType::Water => commands.insert(WispWaterType),
+                WispType::Light => commands.insert(WispLightType),
             };
         }
     }

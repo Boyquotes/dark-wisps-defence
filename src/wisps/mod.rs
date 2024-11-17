@@ -14,6 +14,7 @@ impl Plugin for WispsPlugin {
             .add_plugins((
                 Material2dPlugin::<materials::WispFireMaterial>::default(),
                 Material2dPlugin::<materials::WispWaterMaterial>::default(),
+                Material2dPlugin::<materials::WispLightMaterial>::default(),
             ))
             .add_event::<spawning::BuilderWisp>()
             .add_systems(PostUpdate, (
@@ -29,5 +30,6 @@ impl Plugin for WispsPlugin {
             ));
         app.observe(spawning::on_wisp_spawn_attach_material::<components::WispFireType, materials::WispFireMaterial>);
         app.observe(spawning::on_wisp_spawn_attach_material::<components::WispWaterType, materials::WispWaterMaterial>);
+        app.observe(spawning::on_wisp_spawn_attach_material::<components::WispLightType, materials::WispLightMaterial>);
     }
 }

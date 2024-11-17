@@ -89,7 +89,9 @@ impl WispMaterial for WispWaterMaterial {
 #[derive(Asset, TypePath, Debug, Clone, AsBindGroup)]
 pub struct WispLightMaterial {
     #[uniform(4)]
-    pub radiance_speed: f32,
+    pub radiance_angle: f32,
+    #[uniform(4)]
+    pub radiance_radius: f32,
 }
 impl Material2d for WispLightMaterial {
     fn fragment_shader() -> ShaderRef {
@@ -100,7 +102,30 @@ impl WispMaterial for WispLightMaterial {
     fn make(_asset_server: &AssetServer) -> Self {
         let mut rng = nanorand::tls_rng();
         Self {
-            radiance_speed: rng.generate::<f32>() * 1.5 + 4.5, // 4.5 - 6.0
+            radiance_angle: rng.generate::<f32>() * 20. + 10., // 10.0 - 30.0
+            radiance_radius: rng.generate::<f32>() * 10. + 5., // 5.0 - 15.0
+        }
+    }
+}
+
+#[derive(Asset, TypePath, Debug, Clone, AsBindGroup)]
+pub struct WispElectricMaterial {
+    #[uniform(4)]
+    pub angle_direction: f32,
+    #[uniform(4)]
+    pub radius_direction: f32,
+}
+impl Material2d for WispElectricMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/wisps/electric.wgsl".into()
+    }
+}
+impl WispMaterial for WispElectricMaterial {
+    fn make(_asset_server: &AssetServer) -> Self {
+        let mut rng = nanorand::tls_rng();
+        Self {
+            angle_direction: [-1., 1.][rng.generate::<usize>() % 2],
+            radius_direction: [-1., 1.][rng.generate::<usize>() % 2],
         }
     }
 }

@@ -9,15 +9,16 @@ pub enum WispType {
     Fire,
     Water,
     Light,
+    Electric,
 }
 impl WispType {
     pub fn random() -> Self {
-        //return WispType::Light;
         let mut rng = nanorand::tls_rng();
-        match rng.generate_range(1..=3) {  // Nano-rand is off by 1!
+        match rng.generate_range(1..=4) {  // Nano-rand is off by 1!
             0 => WispType::Fire,
             1 => WispType::Water,
             2 => WispType::Light,
+            3 => WispType::Electric,
             _ => unreachable!(),
         }
     }
@@ -28,6 +29,8 @@ pub struct WispFireType;
 pub struct WispWaterType;
 #[derive(Component)]
 pub struct WispLightType;
+#[derive(Component)]
+pub struct WispElectricType;
 
 
 #[derive(Component, Debug, Default, PartialEq)]

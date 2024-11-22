@@ -45,10 +45,10 @@ impl BuilderWisp {
                 GridPath::default(),
             ));
             match wisp_type {
-                WispType::Fire => commands.insert(WispFireType),
-                WispType::Water => commands.insert(WispWaterType),
-                WispType::Light => commands.insert(WispLightType),
-                WispType::Electric => commands.insert(WispElectricType),
+                WispType::Fire => commands.insert((WispFireType, EssencesContainer::from(EssenceContainer::new(EssenceType::Fire, 1)))) ,
+                WispType::Water => commands.insert((WispWaterType, EssencesContainer::from(EssenceContainer::new(EssenceType::Water, 1)))) ,
+                WispType::Light => commands.insert((WispLightType, EssencesContainer::from(EssenceContainer::new(EssenceType::Light, 1)))) ,
+                WispType::Electric => commands.insert((WispElectricType, EssencesContainer::from(EssenceContainer::new(EssenceType::Electric, 1)))),
             };
         }
     }

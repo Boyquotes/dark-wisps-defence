@@ -9,10 +9,36 @@ impl Plugin for ResourcesPlugin {
 }
 
 pub const MAX_DARK_ORE_STOCK: i32 = 9999;
+pub const MAX_ESSENCE_STOCK: i32 = 999;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ResourceType {
     DarkOre,
+    Essence(EssenceType),
+}
+impl From<EssenceType> for ResourceType {
+    fn from(essence_type: EssenceType) -> Self {
+        Self::Essence(essence_type)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum EssenceType {
+    Fire,
+    Water,
+    Light,
+    Electric,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct EssenceContainer {
+    pub essence_type: EssenceType,
+    pub amount: i32,
+}
+impl EssenceContainer {
+    pub fn new(essence_type: EssenceType, amount: i32) -> Self {
+        Self { essence_type, amount }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -72,6 +98,10 @@ impl Default for Stock {
     fn default() -> Self {
         let mut stock = HashMap::new();
         stock.insert(ResourceType::DarkOre, StockInfo { amount: 5555, max_amount: MAX_DARK_ORE_STOCK });
+        stock.insert(ResourceType::Essence(EssenceType::Fire), StockInfo { amount: 0, max_amount: MAX_ESSENCE_STOCK });
+        stock.insert(ResourceType::Essence(EssenceType::Water), StockInfo { amount: 0, max_amount: MAX_ESSENCE_STOCK });
+        stock.insert(ResourceType::Essence(EssenceType::Light), StockInfo { amount: 0, max_amount: MAX_ESSENCE_STOCK });
+        stock.insert(ResourceType::Essence(EssenceType::Electric), StockInfo { amount: 0, max_amount: MAX_ESSENCE_STOCK });
         Self(stock)
     }
 }

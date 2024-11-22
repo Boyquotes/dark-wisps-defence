@@ -59,14 +59,20 @@ pub fn target_wisps(
 
 pub fn remove_dead_wisps(
     mut commands: Commands,
+    mut stock: ResMut<Stock>,
     mut wisps_grid: ResMut<WispsGrid>,
     mut stats_wisps_killed: ResMut<StatsWispsKilled>,
-    wisps: Query<(Entity, &Health, &GridCoords), With<Wisp>>,
+    wisps: Query<(Entity, &Health, &GridCoords, &EssencesContainer), With<Wisp>>,
 ) {
-    for (wisp_entity, health, coords) in wisps.iter() {
+    for (wisp_entity, health, coords, essences) in wisps.iter() {
         if health.is_dead() {
             wisps_grid.wisp_remove(*coords, wisp_entity.into());
             commands.entity(wisp_entity).despawn();
+            // Grant essence
+            for container in essences.0.iter() {
+                stock.add(container.essence_type.into(), container.amount);
+            }
+            // Update stats
             stats_wisps_killed.0 += 1;
         }
     }

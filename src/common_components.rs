@@ -31,6 +31,14 @@ impl Health {
 }
 
 #[derive(Component)]
+pub struct EssencesContainer(pub Vec<EssenceContainer>);
+impl From<EssenceContainer> for EssencesContainer {
+    fn from(essence_container: EssenceContainer) -> Self {
+        Self(vec![essence_container])
+    }
+}
+
+#[derive(Component)]
 pub struct Speed(pub f32);
 
 #[derive(Component, Default)]

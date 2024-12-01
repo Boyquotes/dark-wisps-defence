@@ -27,9 +27,7 @@ pub const ROCKET_BASE_IMAGE: &str = "projectiles/rocket.png";
 pub const ROCKET_EXHAUST_IMAGE: &str = "projectiles/rocket_exhaust.png";
 
 #[derive(Component)]
-pub struct MarkerRocket {
-    pub exhaust: Entity,
-}
+pub struct MarkerRocket;
 #[derive(Component)]
 pub struct MarkerRocketExhaust;
 
@@ -82,7 +80,7 @@ impl BuilderRocket {
                     ..default()
                 },
                 MarkerProjectile,
-                MarkerRocket{ exhaust },
+                MarkerRocket,
                 RocketTarget(target_wisp),
             )).add_child(exhaust);
         }

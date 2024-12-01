@@ -45,9 +45,20 @@ impl BuilderDarkOre {
         mut events: EventReader<BuilderDarkOre>,
         asset_server: Res<AssetServer>,
     ) {
+        let mut rng = nanorand::tls_rng();
         for &BuilderDarkOre { entity, grid_position } in events.read() {
             commands.entity(entity).insert((
-                get_dark_ore_sprite_bundle(grid_position, &asset_server),
+                Sprite {
+                    image: asset_server.load(DARK_ORE_BASE_IMAGES[rng.generate_range(0usize..2usize)]),
+                    custom_size: Some(DARK_ORE_GRID_IMPRINT.world_size()),
+                    ..Default::default()
+                },
+                Transform {
+                    translation: grid_position.to_world_position_centered(DARK_ORE_GRID_IMPRINT).extend(Z_OBSTACLE),
+                    // select one of: Left, Up, Right, Down
+                    rotation: Quat::from_rotation_z([0., PI / 2., PI, 3. * PI / 2.][rng.generate_range(0usize..4usize)] as f32),
+                    ..default()
+                },
                 grid_position,
                 DarkOre { amount: 1000 },
                 DARK_ORE_GRID_IMPRINT,
@@ -58,24 +69,6 @@ impl BuilderDarkOre {
 impl Command for BuilderDarkOre {
     fn apply(self, world: &mut World) {
         world.send_event(self);
-    }
-}
-
-pub fn get_dark_ore_sprite_bundle(grid_position: GridCoords, asset_server: &AssetServer) -> SpriteBundle {
-    let mut rng = nanorand::tls_rng();
-    SpriteBundle {
-        sprite: Sprite {
-            image: asset_server.load(DARK_ORE_BASE_IMAGES[rng.generate_range(0usize..2usize)]),
-            custom_size: Some(DARK_ORE_GRID_IMPRINT.world_size()),
-            ..Default::default()
-        },
-        transform: Transform {
-            translation: grid_position.to_world_position_centered(DARK_ORE_GRID_IMPRINT).extend(Z_OBSTACLE),
-            // select one of: Left, Up, Right, Down
-            rotation: Quat::from_rotation_z([0., PI / 2., PI, 3. * PI / 2.][rng.generate_range(0usize..4usize)] as f32),
-            ..default()
-        },
-        ..Default::default()
     }
 }
 

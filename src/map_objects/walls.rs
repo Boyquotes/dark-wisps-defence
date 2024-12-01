@@ -42,17 +42,12 @@ impl BuilderWall {
      ) {
         for &BuilderWall { entity, grid_position } in events.read() {
             commands.entity(entity).insert((
-                SpriteBundle {
-                    sprite: Sprite {
-                        color: GRAY.into(), // Color::hsla(0., 0.5, 1.3, 0.8); for hdr
-                        custom_size: Some(WALL_GRID_IMPRINT.world_size()),
-                        ..Default::default()
-                    },
-                    transform: Transform::from_translation(
-                        grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(Z_OBSTACLE)
-                    ),
-                    ..Default::default()
+                Sprite {
+                    color: GRAY.into(), // Color::hsla(0., 0.5, 1.3, 0.8); for hdr
+                    custom_size: Some(WALL_GRID_IMPRINT.world_size()),
+                    ..default()
                 },
+                Transform::from_translation(grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(Z_OBSTACLE)),
                 grid_position,
                 WALL_GRID_IMPRINT,
                 Wall,

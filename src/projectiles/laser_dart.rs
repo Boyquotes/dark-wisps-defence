@@ -47,17 +47,14 @@ impl BuilderLaserDart {
     ) {
         for &BuilderLaserDart{ world_position, target_wisp, target_vector } in events.read() {
             commands.spawn((
-                SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::srgb(1.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(7.0, 1.0)),
-                        ..Default::default()
-                    },
-                    transform: Transform {
-                        translation: world_position.extend(Z_PROJECTILE),
-                        rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
-                        ..Default::default()
-                    },
+                Sprite {
+                    color: Color::srgb(1.0, 0.0, 0.0),
+                    custom_size: Some(Vec2::new(7.0, 1.0)),
+                    ..Default::default()
+                },
+                Transform {
+                    translation: world_position.extend(Z_PROJECTILE),
+                    rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
                     ..Default::default()
                 },
                 MarkerProjectile,

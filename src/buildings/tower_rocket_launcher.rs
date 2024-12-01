@@ -40,7 +40,12 @@ impl BuilderTowerRocketLauncher {
         for &BuilderTowerRocketLauncher{ entity, grid_position } in events.read() {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::RocketLauncher));
             let tower_base_entity = commands.entity(entity).insert((
-                get_building_sprite_bundle(&asset_server, TOWER_ROCKET_LAUNCHER_BASE_IMAGE, grid_position, grid_imprint),
+                Sprite {
+                    image: asset_server.load(TOWER_ROCKET_LAUNCHER_BASE_IMAGE),
+                    custom_size: Some(grid_imprint.world_size()),
+                    ..Default::default()
+                },
+                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 MarkerTower,
                 MarkerTowerRocketLauncher,
                 grid_position,
@@ -54,8 +59,15 @@ impl BuilderTowerRocketLauncher {
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
             )).id();
+            let world_size = grid_imprint.world_size();
             let tower_top = commands.spawn((
-                get_tower_top_sprite_bundle(&asset_server, grid_imprint),
+                Sprite {
+                    image: asset_server.load("buildings/tower_rocket_launcher_top.png"),
+                    custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
+                    anchor: Anchor::Custom(Vec2::new(-0.20, 0.0)),
+                    ..Default::default()
+                },
+                Transform::from_translation(Vec3::new(0., 0., Z_TOWER_TOP)),
                 MarkerTowerRotationalTop(tower_base_entity.into()),
             )).id();
             commands.entity(entity).add_child(tower_top);
@@ -65,20 +77,6 @@ impl BuilderTowerRocketLauncher {
 impl Command for BuilderTowerRocketLauncher {
     fn apply(self, world: &mut World) {
         world.send_event(self);
-    }
-}
-
-pub fn get_tower_top_sprite_bundle(asset_server: &AssetServer, grid_imprint: GridImprint) -> SpriteBundle {
-    let world_size = grid_imprint.world_size();
-    SpriteBundle {
-        sprite: Sprite {
-            image: asset_server.load("buildings/tower_rocket_launcher_top.png"),
-            custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
-            anchor: Anchor::Custom(Vec2::new(-0.20, 0.0)),
-            ..Default::default()
-        },
-        transform: Transform::from_translation(Vec3::new(0., 0., Z_TOWER_TOP)),
-        ..Default::default()
     }
 }
 

@@ -49,7 +49,12 @@ impl BuilderMiningComplex {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::MiningComplex);
             let ore_entities_in_range = obstacle_grid.imprint_query_element(grid_position, grid_imprint, query_dark_ore_helper);
             commands.entity(entity).insert((
-                get_building_sprite_bundle(&asset_server, MINING_COMPLEX_BASE_IMAGE, grid_position, grid_imprint),
+                Sprite {
+                    image: asset_server.load(MINING_COMPLEX_BASE_IMAGE),
+                    custom_size: Some(grid_imprint.world_size()),
+                    ..Default::default()
+                },
+                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 TechnicalState{ 
                     has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint),
                     has_ore_fields: Some(!ore_entities_in_range.is_empty()),

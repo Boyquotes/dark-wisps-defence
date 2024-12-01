@@ -43,7 +43,12 @@ impl BuilderTowerEmitter {
         for &BuilderTowerEmitter{ entity, grid_position } in events.read() {
             let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::Emitter));
             commands.entity(entity).insert((
-                get_building_sprite_bundle(&asset_server, TOWER_EMITTER_BASE_IMAGE, grid_position, grid_imprint),
+                Sprite {
+                    image: asset_server.load(TOWER_EMITTER_BASE_IMAGE),
+                    custom_size: Some(grid_imprint.world_size()),
+                    ..Default::default()
+                },
+                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 MarkerTower,
                 MarkerTowerEmitter,
                 grid_position,

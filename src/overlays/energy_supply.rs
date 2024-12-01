@@ -57,8 +57,6 @@ pub enum EnergySupplyOverlaySecondaryMode {
 }
 impl EnergySupplyOverlaySecondaryMode {
     pub fn is_none(&self) -> bool { matches!(self, EnergySupplyOverlaySecondaryMode::None) }
-    pub fn is_highlighting(&self) -> bool { matches!(self, EnergySupplyOverlaySecondaryMode::Highlight(_)) }
-    pub fn is_placing(&self) -> bool { matches!(self, EnergySupplyOverlaySecondaryMode::Placing{..}) }
 }
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]

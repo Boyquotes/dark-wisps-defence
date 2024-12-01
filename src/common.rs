@@ -10,7 +10,7 @@ pub mod prelude {
 pub enum GameMode {
     Game,
     Editor,
-    Manu,
+    _Menu,
 }
 
 #[derive(Resource)]

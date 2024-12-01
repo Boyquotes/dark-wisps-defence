@@ -9,7 +9,7 @@ impl Plugin for BadgesPlugin {
     }
 }
 
-pub fn sync_dark_ore_badge_system(
+fn sync_dark_ore_badge_system(
     mut dark_ore_text: Query<(&mut Text, &ResourceBadgeText)>,
     dark_ore_stock: Res<Stock>,
 ) {
@@ -21,7 +21,7 @@ pub fn sync_dark_ore_badge_system(
 #[derive(Component)]
 pub struct ResourceBadgeText(ResourceType);
 
-pub fn initialize_badges_system(
+fn initialize_badges_system(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {

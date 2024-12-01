@@ -1,6 +1,4 @@
-use bevy::core_pipeline::bloom::BloomSettings;
-//use bevy::core_pipeline::tonemapping::Tonemapping;
-use bevy::input::mouse::MouseWheel;
+use bevy::{core_pipeline::bloom::Bloom, input::mouse::MouseWheel};
 use crate::prelude::*;
 
 const ZOOM_MIN: f32 = 1.;
@@ -21,20 +19,18 @@ pub struct MainCamera;
 
 fn startup(mut commands: Commands) {
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                hdr: true,
-                ..default()
-            },
-            transform: Transform::from_xyz(500., 500., 0.),
-            //tonemapping: Tonemapping::TonyMcMapface,
-            ..Default::default()
+        Camera2d::default(),
+        Camera {
+            hdr: true,
+            ..default()
         },
-        BloomSettings {
+        Transform::from_xyz(500., 500., 0.),
+        Bloom {
             high_pass_frequency: 0.5,
-            ..Default::default()
+            ..default()
         },
-    )).insert(MainCamera);
+        MainCamera
+    ));
 }
 
 fn camera_zoom(

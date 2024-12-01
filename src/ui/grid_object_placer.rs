@@ -70,7 +70,7 @@ pub fn create_grid_object_placer_system(mut commands: Commands) {
     commands.spawn((
         GridObjectPlacer::default(),
         GridImprint::default(),
-        SpriteBundle::default(),
+        Sprite::default(),
         GridCoords::default(),
     ));
 }

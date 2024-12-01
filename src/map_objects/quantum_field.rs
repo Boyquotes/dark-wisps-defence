@@ -118,7 +118,12 @@ impl BuilderQuantumField {
     ) {
         for &BuilderQuantumField{ entity, grid_position, grid_imprint } in events.read() {
             commands.entity(entity).insert((
-                get_quantum_field_sprite_bundle(grid_position, grid_imprint),
+                Sprite {
+                    custom_size: Some(grid_imprint.world_size()),
+                    color: INDIGO.into(),
+                    ..Default::default()
+                },
+                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_OBSTACLE)),
                 grid_position,
                 grid_imprint,
                 QuantumField {
@@ -147,20 +152,6 @@ impl BuilderQuantumField {
 impl Command for BuilderQuantumField {
     fn apply(self, world: &mut World) {
         world.send_event(self);
-    }
-}
-
-pub fn get_quantum_field_sprite_bundle(grid_position: GridCoords, grid_imprint: GridImprint) -> SpriteBundle {
-    SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(grid_imprint.world_size()),
-            color: INDIGO.into(),
-            ..Default::default()
-        },
-        transform: Transform::from_translation(
-            grid_position.to_world_position_centered(grid_imprint).extend(Z_OBSTACLE)
-        ),
-        ..Default::default()
     }
 }
 
@@ -278,8 +269,8 @@ pub fn create_grid_placer_ui_for_quantum_field_system(
             }
         }
         pub fn spawn(self, builder: &mut ChildBuilder) {
-            builder.spawn((self.button, self.arrow_button, self.advanced_interaction)).with_children(|parent| {
-                parent.spawn(self.text);
+            builder.spawn((self.button, self.node, self.background_color, self.z_index, self.arrow_button, self.advanced_interaction)).with_children(|parent| {
+                parent.spawn((self.text, TextFont::default().with_font_size(12.)));
             });
         }
     }

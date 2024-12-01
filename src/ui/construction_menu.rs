@@ -19,9 +19,7 @@ const CONSTRUCT_MENU_BUTTON_WIDTH: f32 = 65.;
 const CONSTRUCT_MENU_BUTTON_HEIGHT: f32 = 64.;
 
 #[derive(Component, Default)]
-pub struct ConstructMenuButton {
-    pub is_hovered: bool,
-}
+pub struct ConstructMenuButton;
 #[derive(Bundle, Default)]
 pub struct ConstructButtonBundle {
     pub button: Button,
@@ -45,9 +43,7 @@ impl ConstructButtonBundle {
 }
 
 #[derive(Component, Default)]
-pub struct ConstructMenuListPicker {
-    pub is_hovered: bool,
-}
+pub struct ConstructMenuListPicker;
 #[derive(Bundle, Default)]
 pub struct ConstructMenuListPickerBundle {
     pub button: Button,

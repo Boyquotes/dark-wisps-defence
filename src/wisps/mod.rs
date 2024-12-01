@@ -30,9 +30,9 @@ impl Plugin for WispsPlugin {
                 systems::remove_dead_wisps,
                 systems::spawn_wisps.run_if(is_game_mode),
             ));
-        app.observe(spawning::on_wisp_spawn_attach_material::<components::WispFireType, materials::WispFireMaterial>);
-        app.observe(spawning::on_wisp_spawn_attach_material::<components::WispWaterType, materials::WispWaterMaterial>);
-        app.observe(spawning::on_wisp_spawn_attach_material::<components::WispLightType, materials::WispLightMaterial>);
-        app.observe(spawning::on_wisp_spawn_attach_material::<components::WispElectricType, materials::WispElectricMaterial>);
+        app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispFireType, materials::WispFireMaterial>);
+        app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispWaterType, materials::WispWaterMaterial>);
+        app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispLightType, materials::WispLightMaterial>);
+        app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispElectricType, materials::WispElectricMaterial>);
     }
 }

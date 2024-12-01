@@ -61,18 +61,18 @@ impl BuilderExplosion {
     ) {
         for &BuilderExplosion { grid_position } in events.read() {
             commands.spawn((
-                SpriteBundle {
-                    transform: Transform {
-                        translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
+                Sprite {
+                    image: explosion_atlas.texture_handle.clone(),
+                    texture_atlas: Some(TextureAtlas {
+                        layout: explosion_atlas.atlas_handle.clone(),
+                        index: 0,
                         ..Default::default()
-                    },
-                    texture: explosion_atlas.texture_handle.clone(),
+                    }),
                     ..default()
                 },
-                TextureAtlas {
-                    layout: explosion_atlas.atlas_handle.clone(),
-                    index: 0,
-                    ..Default::default()
+                Transform {
+                    translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
+                    ..default()
                 },
                 AnimationController::new(0, 3, 0.1, false),
                 MarkerExplosion,

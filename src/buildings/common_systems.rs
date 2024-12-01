@@ -53,42 +53,42 @@ pub fn onclick_building_spawn_system(
     let grid_action = match building_type {
         BuildingType::EnergyRelay => {
             let entity = commands.spawn_empty().id();
-            commands.add(BuilderEnergyRelay::new(entity, mouse_coords));
+            commands.queue(BuilderEnergyRelay::new(entity, mouse_coords));
             GridAction::Imprint(entity)
         }
         BuildingType::ExplorationCenter => {
             let entity = commands.spawn_empty().id();
-            commands.add(BuilderExplorationCenter::new(entity, mouse_coords));
+            commands.queue(BuilderExplorationCenter::new(entity, mouse_coords));
             GridAction::Imprint(entity)
         }
         BuildingType::Tower(TowerType::Blaster) => {
             let entity = commands.spawn_empty().id();
-            commands.add(BuilderTowerBlaster::new(entity, mouse_coords));
+            commands.queue(BuilderTowerBlaster::new(entity, mouse_coords));
             GridAction::Imprint(entity)
         },
         BuildingType::Tower(TowerType::Cannon) => {
             let entity = commands.spawn_empty().id();
-            commands.add(BuilderTowerCannon::new(entity, mouse_coords));
+            commands.queue(BuilderTowerCannon::new(entity, mouse_coords));
             GridAction::Imprint(entity)
         },
         BuildingType::Tower(TowerType::RocketLauncher) => {
             let entity = commands.spawn_empty().id();
-            commands.add(BuilderTowerRocketLauncher::new(entity, mouse_coords));
+            commands.queue(BuilderTowerRocketLauncher::new(entity, mouse_coords));
             GridAction::Imprint(entity)
         },
         BuildingType::Tower(TowerType::Emitter) => {
             let entity = commands.spawn_empty().id();
-            commands.add(BuilderTowerEmitter::new(entity, mouse_coords));
+            commands.queue(BuilderTowerEmitter::new(entity, mouse_coords));
             GridAction::Imprint(entity)
         },
         BuildingType::MainBase => {
             let (main_base_entity, main_base_coords) = main_base.single_mut();
-            commands.add(EventMoveMainBase { new_grid_position: mouse_coords });
+            commands.queue(EventMoveMainBase { new_grid_position: mouse_coords });
             GridAction::Reprint{entity: main_base_entity, old_coords: *main_base_coords}
         },
         BuildingType::MiningComplex => {
             let entity = commands.spawn_empty().id();
-            commands.add(BuilderMiningComplex::new(entity, mouse_coords));
+            commands.queue(BuilderMiningComplex::new(entity, mouse_coords));
             GridAction::ImprintMiningComplex(entity)
         },
     };
@@ -188,9 +188,9 @@ pub fn damage_control_system(
                 });
             }
             grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
-                commands.add(BuilderExplosion::new(coords));
+                commands.queue(BuilderExplosion::new(coords));
             });
-            commands.add(BuildingDestroyedEvent(entity));
+            commands.queue(BuildingDestroyedEvent(entity));
         }
     }
 }
@@ -222,7 +222,7 @@ pub fn rotational_aiming_system(
 
         let angle_diff = angle_difference(target_angle, rotation.current_angle);
 
-        let rotation_delta = rotation.speed * time.delta_seconds();
+        let rotation_delta = rotation.speed * time.delta_secs();
         rotation.current_angle += angle_diff.clamp(-rotation_delta, rotation_delta);
     }
 }

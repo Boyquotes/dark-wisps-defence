@@ -1,3 +1,5 @@
+use bevy::ui::widget::NodeImageMode;
+
 use crate::{inventory::objectives::BuilderObjective, prelude::*};
 
 pub struct ObjectivesPanelPlugin;
@@ -7,7 +9,7 @@ impl Plugin for ObjectivesPanelPlugin {
             .init_state::<ObjectivesPanelState>()
             .add_systems(Startup, initialize_objectives_panel_system)
             .add_systems(Update, (
-                on_objective_created_system.run_if(on_event::<BuilderObjective>()),
+                on_objective_created_system.run_if(on_event::<BuilderObjective>),
                 panel_transition_to_hidden_system.run_if(in_state(ObjectivesPanelState::TransitionToHidden)),
                 panel_transition_to_visible_system.run_if(in_state(ObjectivesPanelState::TransitionToVisible)),
                 on_click_show_hide_objectives_system,
@@ -36,41 +38,39 @@ fn initialize_objectives_panel_system(
     asset_server: Res<AssetServer>,
 ) {
     commands.spawn((
-        NodeBundle {
-            style: Style {
-                width: Val::Px(300.0),
-                position_type: PositionType::Absolute,
-                flex_direction: FlexDirection::Column,
-                top: Val::Px(VISIBLE_TOP_POSITION),
-                right: Val::Px(5.0),
-                padding: UiRect::all(Val::Px(8.0)),
-                row_gap: Val::Px(2.0),
-                ..default()
-            },
+        Node {
+            width: Val::Px(300.0),
+            position_type: PositionType::Absolute,
+            flex_direction: FlexDirection::Column,
+            top: Val::Px(VISIBLE_TOP_POSITION),
+            right: Val::Px(5.0),
+            padding: UiRect::all(Val::Px(8.0)),
+            row_gap: Val::Px(2.0),
             ..default()
         },
-        UiImage::new(asset_server.load("ui/objectives_panel.png")),
-        ImageScaleMode::Sliced(TextureSlicer {
-            border: BorderRect::square(20.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 1.0,
-        }),
+        ImageNode {
+            image: asset_server.load("ui/objectives_panel.png"),
+            image_mode: NodeImageMode::Sliced(TextureSlicer {
+                border: BorderRect::square(20.0),
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 1.0,
+            }),
+            ..default()
+        },
         ObjectivesPanel,
     )).with_children(|parent| {
         parent.spawn((
-            ButtonBundle {
-                style: Style {
-                    width: Val::Px(32.0),
-                    height: Val::Px(32.0),
-                    position_type: PositionType::Absolute,
-                    bottom: Val::Px(-34.0),
-                    right: Val::Px(5.0),
-                    ..default()
-                },
-                image: UiImage::new(asset_server.load("ui/objectives_panel.png")),
+            Button::default(),
+            Node {
+                width: Val::Px(32.0),
+                height: Val::Px(32.0),
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(-34.0),
+                right: Val::Px(5.0),
                 ..default()
             },
+            ImageNode::new(asset_server.load("ui/objectives_panel.png")),
             ObjectivesShowHideButton,
         ));
     });
@@ -90,14 +90,14 @@ fn on_objective_created_system(
 fn panel_transition_to_visible_system(
     time: Res<Time>,
     mut next_state: ResMut<NextState<ObjectivesPanelState>>,
-    mut objectives_panel: Query<&mut Style, With<ObjectivesPanel>>,
+    mut objectives_panel: Query<&mut Node, With<ObjectivesPanel>>,
 ) {
     let mut style = objectives_panel.single_mut();
     let current_top = match style.top {
         Val::Px(top) => top,
         _ => unreachable!(),
     };
-    let new_top = current_top + time.delta_seconds() * SLIDING_SPEED;
+    let new_top = current_top + time.delta_secs() * SLIDING_SPEED;
     if new_top < VISIBLE_TOP_POSITION {
         style.top = Val::Px(new_top);
     } else {
@@ -109,14 +109,14 @@ fn panel_transition_to_visible_system(
 fn panel_transition_to_hidden_system(
     time: Res<Time>,
     mut next_state: ResMut<NextState<ObjectivesPanelState>>,
-    mut objectives_panel: Query<(&Node, &mut Style), With<ObjectivesPanel>>,
+    mut objectives_panel: Query<(&ComputedNode, &mut Node), With<ObjectivesPanel>>,
 ) {
     let (node, mut style) = objectives_panel.single_mut();
     let current_top = match style.top {
         Val::Px(top) => top,
         _ => unreachable!(),
     };
-    let new_top = current_top - time.delta_seconds() * SLIDING_SPEED;
+    let new_top = current_top - time.delta_secs() * SLIDING_SPEED;
     if new_top > -node.size().y {
         style.top = Val::Px(new_top);
     } else {

@@ -2,7 +2,7 @@ use crate::prelude::*;
 use bevy::reflect::TypePath;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
-use bevy::sprite::{Material2d, MaterialMesh2dBundle};
+use bevy::sprite::{AlphaMode2d, Material2d};
 use crate::grids::base::GridVersion;
 use crate::grids::emissions::{EmissionsGrid, EmissionsType};
 
@@ -16,6 +16,9 @@ pub struct EmissionHeatmapMaterial {
 impl Material2d for EmissionHeatmapMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/emissions_map.wgsl".into()
+    }
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
     }
 }
 
@@ -44,15 +47,15 @@ pub fn create_emissions_overlay_startup_system(
 
 
     let full_world_size = 100. * CELL_SIZE;
-    commands.spawn(MaterialMesh2dBundle {
-        mesh: meshes.add(Rectangle::new(1.0, 1.0)).into(),
-        transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., 0.)
-            .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
-        material: materials.add(EmissionHeatmapMaterial {
+    commands.spawn((
+        Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
+        MeshMaterial2d(materials.add(EmissionHeatmapMaterial {
             heatmap: image,
-        }),
-        ..Default::default()
-    }).insert(EmissionsOverlay);
+        })),
+        Transform::from_xyz(full_world_size / 2., full_world_size / 2., 0.)
+            .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
+        EmissionsOverlay,
+    ));
 }
 
 /// Keep tracks of which version does the overlay use
@@ -84,7 +87,7 @@ pub fn update_emissions_overlay_system(
     mut materials: ResMut<Assets<EmissionHeatmapMaterial>>,
     emissions_grid: Res<EmissionsGrid>,
     mut emissions_overlay_mode: ResMut<EmissionsOverlayMode>,
-    emissions_overlay: Query<&Handle<EmissionHeatmapMaterial>, With<EmissionsOverlay>>,
+    emissions_overlay: Query<&MeshMaterial2d<EmissionHeatmapMaterial>, With<EmissionsOverlay>>,
 ) {
     match &mut *emissions_overlay_mode {
         EmissionsOverlayMode::None => { return; },

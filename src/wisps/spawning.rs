@@ -1,5 +1,3 @@
-use bevy::sprite::Mesh2dHandle;
-
 use crate::prelude::*;
 
 use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispElectricType, WispFireType, WispLightType, WispState, WispType, WispWaterType};
@@ -29,12 +27,9 @@ impl BuilderWisp {
                 grid_coords,
                 Health::new(10),
                 Speed(30.),
-                SpatialBundle {
-                    transform: Transform {
-                        translation: grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP),
-                        rotation: Quat::from_rotation_z(rng.generate::<f32>() * 2. * std::f32::consts::PI),
-                        ..default()
-                    },
+                Transform {
+                    translation: grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP),
+                    rotation: Quat::from_rotation_z(rng.generate::<f32>() * 2. * std::f32::consts::PI),
                     ..default()
                 },
                 Wisp,
@@ -74,7 +69,7 @@ pub fn on_wisp_spawn_attach_material<WispT: Component, MaterialT: Asset + WispMa
     let mesh = meshes.add(Rectangle::new(wisp_world_size.x, wisp_world_size.y));
     let material = materials.add(MaterialT::make(&asset_server));
     commands.entity(entity).insert((
-        Mesh2dHandle(mesh),
-        material,
+        Mesh2d(mesh),
+        MeshMaterial2d(material),
     ));
 }

@@ -49,7 +49,7 @@ fn camera_zoom(
 
     for mut projection in query.iter_mut() {
         let mut log_scale = projection.scale.ln();
-        log_scale -= scroll * ZOOM_SPEED * time.delta_seconds();
+        log_scale -= scroll * ZOOM_SPEED * time.delta_secs();
         projection.scale = log_scale.exp().clamp(ZOOM_MIN, ZOOM_MAX);
     }
 }
@@ -84,6 +84,6 @@ fn camera_movement(
 
     // Apply the camera movement
     for mut transform in query_camera.iter_mut() {
-        transform.translation += SLIDE_SPEED * time.delta_seconds() * translation;
+        transform.translation += SLIDE_SPEED * time.delta_secs() * translation;
     }
 }

@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use bevy::reflect::TypePath;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
-use bevy::sprite::{Material2d, MaterialMesh2dBundle};
+use bevy::sprite::{AlphaMode2d, Material2d};
 use crate::prelude::*;
 use crate::search::common::{CARDINAL_DIRECTIONS, VISITED_GRID};
 use crate::ui::display_info_panel::UiMapObjectFocusChangedEvent;
@@ -27,7 +27,7 @@ impl Plugin for EnergySupplyOverlayPlugin {
                 on_config_change_system.run_if(resource_changed::<EnergySupplyOverlayConfig>),
                 refresh_display_system.run_if(in_state(EnergySupplyOverlayState::Show)),
                 manage_energy_supply_overlay_global_mode_system,
-                on_building_ui_focus_changed_system.run_if(on_event::<UiMapObjectFocusChangedEvent>()),
+                on_building_ui_focus_changed_system.run_if(on_event::<UiMapObjectFocusChangedEvent>),
                 on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
             ));
     }
@@ -83,6 +83,9 @@ impl Material2d for EnergySupplyHeatmapMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/energy_supply_map.wgsl".into()
     }
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
+    }
 }
 
 #[derive(Component)]
@@ -124,7 +127,7 @@ fn refresh_display_system(
     mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
     energy_supply_grid: Res<EnergySupplyGrid>,
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
-    energy_supply_overlay: Query<&Handle<EnergySupplyHeatmapMaterial>, With<EnergySupplyOverlay>>,
+    energy_supply_overlay: Query<&MeshMaterial2d<EnergySupplyHeatmapMaterial>, With<EnergySupplyOverlay>>,
     mut last_secondary_mode: Local<EnergySupplyOverlaySecondaryMode>,
 ) {
     if overlay_config.grid_version != energy_supply_grid.version || overlay_config.secondary_mode != *last_secondary_mode {
@@ -229,19 +232,17 @@ fn create_energy_supply_overlay_startup_system(
     );
 
     let full_world_size = 100. * CELL_SIZE;
-    commands.spawn(
-        MaterialMesh2dBundle {
-            mesh: meshes.add(Rectangle::new(1.0, 1.0)).into(),
-            transform: Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
+    commands.spawn((
+        Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
+        MeshMaterial2d(materials.add(EnergySupplyHeatmapMaterial {
+            heatmap: image,
+            highlight_enabled: 0,
+        })),
+        Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
                 .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
-            material: materials.add(EnergySupplyHeatmapMaterial {
-                highlight_enabled: 0,
-                heatmap: image,
-            }),
-            visibility: Visibility::Hidden,
-            ..Default::default()
-        }
-    ).insert(EnergySupplyOverlay);
+        Visibility::Hidden,
+        EnergySupplyOverlay
+    ));
 }
 
 pub struct OverlayHeatmapCreator<'a> {

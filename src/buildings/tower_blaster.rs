@@ -74,10 +74,10 @@ pub fn get_tower_top_sprite_bundle(asset_server: &AssetServer, grid_imprint: Gri
     let world_size = grid_imprint.world_size();
     SpriteBundle {
         sprite: Sprite {
+            image: asset_server.load(TOWER_BLASTER_TOP_IMAGE),
             custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
             ..Default::default()
         },
-        texture: asset_server.load(TOWER_BLASTER_TOP_IMAGE),
         transform: Transform::from_translation(Vec3::new(0., 0., Z_TOWER_TOP)),
         ..Default::default()
     }
@@ -112,7 +112,7 @@ pub fn shooting_system(
         );
         let spawn_position = transform.translation.xy() + offset;
 
-        commands.add(BuilderLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize()));
+        commands.queue(BuilderLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize()));
         timer.0.reset();
     }
 }

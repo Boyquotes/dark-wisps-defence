@@ -191,7 +191,7 @@ fn onclick_spawn_system(
         // Place a quantum_field
         if obstacles_grid.imprint_query_all(mouse_coords, grid_imprint, |field| field.is_empty()) {
             let quantum_field_entity = commands.spawn_empty().id();
-            commands.add(BuilderQuantumField::new(quantum_field_entity, mouse_coords, grid_imprint));
+            commands.queue(BuilderQuantumField::new(quantum_field_entity, mouse_coords, grid_imprint));
             obstacles_grid.imprint(mouse_coords, Field::QuantumField(quantum_field_entity), grid_imprint);
         }
     } else if mouse.pressed(MouseButton::Right) {
@@ -252,26 +252,27 @@ pub fn create_grid_placer_ui_for_quantum_field_system(
     mut commands: Commands,
 ) {
     struct ArrowButtonBundle {
-        button: ButtonBundle,
-        text: TextBundle,
+        button: Button,
+        node: Node,
+        background_color: BackgroundColor,
+        z_index: GlobalZIndex,
+        text: Text,
         arrow_button: ArrowButton,
         advanced_interaction: AdvancedInteraction,
     }
     impl ArrowButtonBundle {
         fn new(arrow_button: ArrowButton) -> Self {
             Self {
-                button: ButtonBundle {
-                    style: Style {
-                        width: Val::Px(16.),
-                        height: Val::Px(16.),
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    background_color: Color::BLACK.into(),
-                    z_index: ZIndex::Global(-1),
-                    ..Default::default()
+                button: Button::default(),
+                node: Node {
+                    width: Val::Px(16.),
+                    height: Val::Px(16.),
+                    justify_content: JustifyContent::Center,
+                    ..default()
                 },
-                text: TextBundle::from_section(arrow_button.text(), TextStyle::default()),
+                background_color: Color::BLACK.into(),
+                z_index: GlobalZIndex(-1),
+                text: Text::new(arrow_button.text()),
                 arrow_button,
                 advanced_interaction: Default::default(),
             }
@@ -286,22 +287,19 @@ pub fn create_grid_placer_ui_for_quantum_field_system(
     let grid_placer_ui_for_quantum_field = GridPlacerUiForQuantumField::default();
     let ui_text = grid_placer_ui_for_quantum_field.imprint_str();
     commands.spawn((
-        NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                top: Val::Px(5.0),
-                left: Val::Percent(50.0),
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::Center,
-                column_gap: Val::Px(2.5),
-                ..default()
-            },
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(5.0),
+            left: Val::Percent(50.0),
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            column_gap: Val::Px(2.5),
             ..default()
         },
         grid_placer_ui_for_quantum_field,
     )).with_children(|parent| {
         ArrowButtonBundle::new(ArrowButton::Decrease).spawn(parent);
-        parent.spawn(TextBundle::from_section(ui_text, TextStyle::default()));
+        parent.spawn(Text::new(ui_text));
         ArrowButtonBundle::new(ArrowButton::Increase).spawn(parent);
     });
 }
@@ -328,7 +326,7 @@ pub fn operate_arrows_for_grid_placer_ui_for_quantum_field_system(
             }
 
             let ui_text = grid_placer_ui.imprint_str();
-            texts.get_mut(ui_children[1]).unwrap().sections[0].value = ui_text;
+            texts.get_mut(ui_children[1]).unwrap().0 = ui_text;
             placer_request.set(GridObjectPlacer::QuantumField(grid_placer_ui.imprint_selector));
         }
     }

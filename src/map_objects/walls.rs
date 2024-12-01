@@ -98,7 +98,7 @@ pub fn onclick_spawn_system(
         // Place a wall
         if obstacle_grid[mouse_coords].is_empty() {
             let wall_entity = commands.spawn_empty().id();
-            commands.add(BuilderWall::new(wall_entity, mouse_coords));
+            commands.queue(BuilderWall::new(wall_entity, mouse_coords));
             obstacle_grid.imprint(mouse_coords, Field::Wall(wall_entity), WALL_GRID_IMPRINT);
         }
     } else if mouse.pressed(MouseButton::Right) {
@@ -116,7 +116,7 @@ pub fn color_rotation_system(
 ) {
     for mut sprite in query.iter_mut() {
         if let Color::Hsla(Hsla{hue, ..}) = &mut sprite.color {
-            *hue += time.delta_seconds() * 100.;
+            *hue += time.delta_secs() * 100.;
             if *hue > 360. {
                 *hue = 0.;
             }

@@ -1,9 +1,9 @@
 use bevy::render::render_resource::{ShaderRef, AsBindGroup};
-use bevy::sprite::Material2d;
+use bevy::sprite::{AlphaMode2d, Material2d};
 
 use crate::prelude::*;
 
-pub trait WispMaterial {
+pub trait WispMaterial: Material2d {
     fn make(asset_server: &AssetServer) -> Self;
 }
 
@@ -29,6 +29,9 @@ pub struct WispFireMaterial {
 impl Material2d for WispFireMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/wisps/fire.wgsl".into()
+    }
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
     }
 }
 impl WispMaterial for WispFireMaterial {
@@ -69,6 +72,9 @@ impl Material2d for WispWaterMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/wisps/water.wgsl".into()
     }
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
+    }
 }
 impl WispMaterial for WispWaterMaterial {
     fn make(asset_server: &AssetServer) -> Self {
@@ -97,6 +103,9 @@ impl Material2d for WispLightMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/wisps/light.wgsl".into()
     }
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
+    }
 }
 impl WispMaterial for WispLightMaterial {
     fn make(_asset_server: &AssetServer) -> Self {
@@ -118,6 +127,9 @@ pub struct WispElectricMaterial {
 impl Material2d for WispElectricMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/wisps/electric.wgsl".into()
+    }
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
     }
 }
 impl WispMaterial for WispElectricMaterial {

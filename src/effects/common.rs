@@ -24,9 +24,10 @@ impl AnimationController {
 
 pub fn animate_sprite_system(
     time: Res<Time>,
-    mut animations: Query<(&mut AnimationController, &mut TextureAtlas)>,
+    mut animations: Query<(&mut AnimationController, &mut Sprite)>,
 ) {
-    for (mut controller, mut atlas) in &mut animations {
+    for (mut controller, mut sprite) in &mut animations {
+        let Some(atlas) = &mut sprite.texture_atlas else { continue; };
         controller.timer.tick(time.delta());
         if controller.timer.just_finished() {
             atlas.index = if atlas.index == controller.atlas_last_frame {

@@ -72,11 +72,11 @@ pub fn get_tower_top_sprite_bundle(asset_server: &AssetServer, grid_imprint: Gri
     let world_size = grid_imprint.world_size();
     SpriteBundle {
         sprite: Sprite {
+            image: asset_server.load("buildings/tower_rocket_launcher_top.png"),
             custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
             anchor: Anchor::Custom(Vec2::new(-0.20, 0.0)),
             ..Default::default()
         },
-        texture: asset_server.load("buildings/tower_rocket_launcher_top.png"),
         transform: Transform::from_translation(Vec3::new(0., 0., Z_TOWER_TOP)),
         ..Default::default()
     }
@@ -112,7 +112,7 @@ pub fn shooting_system(
         let spawn_position = transform.translation.xy() + offset;
 
         let rocket_angle = Quat::from_rotation_z(top_rotation.current_angle);
-        commands.add(BuilderRocket::new(spawn_position, rocket_angle, target_wisp));
+        commands.queue(BuilderRocket::new(spawn_position, rocket_angle, target_wisp));
         timer.0.reset();
     }
 }

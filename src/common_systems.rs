@@ -7,6 +7,6 @@ pub fn pulsate_sprites_system(
     time: Res<Time>,
 ) {
     for (mut sprite, mut color_pulsation) in sprites.iter_mut() {
-        color_pulsation.pulsate_sprite(&mut sprite, time.delta_seconds());
+        color_pulsation.pulsate_sprite(&mut sprite, time.delta_secs());
     }
 }

@@ -54,17 +54,14 @@ impl BuilderCannonball {
     ) {
         for &BuilderCannonball{ world_position, target_position } in events.read() {
             commands.spawn((
-                SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(8.0, 8.0)),
-                        ..Default::default()
-                    },
-                    texture: asset_server.load(CANNONBALL_BASE_IMAGE),
-                    transform: Transform {
-                        translation: world_position.extend(Z_PROJECTILE),
-                        ..Default::default()
-                    },
-                    ..Default::default()
+                Sprite {
+                    image: asset_server.load(CANNONBALL_BASE_IMAGE),
+                    custom_size: Some(Vec2::new(8.0, 8.0)),
+                    ..default()
+                },
+                Transform {
+                    translation: world_position.extend(Z_PROJECTILE),
+                    ..default()
                 },
                 MarkerProjectile,
                 MarkerCannonball,
@@ -88,7 +85,7 @@ pub fn cannonball_move_system(
 ) {
     for (mut transform, target) in cannonballs.iter_mut() {
         let direction_vector = (target.target_position - transform.translation.xy()).normalize();
-        let move_distance = direction_vector * time.delta_seconds() * 200.;
+        let move_distance = direction_vector * time.delta_secs() * 200.;
 
         let remaining_distance = (transform.translation.xy() + move_distance).distance(target.target_position);
 
@@ -122,7 +119,7 @@ pub fn cannonball_hit_system(
             let blast_zone_coords = coords.shifted((*dx, *dy));
             if !blast_zone_coords.is_in_bounds(wisps_grid.bounds()) { continue; }
 
-            commands.add(BuilderExplosion::new(blast_zone_coords));
+            commands.queue(BuilderExplosion::new(blast_zone_coords));
 
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {

@@ -88,7 +88,7 @@ pub fn laser_dart_move_system(
                 target.target_wisp = None;
             }
         }
-        transform.translation += target.target_vector.extend(0.) * time.delta_seconds() * 300.;
+        transform.translation += target.target_vector.extend(0.) * time.delta_secs() * 300.;
     }
 }
 

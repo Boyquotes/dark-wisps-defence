@@ -62,11 +62,11 @@ impl Command for BuilderEnergyRelay {
 pub fn get_energy_relay_sprite_bundle(coords: GridCoords, grid_imprint: GridImprint, asset_server: &AssetServer) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
+            image: asset_server.load(ENERGY_RELAY_BASE_IMAGE),
             custom_size: Some(grid_imprint.world_size()),
             color: Color::hsla(0., 0.2, 1.0, 1.0), // 1.6 is a good value if the pulsation is off.
             ..Default::default()
         },
-        texture: asset_server.load(ENERGY_RELAY_BASE_IMAGE),
         transform: Transform::from_translation(coords.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
         ..Default::default()
     }

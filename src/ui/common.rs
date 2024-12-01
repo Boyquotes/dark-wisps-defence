@@ -1,4 +1,5 @@
-use bevy::{color::palettes::css::{BLACK, BLUE, GREEN, RED}, text::BreakLineOn};
+use bevy::color::palettes::css::{BLUE, GREEN, RED};
+use bevy::text::LineBreak;
 
 use crate::prelude::*;
 
@@ -16,8 +17,8 @@ impl Plugin for UiCommonPlugin {
                 on_cost_indicator_changed_system,
                 calculate_cost_indicator_has_required_resources_system.run_if(resource_changed::<Stock>),
             ));
-        app.world_mut().observe(on_healthbar_added_trigger);
-        app.world_mut().observe(on_cost_indicator_added_trigger);
+        app.world_mut().add_observer(on_healthbar_added_trigger);
+        app.world_mut().add_observer(on_cost_indicator_added_trigger);
     }
 }
 
@@ -60,7 +61,7 @@ fn mouse_release_system(
 
 #[derive(Bundle, Default)]
 pub struct HealthbarBundle {
-    pub node: NodeBundle,
+    pub node: Node,
     pub healthbar: Healthbar,
 }
 #[derive(Component)]
@@ -105,35 +106,29 @@ fn on_healthbar_added_trigger(
     commands.entity(healthbar_entity).with_children(|parent| {
         parent.spawn((
             // Bottom rectangle(background)
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    border: UiRect::all(Val::Px(2.0)),
-                    ..default()
-                },
-                background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
-                border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+            Node {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                border: UiRect::all(Val::Px(2.0)),
                 ..default()
             },
+            BackgroundColor::from(Color::linear_rgba(0., 0., 0., 0.)),
+            BorderColor::from(Color::linear_rgba(0., 0.2, 1., 1.)),
         )).with_children(|parent| {
             // Top rectangle(health)
             healthbar_children.value_rectangle = parent.spawn((
-                NodeBundle {
-                    style: Style {
-                        width: Val::Percent(healthbar.get_percent()),
-                        height: Val::Percent(100.),
-                        ..default()
-                    },
-                    background_color: healthbar.color.into(),
+                Node {
+                    width: Val::Percent(healthbar.get_percent()),
+                    height: Val::Percent(100.),
                     ..default()
                 },
+                BackgroundColor::from(healthbar.color),
                 HealthbarValueRectangle,
             )).id();
             // Current hp text
-            parent.spawn(NodeBundle {
+            parent.spawn((
                 // This additional container is needed to center the text as no combination of flex_direction, justify_content and align_items work
-                style: Style {
+                Node {
                     position_type: PositionType::Absolute,
                     width: Val::Percent(100.),
                     height: Val::Percent(100.),
@@ -141,31 +136,26 @@ fn on_healthbar_added_trigger(
                     align_items: AlignItems::Center,
                     ..default()
                 },
-                ..default() 
-            }).with_children(|parent| {
-                healthbar_children.value_text = parent.spawn((
-                    TextBundle {
-                        text: Text {
-                            sections: vec![TextSection::new(format!("{:.0} / {:.0}", healthbar.value, healthbar.max_value), TextStyle{ color: BLACK.into(), font_size: healthbar.font_size, ..default() })],
-                            linebreak_behavior: BreakLineOn::NoWrap,
-                            ..default() 
-                        },
-                        style: Style {
+            )).with_children(|parent| {
+                    healthbar_children.value_text = parent.spawn((
+                        Text::new(format!("{:.0} / {:.0}", healthbar.value, healthbar.max_value)),
+                        TextFont::default().with_font_size(healthbar.font_size),
+                        TextColor::BLACK,
+                        TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                        Node {
                             top: Val::Px(-2.0), // Looks more centered
                             ..default()
                         },
-                        ..default()
-                    },
-                    HealthbarValueText,
-                )).id();
+                        HealthbarValueText,
+                    )).id();
+                });
             });
-        });
     }).insert(healthbar_children);
 }
 
 fn on_healthbar_changed_system(
     healthbars: Query<(&Healthbar, &HealthbarChildren), Changed<Healthbar>>,
-    mut value_rectangles: Query<(&mut Style, &mut BackgroundColor), With<HealthbarValueRectangle>>,
+    mut value_rectangles: Query<(&mut Node, &mut BackgroundColor), With<HealthbarValueRectangle>>,
     mut texts: Query<&mut Text, With<HealthbarValueText>>,
 ) {
     for (healthbar, children) in healthbars.iter() {
@@ -173,7 +163,7 @@ fn on_healthbar_changed_system(
         style.width = Val::Percent(healthbar.get_percent());
         background_color.0 = healthbar.color;
         let Ok(mut text) = texts.get_mut(children.value_text) else { unreachable!() };
-        text.sections[0].value = format!("{} / {}", healthbar.value, healthbar.max_value);
+        text.0 = format!("{} / {}", healthbar.value, healthbar.max_value);
     }
 }
 
@@ -182,7 +172,7 @@ fn on_healthbar_changed_system(
 ////////////////////////////////////////////
 #[derive(Bundle, Default)]
 pub struct CostIndicatorBundle {
-    pub node: NodeBundle,
+    pub node: Node,
     pub cost_indicator: CostIndicator,
 }
 #[derive(Component)]
@@ -236,53 +226,38 @@ fn on_cost_indicator_added_trigger(
     };
     commands.entity(cost_indicator_entity).with_children(|parent| {
         cost_indicator_children.border_rectangle = parent.spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Px(32.),
-                    height: Val::Px(32.),
-                    border: UiRect::all(Val::Px(2.0)),
-                    ..default()
-                },
-                background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
-                border_color: BLUE.into(),
+            Node {
+                width: Val::Px(32.),
+                height: Val::Px(32.),
+                border: UiRect::all(Val::Px(2.0)),
                 ..default()
             },
+            BackgroundColor::from(Color::linear_rgba(0., 0., 0., 0.)),
+            BorderColor::from(BLUE),
             CostIndicatorBorderRectangle,
         )).id();
         cost_indicator_children.icon = parent.spawn((
-            ImageBundle {
-                style: Style {
-                    width: Val::Px(16.),
-                    height: Val::Px(16.),
-                    ..default()
-                },
+            ImageNode::default(),
+            Node {
+                width: Val::Px(16.),
+                height: Val::Px(16.),
                 ..default()
             },
             CostIndicatorIcon,
         )).id();
         parent.spawn((
-            NodeBundle {
-                style: Style {
-                    position_type: PositionType::Absolute,
-                    bottom: Val::Px(2.0),
-                    left: Val::Px(2.0),
-                    ..Default::default()
-                },
+            Node {
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(2.0),
+                left: Val::Px(2.0),
                 ..default()
             },
         )).with_children(|parent| {
             cost_indicator_children.value_text = parent.spawn((
-                TextBundle {
-                    text: Text {
-                        sections: vec![TextSection::new(
-                            format!("{}", cost_indicator.cost.amount),
-                            TextStyle{ color: cost_indicator.font_color, font_size: cost_indicator.font_size, ..default() })
-                        ],
-                        linebreak_behavior: BreakLineOn::NoWrap,
-                        ..default() 
-                    },
-                    ..default()
-                },
+                Text::new(format!("{}", cost_indicator.cost.amount)),
+                TextFont::default().with_font_size(cost_indicator.font_size),
+                TextColor::from(cost_indicator.font_color),
+                TextLayout::new_with_linebreak(LineBreak::NoWrap),
                 CostIndicatorValueText,
             )).id();
         });
@@ -296,7 +271,7 @@ fn on_cost_indicator_changed_system(
 ) {
     for (cost_indicator, children) in cost_indicators.iter() {
         let Ok(mut text) = texts.get_mut(children.value_text) else { unreachable!() };
-        text.sections[0].value = format!("{}", cost_indicator.cost.amount);
+        text.0 = format!("{}", cost_indicator.cost.amount);
 
         let Ok(mut border_color) = border_rectangles.get_mut(children.border_rectangle) else { unreachable!() };
         border_color.0 = if cost_indicator.has_required_resources{ GREEN.into() } else { RED.into() };

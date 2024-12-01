@@ -22,7 +22,7 @@ pub fn move_wisps(
         let direction = interim_target_world_coords - curr_world_coords;
         let (sx, sy) = (direction.x.signum(), direction.y.signum());
         let wisp_speed = speed.0;
-        transform.translation += Vec3::new(sx * time.delta_seconds() * wisp_speed, sy * time.delta_seconds() * wisp_speed, 0.);
+        transform.translation += Vec3::new(sx * time.delta_secs() * wisp_speed, sy * time.delta_secs() * wisp_speed, 0.);
         // If close enough, remove from path.
         if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
             grid_path.remove_first();
@@ -122,10 +122,10 @@ pub fn wisp_charge_attack(
                 let direction = interim_target_world_coords - curr_world_coords;
                 let (sx, sy) = (direction.x.signum(), direction.y.signum());
                 let wisp_speed = speed.0 * 5.;
-                transform.translation += Vec3::new(sx * time.delta_seconds() * wisp_speed, sy * time.delta_seconds() * wisp_speed, 0.);
+                transform.translation += Vec3::new(sx * time.delta_secs() * wisp_speed, sy * time.delta_secs() * wisp_speed, 0.);
                 if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
                     *attack = WispChargeAttack::Backoff;
-                    commands.add(BuilderWispAttackEffect::new(transform.translation.xy()));
+                    commands.queue(BuilderWispAttackEffect::new(transform.translation.xy()));
                     // Deal damage to the building
                     let _ = buildings.get_mut(target_entity).map(|mut health| {
                         health.decrease(1);
@@ -139,7 +139,7 @@ pub fn wisp_charge_attack(
                 let direction = interim_target_world_coords - curr_world_coords;
                 let (sx, sy) = (direction.x.signum(), direction.y.signum());
                 let wisp_speed = speed.0 * 0.5;
-                transform.translation += Vec3::new(sx * time.delta_seconds() * wisp_speed, sy * time.delta_seconds() * wisp_speed, 0.);
+                transform.translation += Vec3::new(sx * time.delta_secs() * wisp_speed, sy * time.delta_secs() * wisp_speed, 0.);
                 if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
                     *attack = WispChargeAttack::Charge;
                 }
@@ -167,7 +167,7 @@ pub fn collide_wisps(
         health.decrease(1);
         wisps_grid.wisp_remove(*coords, wisp_entity.into());
         commands.entity(wisp_entity).despawn();
-        commands.add(BuilderWispAttackEffect::new(transform.translation.xy()))
+        commands.queue(BuilderWispAttackEffect::new(transform.translation.xy()))
     }
 }
 
@@ -192,7 +192,7 @@ pub fn spawn_wisps(
             }
         };
         let wisp_entity = commands.spawn_empty().id();
-        commands.add(BuilderWisp::new(wisp_entity, WispType::random(), grid_coords));
+        commands.queue(BuilderWisp::new(wisp_entity, WispType::random(), grid_coords));
         wisps_grid.wisp_add(grid_coords, wisp_entity.into());
     }
 }

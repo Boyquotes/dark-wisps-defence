@@ -85,7 +85,7 @@ pub fn create_expedition_system(
             });
             if let Some((zone_entity, ..)) = closest_zone {
                 let drone_entity = commands.spawn_empty().id();
-                commands.add(BuilderExpeditionDrone::new(drone_entity, center_position, *zone_entity));
+                commands.queue(BuilderExpeditionDrone::new(drone_entity, center_position, *zone_entity));
             }
         }
     }

@@ -58,34 +58,28 @@ impl BuilderRocket {
     ) {
         for &BuilderRocket{ world_position, rotation, target_wisp } in events.read() {
             let exhaust = commands.spawn((
-                SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(10.0, 6.25)),
-                        anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
-                        ..Default::default()
-                    },
-                    texture: asset_server.load(ROCKET_EXHAUST_IMAGE),
-                    transform: Transform {
-                        translation: Vec2::ZERO.extend(Z_PROJECTILE_UNDER),
-                        ..Default::default()
-                    },
-                    ..Default::default()
+                Sprite {
+                    image: asset_server.load(ROCKET_EXHAUST_IMAGE),
+                    custom_size: Some(Vec2::new(10.0, 6.25)),
+                    anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
+                    ..default()
+                },
+                Transform {
+                    translation: Vec2::ZERO.extend(Z_PROJECTILE_UNDER),
+                    ..default()
                 },
                 MarkerRocketExhaust,
             )).id();
             commands.spawn((
-                SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(20.0, 10.0)),
-                        ..Default::default()
-                    },
-                    texture: asset_server.load(ROCKET_BASE_IMAGE),
-                    transform: Transform {
-                        translation: world_position.extend(Z_PROJECTILE),
-                        rotation,
-                        ..Default::default()
-                    },
+                Sprite {
+                    image: asset_server.load(ROCKET_BASE_IMAGE),
+                    custom_size: Some(Vec2::new(20.0, 10.0)),
                     ..Default::default()
+                },
+                Transform {
+                    translation: world_position.extend(Z_PROJECTILE),
+                    rotation,
+                    ..default()
                 },
                 MarkerProjectile,
                 MarkerRocket{ exhaust },
@@ -123,7 +117,7 @@ pub fn rocket_move_system(
         let current_direction = transform.local_x().xy();
 
         // Move the entity forward (along the local y-axis)
-        transform.translation += (current_direction * time.delta_seconds() * 200.0).extend(0.0);
+        transform.translation += (current_direction * time.delta_secs() * 200.0).extend(0.0);
 
         // Calculate the target angle
         let target_angle = direction_vector.y.atan2(direction_vector.x);
@@ -139,7 +133,7 @@ pub fn rocket_move_system(
 
         // Apply the rotation smoothly
         let rotation_speed = 1.5; // radians per second
-        let max_rotation_speed = rotation_speed * time.delta_seconds();
+        let max_rotation_speed = rotation_speed * time.delta_secs();
         let rotation_amount = angle_diff.clamp(-max_rotation_speed, max_rotation_speed);
         transform.rotate(Quat::from_rotation_z(rotation_amount));
 
@@ -168,7 +162,7 @@ pub fn rocket_hit_system(
             let blast_zone_coords = coords.shifted((*dx, *dy));
             if !blast_zone_coords.is_in_bounds(wisps_grid.bounds()) { continue; }
 
-            commands.add(BuilderExplosion::new(blast_zone_coords));
+            commands.queue(BuilderExplosion::new(blast_zone_coords));
 
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {
@@ -185,6 +179,6 @@ pub fn exhaust_blinking_system(
     mut query: Query<(&mut Sprite, &MarkerRocketExhaust)>,
 ) {
     for (mut sprite, _) in query.iter_mut() {
-        sprite.color.set_alpha(if time.elapsed_seconds() % 1. < 0.85 { 1. } else { 0.0 });
+        sprite.color.set_alpha(if time.elapsed_secs() % 1. < 0.85 { 1. } else { 0.0 });
     }
 }

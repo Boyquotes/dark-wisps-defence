@@ -1,7 +1,7 @@
 use bevy::color::palettes::css::{AQUA, BLUE, YELLOW};
 use bevy::render::camera::RenderTarget;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
-use bevy::text::BreakLineOn;
+use bevy::text::LineBreak;
 use crate::map_objects::common::ExpeditionTargetMarker;
 use crate::map_objects::quantum_field::QuantumField;
 use crate::prelude::*;
@@ -19,15 +19,15 @@ impl Plugin for DisplayInfoPanelPlugin {
             ))
             .add_systems(Update, (
                 hide_system.run_if(in_state(UiInteraction::DisplayInfoPanel)),
-                show_on_click_system.run_if(in_state(UiInteraction::Free).or_else(in_state(UiInteraction::DisplayInfoPanel))),
-                on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayInfoPanel).and_then(on_event::<BuildingDestroyedEvent>())),
+                show_on_click_system.run_if(in_state(UiInteraction::Free).or(in_state(UiInteraction::DisplayInfoPanel))),
+                on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayInfoPanel).and(on_event::<BuildingDestroyedEvent>)),
                 update_building_info_panel_system.run_if(in_state(DisplayInfoPanelState::DisplayBuilding)),
                 (
                     update_quantum_field_info_panel_system,
                     update_quantum_field_action_button_system.after(update_quantum_field_info_panel_system), // This ordering prevents button flickering
                     on_quantum_field_action_button_click_system.after(update_quantum_field_action_button_system), // This ordering prevents button flickering
                 ).run_if(in_state(DisplayInfoPanelState::DisplayQuantumField)),
-                on_display_panel_focus_changed_system.run_if(on_event::<UiMapObjectFocusChangedEvent>())
+                on_display_panel_focus_changed_system.run_if(on_event::<UiMapObjectFocusChangedEvent>)
             ))
             .add_systems(OnEnter(UiInteraction::DisplayInfoPanel), on_display_enter_system)
             .add_systems(OnExit(UiInteraction::DisplayInfoPanel), on_display_exit_system)
@@ -35,7 +35,7 @@ impl Plugin for DisplayInfoPanelPlugin {
             .add_systems(OnExit(DisplayInfoPanelState::DisplayBuilding), on_display_building_exit_system)
             .add_systems(OnEnter(DisplayInfoPanelState::DisplayQuantumField), on_display_quantum_field_enter_system)
             .add_systems(OnExit(DisplayInfoPanelState::DisplayQuantumField), on_display_quantum_field_exit_system);
-        app.world_mut().observe(on_recreate_quantum_field_cost_panels_trigger);
+        app.world_mut().add_observer(on_recreate_quantum_field_cost_panels_trigger);
     }
 }
 
@@ -121,7 +121,7 @@ fn on_display_exit_system(
     *display_info_panel.single_mut() = Visibility::Hidden;
     info_panel_camera.single_mut().is_active = false;
     next_display_info_panel_state.set(DisplayInfoPanelState::None);
-    commands.add(UiMapObjectFocusChangedEvent::Unfocus);
+    commands.queue(UiMapObjectFocusChangedEvent::Unfocus);
 }
 
 fn hide_system(
@@ -136,30 +136,30 @@ fn hide_system(
 fn on_display_building_enter_system(
     almanach: Res<Almanach>,
     display_info_panel: Query<&DisplayInfoPanel>,
-    mut building_panel: Query<&mut Style, With<BuildingPanel>>,
+    mut building_panel: Query<&mut Node, With<BuildingPanel>>,
     mut building_name_text: Query<&mut Text, With<BuildingNameText>>,
 ) {
     let DisplayInfoPanel::Building(building_type, _) = display_info_panel.single() else { unreachable!() };
     // Update the building name
-    building_name_text.single_mut().sections[0].value = almanach.get_building_name(*building_type).to_string();
+    building_name_text.single_mut().0 = almanach.get_building_name(*building_type).to_string();
 
     building_panel.single_mut().display = Display::Flex;
 }
 
 fn on_display_building_exit_system(
-    mut building_panel: Query<&mut Style, With<BuildingPanel>>,
+    mut building_panel: Query<&mut Node, With<BuildingPanel>>,
 ) {
     building_panel.single_mut().display = Display::None;
 }
 
 fn on_display_quantum_field_enter_system(
-    mut quantum_field_panel: Query<&mut Style, With<QuantumFieldPanel>>,
+    mut quantum_field_panel: Query<&mut Node, With<QuantumFieldPanel>>,
 ) {
     quantum_field_panel.single_mut().display = Display::Flex;
 }
 
 fn on_display_quantum_field_exit_system(
-    mut quantum_field_panel: Query<&mut Style, With<QuantumFieldPanel>>,
+    mut quantum_field_panel: Query<&mut Node, With<QuantumFieldPanel>>,
 ) {
     quantum_field_panel.single_mut().display = Display::None;
 }
@@ -182,7 +182,7 @@ fn on_display_panel_focus_changed_system(
     camera_transform.translation.y = world_position.y;
 
     match display_info_panel.single() {
-        DisplayInfoPanel::QuantumField(_) => commands.add(QuantumFieldRecreateCostsTrigger),
+        DisplayInfoPanel::QuantumField(_) => commands.queue(QuantumFieldRecreateCostsTrigger),
         _ => (),
     }
 }
@@ -257,7 +257,7 @@ fn update_quantum_field_info_panel_system(
     let mut healthbar = healthbars.single_mut();
     // Update the layer text
     let mut text = texts.single_mut();
-    text.sections[0].value = if quantum_field.is_solved() {
+    text.0 = if quantum_field.is_solved() {
         "All Quantum Layers Solved".to_string()
     } else {
         format!("Quantum Layer {}/{}", quantum_field.current_layer + 1, quantum_field.layers.len())
@@ -299,11 +299,8 @@ fn on_recreate_quantum_field_cost_panels_trigger(
         commands.entity(costs_container_entity).with_children(|parent| {
             parent.spawn((
                 CostIndicatorBundle {
-                    node: NodeBundle {
-                        style: Style {
-                            margin: UiRect{ top: Val::Px(4.), bottom: Val::Px(4.), ..default() },
-                            ..default()
-                        },
+                    node: Node {
+                        margin: UiRect{ top: Val::Px(4.), bottom: Val::Px(4.), ..default() },
                         ..default()
                     },
                     cost_indicator: CostIndicator {
@@ -318,22 +315,22 @@ fn on_recreate_quantum_field_cost_panels_trigger(
 }
 
 fn update_quantum_field_action_button_system(
-    mut action_button: Query<(&QuantumFieldActionButton, &mut Style)>,
+    mut action_button: Query<(&QuantumFieldActionButton, &mut Node)>,
     mut action_button_text: Query<&mut Text, With<QuantumFieldActionButtonText>>,
 ) {
     let (action_button, mut style) = action_button.single_mut();
     let mut text = action_button_text.single_mut();
     match action_button {
         QuantumFieldActionButton::SendExpeditions => {
-            text.sections[0].value = "Send Expeditions".to_string();
+            text.0 = "Send Expeditions".to_string();
             style.display = Display::Flex;
         },
         QuantumFieldActionButton::StopExpeditions => {
-            text.sections[0].value = "Stop Expeditions".to_string();
+            text.0 = "Stop Expeditions".to_string();
             style.display = Display::Flex;
         },
         QuantumFieldActionButton::PayCost => {
-            text.sections[0].value = "Pay Cost".to_string();
+            text.0 = "Pay Cost".to_string();
             style.display = Display::Flex;
         },
         QuantumFieldActionButton::Hidden => {
@@ -363,7 +360,7 @@ fn on_quantum_field_action_button_click_system(
                 let Ok(mut quantum_field) = quantum_fields.get_mut(*entity) else { return; };
                 if stock.try_pay_costs(quantum_field.get_current_layer_costs()) {
                     quantum_field.move_to_next_layer();
-                    commands.add(QuantumFieldRecreateCostsTrigger);
+                    commands.queue(QuantumFieldRecreateCostsTrigger);
                 }
             },
             QuantumFieldActionButton::Hidden => {},
@@ -401,59 +398,51 @@ fn initialize_display_info_panel_system(
         images.add(image)
     };
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                order: 1,
-                hdr: true,
-                target: RenderTarget::Image(camera_image_handle.clone()),
-                is_active: false,
-                ..default()
-            },
-            projection: OrthographicProjection {
-                near: -1000.,
-                far: 1000.,
-                scale: 2.,
-                ..default()
-            },
+        Camera2d::default(),
+        Camera {
+            order: 1,
+            hdr: true,
+            target: RenderTarget::Image(camera_image_handle.clone()),
+            is_active: false,
             ..default()
+        },
+        OrthographicProjection {
+            near: -1000.,
+            far: 1000.,
+            scale: 2., // TODO, check new scaling_mode
+            ..OrthographicProjection::default_2d()
         },
         DisplayInfoPanelCamera,
     ));
     commands.spawn((
-        NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                bottom: Val::Px(5.0),
-                left: Val::Percent(25.),
-                width: Val::Percent(50.0),
-                height: Val::Px(140.0),
-                border: UiRect::all(Val::Px(4.0)),
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::Center,
-                padding: UiRect::all(Val::Px(4.0)),
-                ..default()
-            },
-            background_color: Color::linear_rgba(0.46, 0.62, 0.67, 1.).into(),
-            border_radius: BorderRadius::all(Val::Px(7.)),
-            border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
-            visibility: Visibility::Hidden,
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(5.0),
+            left: Val::Percent(25.),
+            width: Val::Percent(50.0),
+            height: Val::Px(140.0),
+            border: UiRect::all(Val::Px(4.0)),
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            padding: UiRect::all(Val::Px(4.0)),
             ..default()
         },
+        BackgroundColor::from(Color::linear_rgba(0.46, 0.62, 0.67, 1.)),
+        BorderColor::from(Color::linear_rgba(0., 0.2, 1., 1.)),
+        BorderRadius::all(Val::Px(7.)),
+        Visibility::Hidden,
         DisplayInfoPanel::None,
     )).with_children(|parent| {
         // Camera image (Left side)
         parent.spawn((
-            NodeBundle {
-                style: Style {
-                    min_width: Val::Px(128.0),
-                    min_height: Val::Px(128.0),
-                    border: UiRect::all(Val::Px(2.0)),
-                    ..default()
-                },
-                border_color: YELLOW.into(),
+            Node {
+                min_width: Val::Px(128.0),
+                min_height: Val::Px(128.0),
+                border: UiRect::all(Val::Px(2.0)),
                 ..default()
             },
-            UiImage::new(camera_image_handle),
+            BorderColor::from(YELLOW),
+            ImageNode::new(camera_image_handle),
         ));
         // Right panels
         make_building_panel(parent);
@@ -463,45 +452,34 @@ fn initialize_display_info_panel_system(
 
 fn make_building_panel(parent: &mut ChildBuilder) {
     parent.spawn((
-        NodeBundle {
-            style: Style {
-                display: Display::None,
-                height: Val::Percent(100.),
-                width: Val::Percent(100.),
-                flex_direction: FlexDirection::Column,
-                justify_content: JustifyContent::Start,
-                align_items: AlignItems::Start,
-                padding: UiRect::all(Val::Px(2.0)),
-                ..default()
-            },
+        Node {
+            display: Display::None,
+            height: Val::Percent(100.),
+            width: Val::Percent(100.),
+            flex_direction: FlexDirection::Column,
+            justify_content: JustifyContent::Start,
+            align_items: AlignItems::Start,
+            padding: UiRect::all(Val::Px(2.0)),
             ..default()
         },
         BuildingPanel,
     )).with_children(|parent| {
         // Top line of the panel
         parent.spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    flex_direction: FlexDirection::Row,
-                    justify_content: JustifyContent::Start,
-                    ..default()
-                },
+            Node {
+                width: Val::Percent(100.),
+                flex_direction: FlexDirection::Row,
+                justify_content: JustifyContent::Start,
                 ..default()
             },
         )).with_children(|parent| {
             // Building name
             parent.spawn((
-                TextBundle {
-                    text: Text {
-                        sections: vec![TextSection::new("### Building Name ###", TextStyle{ color: BLUE.into(), ..default() })],
-                        linebreak_behavior: BreakLineOn::NoWrap,
-                        ..default() 
-                    },
-                    style: Style {
-                        margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
-                        ..default()
-                    },
+                Text::new("### Building Name ###"),
+                TextColor::from(BLUE),
+                TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                Node {
+                    margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
                     ..default()
                 },
                 BuildingNameText,
@@ -509,12 +487,9 @@ fn make_building_panel(parent: &mut ChildBuilder) {
             // Healthbar
             parent.spawn((
                 HealthbarBundle{
-                    node: NodeBundle {
-                        style: Style {
-                            width: Val::Percent(100.),
-                            height: Val::Percent(100.),
-                            ..default()
-                        },
+                    node: Node {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
                         ..default()
                     },
                     ..default()
@@ -528,90 +503,69 @@ fn make_building_panel(parent: &mut ChildBuilder) {
 
 fn make_quantum_field_panel(parent: &mut ChildBuilder) {
     parent.spawn((
-        NodeBundle {
-            style: Style {
-                display: Display::None,
-                height: Val::Percent(100.),
-                width: Val::Percent(100.),
-                flex_direction: FlexDirection::Column,
-                justify_content: JustifyContent::Start,
-                align_items: AlignItems::Start,
-                padding: UiRect::all(Val::Px(2.0)),
-                ..default()
-            },
+        Node {
+            display: Display::None,
+            height: Val::Percent(100.),
+            width: Val::Percent(100.),
+            flex_direction: FlexDirection::Column,
+            justify_content: JustifyContent::Start,
+            align_items: AlignItems::Start,
+            padding: UiRect::all(Val::Px(2.0)),
             ..default()
         },
         QuantumFieldPanel,
     )).with_children(|parent| {
         // Top line of the panel
         parent.spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    flex_direction: FlexDirection::Row,
-                    justify_content: JustifyContent::Start,
-                    ..default()
-                },
+            Node {
+                width: Val::Percent(100.),
+                flex_direction: FlexDirection::Row,
+                justify_content: JustifyContent::Start,
                 ..default()
             },
         )).with_children(|parent| {
             // Structure name
             parent.spawn((
-                TextBundle {
-                    text: Text {
-                        sections: vec![TextSection::new("Quantum Field", TextStyle{ color: BLUE.into(), ..default() })],
-                        linebreak_behavior: BreakLineOn::NoWrap,
-                        ..default() 
-                    },
-                    style: Style {
-                        margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
-                        ..default()
-                    },
+                Text::new("Quantum Field"),
+                TextColor::from(BLUE),
+                TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                Node {
+                    margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
                     ..default()
                 },
             ));
         });
         // Panel Body
         parent.spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    border: UiRect::all(Val::Px(2.0)),
-                    ..default()
-                },
-                //background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
-                //border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+            Node {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                border: UiRect::all(Val::Px(2.0)),
                 ..default()
             },
+            //BackgroundColor::from(Color::linear_rgba(0., 0., 0., 0.)),
+            //BorderColor::from(Color::linear_rgba(0., 0.2, 1., 1.)),
         )).with_children(|parent| {
-            parent.spawn(NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
+            parent.spawn(Node {
+                width: Val::Percent(100.),
+                justify_content: JustifyContent::Center,
                 ..default()
             }).with_children(|parent| {
                 parent.spawn((
-                    TextBundle::from_section(
-                        "Quantum Layer #/#",
-                        TextStyle {font_size: 16.0, color: BLUE.into(), ..default() },
-                    ),
+                    Text::new("Quantum Layer #/#"),
+                    TextColor::from(BLUE),
+                    TextFont::default().with_font_size(16.0),
                     QuantumFieldLayerText,
                 ));
             });
             parent.spawn((
                 HealthbarBundle{
-                    node: NodeBundle {
-                        style: Style {
-                            top: Val::Px(2.0),
-                            width: Val::Percent(60.),
-                            height: Val::Px(20.),
-                            ..default()
-                        },
+                    node: Node {
+                        top: Val::Px(2.0),
+                        width: Val::Percent(60.),
+                        height: Val::Px(20.),
                         ..default()
                     },
                     healthbar: Healthbar {
@@ -623,43 +577,33 @@ fn make_quantum_field_panel(parent: &mut ChildBuilder) {
             ));
             // Costs Panel - content is dynamic and managed from a dedicated system
             parent.spawn((
-                NodeBundle {
-                    style: Style {
-                        width: Val::Percent(100.),
-                        flex_direction: FlexDirection::Row,
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
+                Node {
+                    width: Val::Percent(100.),
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::Center,
                     ..default()
                 },
                 QuantumFieldLayerCostsContainer,
             ));
             // [Send Expeditions / Stop Expeditions / Pay Cost] Button.
             parent.spawn((
-                ButtonBundle {
-                    style: Style {
-                        width: Val::Percent(50.),
-                        height: Val::Px(20.),
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    background_color: Color::linear_rgba(0., 0., 0.2, 0.2).into(),
-                    border_color: Color::linear_rgba(0., 0.2, 1., 1.).into(),
+                Button::default(),
+                Node {
+                    width: Val::Percent(50.),
+                    height: Val::Px(20.),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
                     ..default()
                 },
+                BackgroundColor::from(Color::linear_rgba(0., 0., 0.2, 0.2)),
+                BorderColor::from(Color::linear_rgba(0., 0.2, 1., 1.)),
                 AdvancedInteraction::default(),
                 QuantumFieldActionButton::default(),
             )).with_children(|parent| {
                 parent.spawn((
-                    TextBundle {
-                        text: Text {
-                            sections: vec![TextSection::new("Send Expeditions / Stop Expeditions / Pay cost", TextStyle {font_size: 12.0, color: BLUE.into(), ..default() })],
-                            linebreak_behavior: BreakLineOn::NoWrap,
-                            ..default() 
-                        },
-                        ..default()
-                    },
+                    Text::new("Send Expeditions / Stop Expeditions / Pay cost"),
+                    TextColor::from(BLUE),
+                    TextFont::default().with_font_size(12.0),
                     QuantumFieldActionButtonText,
                 ));
             });

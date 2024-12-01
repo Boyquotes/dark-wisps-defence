@@ -24,21 +24,21 @@ pub struct ConstructMenuButton {
 }
 #[derive(Bundle, Default)]
 pub struct ConstructButtonBundle {
-    pub button: ButtonBundle,
+    pub button: Button,
+    pub node: Node,
+    pub image_node: ImageNode,
     pub construct_menu_button: ConstructMenuButton,
 }
 impl ConstructButtonBundle {
     pub fn new(image: Handle<Image>) -> Self {
         Self {
-            button: ButtonBundle {
-                style: Style {
-                    width: Val::Px(CONSTRUCT_MENU_BUTTON_WIDTH),
-                    height: Val::Px(CONSTRUCT_MENU_BUTTON_HEIGHT),
-                    ..Default::default()
-                },
-                image: UiImage::new(image).with_color(WHITE.with_alpha(NOT_HOVERED_ALPHA).into()),
-                ..Default::default()
+            button: Button::default(),
+            node: Node {
+                width: Val::Px(CONSTRUCT_MENU_BUTTON_WIDTH),
+                height: Val::Px(CONSTRUCT_MENU_BUTTON_HEIGHT),
+                ..default()
             },
+            image_node: ImageNode::new(image).with_color(WHITE.with_alpha(NOT_HOVERED_ALPHA).into()),
             construct_menu_button: ConstructMenuButton::default(),
         }
     }
@@ -50,29 +50,30 @@ pub struct ConstructMenuListPicker {
 }
 #[derive(Bundle, Default)]
 pub struct ConstructMenuListPickerBundle {
-    pub button: ButtonBundle,
+    pub button: Button,
+    pub node: Node,
+    pub background_color: BackgroundColor,
+    pub z_index: GlobalZIndex,
     pub construct_menu_list_picker: ConstructMenuListPicker,
 }
 impl ConstructMenuListPickerBundle {
     pub fn new() -> Self {
         Self {
-            button: ButtonBundle {
-                style: Style {
-                    flex_direction: FlexDirection::Row,
-                    align_items: AlignItems::Center,
-                    left: Val::Px(65.),
-                    padding: UiRect {
-                        left: Val::Px(2.5),
-                        right: Val::Px(2.5),
-                        top: Val::ZERO,
-                        bottom: Val::ZERO,
-                    },
-                    ..Default::default()
+            button: Button::default(),
+            node: Node {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                left: Val::Px(65.),
+                padding: UiRect {
+                    left: Val::Px(2.5),
+                    right: Val::Px(2.5),
+                    top: Val::ZERO,
+                    bottom: Val::ZERO,
                 },
-                background_color: Color::BLACK.into(),
-                z_index: ZIndex::Global(-1),
                 ..Default::default()
             },
+            background_color: Color::BLACK.into(),
+            z_index: GlobalZIndex(-1),
             construct_menu_list_picker: ConstructMenuListPicker::default(),
         }
     }
@@ -84,29 +85,30 @@ pub struct ConstructObjectButton {
 }
 #[derive(Bundle)]
 pub struct ConstructObjectButtonBundle {
-    pub button: ButtonBundle,
+    pub button: Button,
+    pub node: Node,
+    pub background_color: BackgroundColor,
+    pub focus_policy: FocusPolicy,
     pub construct_tower_button: ConstructObjectButton,
     pub advanced_interaction: AdvancedInteraction,
 }
 impl ConstructObjectButtonBundle {
     pub fn new(grid_object_placer: GridObjectPlacer) -> Self {
         Self {
-            button: ButtonBundle {
-                style: Style {
-                    width: Val::Px(48.),
-                    height: Val::Px(48.),
-                    margin: UiRect {
-                        left: Val::Px(2.5),
-                        right: Val::Px(2.5),
-                        top: Val::ZERO,
-                        bottom: Val::ZERO,
-                    },
-                    ..Default::default()
+            button: Button::default(),
+            node: Node {
+                width: Val::Px(48.),
+                height: Val::Px(48.),
+                margin: UiRect {
+                    left: Val::Px(2.5),
+                    right: Val::Px(2.5),
+                    top: Val::ZERO,
+                    bottom: Val::ZERO,
                 },
-                background_color: TURQUOISE.into(),
-                focus_policy: FocusPolicy::Pass,
-                ..Default::default()
+                ..default()
             },
+            background_color: TURQUOISE.into(),
+            focus_policy: FocusPolicy::Pass,
             construct_tower_button: ConstructObjectButton {
                 object_type: grid_object_placer,
             },
@@ -136,15 +138,12 @@ impl ConstructObjectButtonBundle {
         builder.spawn(ConstructObjectButtonBundle::new(grid_object_placer)).with_children(|parent| {
             if let Some(image_handle) = image_handle {
                 parent.spawn((
-                    NodeBundle {
-                        style: Style {
-                            width: Val::Px(48.0),
-                            height: Val::Px(48.0),
-                            ..default()
-                        },
+                    Node {
+                        width: Val::Px(48.0),
+                        height: Val::Px(48.0),
                         ..default()
                     },
-                    UiImage::new(asset_server.load(image_handle)),
+                    ImageNode::new(asset_server.load(image_handle)),
                 ));
             }
         });
@@ -155,18 +154,16 @@ pub fn create_construct_menu(
     commands: &mut Commands,
     asset_server: &AssetServer,
 ) -> Entity {
-    let construct_towers_button = commands.spawn(NodeBundle {
-        // Main Menu node
-        style: Style {
+    let construct_towers_button = commands.spawn((
+        Node { // Main Menu node
             position_type: PositionType::Absolute,
             top: Val::Percent(40.),
             left: Val::Px(5.0),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
-            ..Default::default()
+            ..default()
         },
-        ..Default::default()
-    }).with_children(|parent| {
+    )).with_children(|parent| {
         // Construct towers button
         parent.spawn(
             ConstructButtonBundle::new(asset_server.load("ui/construct_towers.png")),
@@ -224,7 +221,7 @@ pub fn initialize_construction_menu_system(
 
 pub fn menu_activation_system(
     mouse_info: Res<MouseInfo>,
-    mut menu_buttons: Query<(&Interaction, &mut UiImage, &Children, &GlobalTransform), With<ConstructMenuButton>>,
+    mut menu_buttons: Query<(&Interaction, &mut ImageNode, &Children, &GlobalTransform), With<ConstructMenuButton>>,
     mut list_pickers: Query<(&Interaction, &mut Visibility, &ViewVisibility), With<ConstructMenuListPicker>>,
 ) {
     for (menu_interaction, mut ui_image, children, button_transform) in menu_buttons.iter_mut() {

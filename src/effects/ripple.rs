@@ -1,7 +1,7 @@
 use bevy::{
     color::palettes::css::RED, 
     render::render_resource::{AsBindGroup, ShaderRef},
-    sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle,}
+    sprite::{AlphaMode2d, Material2d, Material2dPlugin}
 };
 
 use crate::{grids::wisps::WispsGrid, prelude::*, wisps::components::Wisp};
@@ -41,16 +41,13 @@ impl BuilderRipple {
     ) {
         for &BuilderRipple { world_position, radius } in events.read() {
             commands.spawn((
-                MaterialMesh2dBundle {
-                    mesh: meshes.add(Circle::new(radius)).into(),
-                    material: ripple_materials.add(RippleMaterial {
-                        current_radius: 0.0,
-                        wave_width: 0.35,
-                        wave_exponent: 0.8,
-                    }),
-                    transform: Transform::from_translation(world_position.extend(Z_GROUND_EFFECT)),
-                    ..default()
-                },
+                Mesh2d(meshes.add(Circle::new(radius))),
+                MeshMaterial2d(ripple_materials.add(RippleMaterial {
+                    current_radius: 0.0,
+                    wave_width: 0.35,
+                    wave_exponent: 0.8,
+                })),
+                Transform::from_translation(world_position.extend(Z_GROUND_EFFECT)),
                 Ripple{ max_radius: radius, current_radius: 0. },
                 Speed(70.0),
             ));
@@ -79,6 +76,9 @@ impl Material2d for RippleMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/ripple.wgsl".into()
     }
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
+    }
 }
 
 #[derive(Component)]
@@ -91,11 +91,11 @@ fn ripple_propagate_system(
     mut commands: Commands,
     time: Res<Time>,
     mut wave_materials: ResMut<Assets<RippleMaterial>>,
-    mut ripples: Query<(Entity, &mut Ripple, &Speed, &Handle<RippleMaterial>)>,
+    mut ripples: Query<(Entity, &mut Ripple, &Speed, &MeshMaterial2d<RippleMaterial>)>,
 ) {
     for (entity, mut ripple, speed, material_handle) in ripples.iter_mut() {
         let Some(material) = wave_materials.get_mut(material_handle) else { continue; };
-        ripple.current_radius += speed.0 * time.delta_seconds();
+        ripple.current_radius += speed.0 * time.delta_secs();
         if ripple.current_radius > ripple.max_radius {
             commands.entity(entity).despawn();
         }

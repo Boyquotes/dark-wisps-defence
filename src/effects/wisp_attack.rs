@@ -63,18 +63,18 @@ impl BuilderWispAttackEffect {
     ) {
         for &BuilderWispAttackEffect { world_position } in events.read() {
             commands.spawn((
-                SpriteBundle {
-                    transform: Transform {
-                        translation: world_position.extend(Z_GROUND_EFFECT),
-                        scale: Vec3::new(0.25, 0.25, 1.0),
-                        ..Default::default()
-                    },
-                    texture: explosion_atlas.texture_handle.clone(),
+                Sprite {
+                    image:explosion_atlas.texture_handle.clone(),
+                    texture_atlas: Some(TextureAtlas {
+                        layout: explosion_atlas.atlas_handle.clone(),
+                        index: 0,
+                        ..default()
+                    }),
                     ..default()
                 },
-                TextureAtlas {
-                    layout: explosion_atlas.atlas_handle.clone(),
-                    index: 0,
+                Transform {
+                    translation: world_position.extend(Z_GROUND_EFFECT),
+                    scale: Vec3::new(0.25, 0.25, 1.0),
                     ..Default::default()
                 },
                 AnimationController::new(0, 9, 0.025, false),
@@ -107,6 +107,6 @@ fn spawn_random_wisps_effect_system(
 ) {
     if button_input.just_released(MouseButton::Left){
         println!("Spawning");
-        commands.add(BuilderWispAttackEffect::new(mouse_info.world_position));
+        commands.queue(BuilderWispAttackEffect::new(mouse_info.world_position));
     }
 }

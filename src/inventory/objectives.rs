@@ -12,7 +12,7 @@ impl Plugin for ObjectivesPlugin {
             .init_resource::<ObjectivesReassesInactiveFlag>()
             .add_event::<BuilderObjective>()
             .add_systems(PostUpdate, (
-                BuilderObjective::spawn_system.run_if(on_event::<BuilderObjective>()),
+                BuilderObjective::spawn_system.run_if(on_event::<BuilderObjective>),
             ))
             .add_systems(PreUpdate, (
                 reassess_inactive_objectives_system,
@@ -101,36 +101,31 @@ impl BuilderObjective {
             commands.entity(*entity).insert((
                 objective_details.clone(),
                 ObjectiveMarkerInactive,
-                NodeBundle {
-                    style: Style {
-                        width: Val::Percent(100.),
-                        border: UiRect::all(Val::Px(2.)),
-                        flex_direction: FlexDirection::Row,
-                        align_items: AlignItems::Center,
-                        column_gap: Val::Px(5.),
-                        ..default()
-                    },
-                    background_color: Color::linear_rgba(0.1, 0.3, 0.8, 0.7).into(),
-                    border_radius: BorderRadius::all(Val::Px(7.)),
-                    border_color: Color::linear_rgba(0., 0.2, 0.8, 0.9).into(),
+                Node {
+                    width: Val::Percent(100.),
+                    border: UiRect::all(Val::Px(2.)),
+                    flex_direction: FlexDirection::Row,
+                    align_items: AlignItems::Center,
+                    column_gap: Val::Px(5.),
                     ..default()
-                }
+                },
+                BackgroundColor::from(Color::linear_rgba(0.1, 0.3, 0.8, 0.7)),
+                BorderRadius::all(Val::Px(7.)),
+                BorderColor::from(Color::linear_rgba(0., 0.2, 0.8, 0.9)),
             )).with_children(|parent| {
                 objective.checkmark = parent.spawn((
-                    NodeBundle {
-                        style: Style {
-                            width: Val::Px(16.),
-                            height: Val::Px(16.),
-                            left: Val::Px(2.),
-                            ..default()
-                        },
+                    Node {
+                        width: Val::Px(16.),
+                        height: Val::Px(16.),
+                        left: Val::Px(2.),
                         ..default()
                     },
-                    UiImage::new(asset_server.load("ui/objectives_check_active.png")),
+                    ImageNode::new(asset_server.load("ui/objectives_check_active.png")),
                     ObjectiveCheckmark,
                 )).id();
                 objective.text = parent.spawn((
-                    TextBundle::from_section(objective_details.id_name.clone(), TextStyle { font_size: 16., ..default() }),
+                    Text::new(objective_details.id_name.clone()),
+                    TextFont::default().with_font_size(16.),
                     ObjectiveText,
                 )).id();
             }).insert(objective);
@@ -171,11 +166,11 @@ fn reassess_inactive_objectives_system(
 fn on_objective_completed_system(
     asset_server: Res<AssetServer>,
     mut objectives: Query<(&Objective, &mut BackgroundColor, &mut BorderColor), Added<ObjectiveMarkerCompleted>>,
-    mut checkmarks: Query<&mut UiImage, With<ObjectiveCheckmark>>,
+    mut checkmarks: Query<&mut ImageNode, With<ObjectiveCheckmark>>,
 ) {
     for (objective, mut background_color, mut border_color) in &mut objectives {
         let mut checkmark = checkmarks.get_mut(objective.checkmark).unwrap();
-        checkmark.texture = asset_server.load("ui/objectives_check_completed.png");
+        checkmark.image = asset_server.load("ui/objectives_check_completed.png");
         *background_color = Color::linear_rgba(0.1, 0.8, 0.3, 0.7).into();
         *border_color = Color::linear_rgba(0., 0.8, 0.2, 0.9).into();
     }
@@ -184,11 +179,11 @@ fn on_objective_completed_system(
 fn on_objective_failed_system(
     asset_server: Res<AssetServer>,
     mut objectives: Query<(&Objective, &mut BackgroundColor, &mut BorderColor), Added<ObjectiveMarkerFailed>>,
-    mut checkmarks: Query<&mut UiImage, With<ObjectiveCheckmark>>,
+    mut checkmarks: Query<&mut ImageNode, With<ObjectiveCheckmark>>,
 ) {
     for (objective, mut background_color, mut border_color) in &mut objectives {
         let mut checkmark = checkmarks.get_mut(objective.checkmark).unwrap();
-        checkmark.texture = asset_server.load("ui/objectives_check_failed.png");
+        checkmark.image = asset_server.load("ui/objectives_check_failed.png");
         *background_color = Color::linear_rgba(0.8, 0.1, 0.3, 0.7).into();
         *border_color = Color::linear_rgba(0.8, 0., 0.2, 0.9).into();
     }
@@ -211,13 +206,13 @@ fn update_clear_all_quantum_fields_system(
         let total_quantum_fields = quantum_fields.iter().count();
 
         let mut text = texts.get_mut(objective.text).unwrap();
-        text.sections[0].value = format!("Clear All Quantum Fields: {}/{}", objective_clear_all_quantum_fields.completed_quantum_fields, total_quantum_fields);
+        text.0 = format!("Clear All Quantum Fields: {}/{}", objective_clear_all_quantum_fields.completed_quantum_fields, total_quantum_fields);
 
         if objective_clear_all_quantum_fields.completed_quantum_fields == total_quantum_fields {
             commands.entity(objective_entity)
                 .remove::<ObjectiveMarkerInProgress>()
                 .insert(ObjectiveMarkerCompleted);
-            commands.add(ObjectivesReassesInactiveFlag(true));
+            commands.queue(ObjectivesReassesInactiveFlag(true));
         }
     }
 }
@@ -237,13 +232,13 @@ fn update_kill_wisps_system(
     for (objective_entity, objective, objective_kill_wisps)  in &mut objectives {
         let current_amount = std::cmp::min(stats_wisps_killed.0 - objective_kill_wisps.started_amount, objective_kill_wisps.target_amount);
         let mut text = texts.get_mut(objective.text).unwrap();
-        text.sections[0].value = format!("Kill Wisps: {}/{}", current_amount, objective_kill_wisps.target_amount);
+        text.0 = format!("Kill Wisps: {}/{}", current_amount, objective_kill_wisps.target_amount);
 
         if current_amount == objective_kill_wisps.target_amount {
             commands.entity(objective_entity)
                 .remove::<ObjectiveMarkerInProgress>()
                 .insert(ObjectiveMarkerCompleted);
-            commands.add(ObjectivesReassesInactiveFlag(true));
+            commands.queue(ObjectivesReassesInactiveFlag(true));
         }
 
     }

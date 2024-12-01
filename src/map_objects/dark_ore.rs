@@ -65,10 +65,10 @@ pub fn get_dark_ore_sprite_bundle(grid_position: GridCoords, asset_server: &Asse
     let mut rng = nanorand::tls_rng();
     SpriteBundle {
         sprite: Sprite {
+            image: asset_server.load(DARK_ORE_BASE_IMAGES[rng.generate_range(0usize..2usize)]),
             custom_size: Some(DARK_ORE_GRID_IMPRINT.world_size()),
             ..Default::default()
         },
-        texture: asset_server.load(DARK_ORE_BASE_IMAGES[rng.generate_range(0usize..2usize)]),
         transform: Transform {
             translation: grid_position.to_world_position_centered(DARK_ORE_GRID_IMPRINT).extend(Z_OBSTACLE),
             // select one of: Left, Up, Right, Down
@@ -109,7 +109,7 @@ fn onclick_spawn_system(
         // Place a dark_ore
         if obstacle_grid.imprint_query_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| field.is_empty()) {
             let dark_ore_entity = commands.spawn_empty().id();
-            commands.add(BuilderDarkOre::new(dark_ore_entity, mouse_coords));
+            commands.queue(BuilderDarkOre::new(dark_ore_entity, mouse_coords));
             obstacle_grid.imprint(mouse_coords, Field::DarkOre(dark_ore_entity), DARK_ORE_GRID_IMPRINT);
         }
     } else if mouse.pressed(MouseButton::Right) {

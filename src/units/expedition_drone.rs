@@ -43,14 +43,14 @@ impl BuilderExpeditionDrone {
             if let Ok(exploration_zone_transform) = expedition_zones.get(target_entity) {
                 let target_vector = exploration_zone_transform.translation.xy() - world_position;
                 commands.entity(entity).insert((
-                    SpriteBundle {
-                        texture: asset_server.load(EXPEDITION_DRONE_BASE_IMAGE),
-                        transform: Transform {
-                            translation: world_position.extend(Z_AERIAL_UNIT),
-                            rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
-                            ..Default::default()
-                        },
-                        ..Default::default()
+                    Sprite {
+                        image: asset_server.load(EXPEDITION_DRONE_BASE_IMAGE),
+                        ..default()
+                    },
+                    Transform {
+                        translation: world_position.extend(Z_AERIAL_UNIT),
+                        rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
+                        ..default()
                     },
                     ExpeditionDrone { target: target_entity, target_world_position: exploration_zone_transform.translation.xy() },
                 ));
@@ -83,6 +83,6 @@ pub fn move_expedition_drone_system(
             commands.entity(entity).despawn();
             continue;
         }
-        transform.translation += (target_vector.normalize() * time.delta_seconds() * 100.0).extend(0.);
+        transform.translation += (target_vector.normalize() * time.delta_secs() * 100.0).extend(0.);
     }
 }

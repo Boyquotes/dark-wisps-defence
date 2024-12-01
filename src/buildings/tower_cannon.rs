@@ -86,7 +86,7 @@ pub fn shooting_system(
             |coords| coords.to_world_position_centered(WISP_GRID_IMPRINT)
         );
 
-        commands.add(BuilderCannonball::new(transform.translation.xy(), target_world_position));
+        commands.queue(BuilderCannonball::new(transform.translation.xy(), target_world_position));
         timer.0.reset();
     }
 }

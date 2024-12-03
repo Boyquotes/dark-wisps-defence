@@ -125,7 +125,7 @@ impl BuilderObjective {
                 )).id();
                 objective.text = parent.spawn((
                     Text::new(objective_details.id_name.clone()),
-                    TextFont::default().with_font_size(16.),
+                    TextFont::default().with_font_size(12.),
                     ObjectiveText,
                 )).id();
             }).insert(objective);

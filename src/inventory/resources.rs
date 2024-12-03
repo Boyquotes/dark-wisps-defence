@@ -29,6 +29,9 @@ pub enum EssenceType {
     Light,
     Electric,
 }
+impl EssenceType {
+    pub const VARIANTS: [EssenceType; 4] = [EssenceType::Fire, EssenceType::Water, EssenceType::Light, EssenceType::Electric];
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EssenceContainer {

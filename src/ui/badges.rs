@@ -1,11 +1,16 @@
 use crate::prelude::*;
 
+use super::common::recolor_background_on;
+
 pub struct BadgesPlugin;
 impl Plugin for BadgesPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, initialize_badges_system)
-            .add_systems(Update, sync_resource_display_system.run_if(resource_changed::<Stock>));
+            .add_systems(Update, (
+                sync_resource_display_system.run_if(resource_changed::<Stock>),
+                show_hide_essence_badges_system.run_if(on_event::<StockChangedEvent>),
+            ));
     }
 }
 
@@ -22,8 +27,30 @@ fn sync_resource_display_system(
 #[derive(Component)]
 pub struct ResourceBadgeText(ResourceType);
 
+#[derive(Component, Default)]
+pub struct EssencesContainer {
+    badges: HashMap<EssenceType, Entity>,
+}
 #[derive(Component)]
-pub struct EssencesContainerMarker;
+pub struct EssenceBadge;
+
+fn show_hide_essence_badges_system(
+    mut event_reader: EventReader<StockChangedEvent>,
+    essences_container: Query<&EssencesContainer>,
+    mut nodes: Query<&mut Node, With<EssenceBadge>>,
+) {
+    let Ok(essences_container) = essences_container.get_single() else { return; };
+    for event in event_reader.read() {
+        let ResourceType::Essence(essence_type) = event.resource_type else { continue; };
+        let essence_badge_entity = *essences_container.badges.get(&essence_type).expect("Essence badge entity not found");    
+        let Ok(mut node) = nodes.get_mut(essence_badge_entity) else { return; };
+        if event.new_amount > 0 {
+            node.display = Display::Flex;
+        } else {
+            node.display = Display::None;
+        }
+    }
+}
 
 fn initialize_badges_system(
     mut commands: Commands,
@@ -58,10 +85,10 @@ fn initialize_badges_system(
                 ResourceBadgeText(ResourceType::DarkOre),
             ));
         });
+        let mut essence_badges_map = EssencesContainer::default();
         let _essences_container = parent.spawn((
             Node {
                 width: Val::Px(101.),
-                //height: Val::Px(20.),
                 flex_direction: FlexDirection::Column,
                 border: UiRect::all(Val::Px(1.)),
                 ..default()
@@ -69,41 +96,49 @@ fn initialize_badges_system(
             BackgroundColor::from(Color::linear_rgba(0., 0.3, 0.7, 0.1)),
             BorderColor::from(Color::linear_rgba(0., 0.3, 0.9, 0.3)),
             BorderRadius::all(Val::Px(2.)),
-            EssencesContainerMarker,
         )).with_children(|parent| {
             for essence_type in EssenceType::VARIANTS {
-                parent.spawn((
-                    Node {
-                        width: Val::Percent(100.),
-                        height: Val::Px(20.),
-                        left: Val::Px(2.),
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
-                )).with_children(|parent| {
-                    let (background_color, border_color) = essence_type_to_badge_colors(essence_type);
-                    parent.spawn((
+                let essence_badge = parent
+                    .spawn((
                         Node {
-                            width: Val::Px(10.),
-                            height: Val::Px(10.),
-                            ..default()
-                        },
-                        background_color,
-                        border_color,
-                        BorderRadius::all(Val::Px(25.)),
-                    ));
-                    parent.spawn((
-                        Text::new("###"),
-                        TextFont::default().with_font_size(12.),
-                        Node {
+                            display: Display::None,
+                            width: Val::Percent(100.),
+                            height: Val::Px(20.),
                             left: Val::Px(2.),
+                            align_items: AlignItems::Center,
                             ..default()
                         },
-                        ResourceBadgeText(ResourceType::Essence(essence_type)),
-                    ));
-                });
+                        EssenceBadge,
+                    ))
+                    .observe(recolor_background_on::<Pointer<Over>>(Color::linear_rgba(0., 0.3, 0.9, 0.3)))
+                    .observe(recolor_background_on::<Pointer<Out>>(Color::NONE))
+                    .with_children(|parent| {
+                        // Essence circle
+                        let (background_color, border_color) = essence_type_to_badge_colors(essence_type);
+                        parent.spawn((
+                            Node {
+                                width: Val::Px(10.),
+                                height: Val::Px(10.),
+                                ..default()
+                            },
+                            background_color,
+                            border_color,
+                            BorderRadius::all(Val::Px(25.)),
+                        ));
+                        // Essence amount
+                        parent.spawn((
+                            Text::new("###"),
+                            TextFont::default().with_font_size(12.),
+                            Node {
+                                left: Val::Px(2.),
+                                ..default()
+                            },
+                            ResourceBadgeText(ResourceType::Essence(essence_type)),
+                        ));
+                    }).id();
+                essence_badges_map.badges.insert(essence_type, essence_badge);
             }
-        });
+        }).insert(essence_badges_map);
     });
 }
 
@@ -115,3 +150,4 @@ fn essence_type_to_badge_colors(essence_type: EssenceType) -> (BackgroundColor, 
         EssenceType::Electric => (BackgroundColor::from(Color::linear_rgba(1., 0.95, 0.05, 0.8)), BorderColor::from(Color::linear_rgba(1., 1., 0., 0.9))),
     }
 }
+

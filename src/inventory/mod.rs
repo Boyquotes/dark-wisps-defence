@@ -6,7 +6,7 @@ pub mod stats;
 use crate::prelude::*;
 
 pub mod prelude {
-    pub use super::resources::{ResourceType, EssenceType, EssenceContainer, Stock, Cost};
+    pub use super::resources::{ResourceType, EssenceType, EssenceContainer, Stock, Cost, StockChangedEvent};
     pub use super::almanach::Almanach;
 }
 

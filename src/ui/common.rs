@@ -286,3 +286,16 @@ fn calculate_cost_indicator_has_required_resources_system(
         cost_indicator.has_required_resources = stock.can_cover(&cost_indicator.cost);
     }
 }
+
+
+////////////////////////////////////////////
+////               Utils                ////
+////////////////////////////////////////////
+pub fn recolor_background_on<E>(color: Color) -> impl Fn(Trigger<E>, Query<&mut BackgroundColor>) {
+    move |event, mut background_colors| {
+        let Ok(mut background_color) = background_colors.get_mut(event.entity()) else {
+            return;
+        };
+        background_color.0 = color;
+    }
+}

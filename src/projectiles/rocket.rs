@@ -13,9 +13,11 @@ impl Plugin for RocketPlugin {
         app
             .add_event::<BuilderRocket>()
             .add_systems(Update, (
-                rocket_move_system,
-                rocket_hit_system,
                 exhaust_blinking_system,
+                (
+                    rocket_move_system,
+                    rocket_hit_system,
+                ).run_if(in_state(GameState::Running)),
             ))
             .add_systems(PostUpdate, (
                 BuilderRocket::spawn_system,

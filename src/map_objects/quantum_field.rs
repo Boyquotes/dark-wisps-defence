@@ -20,7 +20,7 @@ impl Plugin for QuantumFieldPlugin {
             .add_systems(Update, (
                 onclick_spawn_system,
                 operate_arrows_for_grid_placer_ui_for_quantum_field_system,
-                process_expeditions_system,
+                process_expeditions_system.run_if(in_state(GameState::Running)),
             ));
     }
 }

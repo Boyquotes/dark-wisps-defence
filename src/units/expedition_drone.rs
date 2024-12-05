@@ -10,7 +10,7 @@ impl Plugin for ExpeditionDronePlugin {
                 BuilderExpeditionDrone::spawn_system,
             ))
             .add_systems(Update, (
-                move_expedition_drone_system,
+                move_expedition_drone_system.run_if(in_state(GameState::Running)),
             ));
     }
 }

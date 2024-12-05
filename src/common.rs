@@ -6,24 +6,19 @@ pub mod prelude {
     pub use super::*;
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum GameMode {
-    Game,
-    Editor,
-    _Menu,
+pub struct CommonPlugin;
+impl Plugin for CommonPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .init_state::<GameState>();
+    }
 }
 
-#[derive(Resource)]
-pub struct GameConfig {
-    pub mode: GameMode,
-}
-
-pub fn is_editor_mode(config: Res<GameConfig>) -> bool {
-    config.mode == GameMode::Editor
-}
-
-pub fn is_game_mode(config: Res<GameConfig>) -> bool {
-    true || config.mode == GameMode::Game
+#[derive(Default, Clone, Debug, States, PartialEq, Eq, Hash)]
+pub enum GameState {
+    #[default]
+    Running,
+    Paused,
 }
 
 #[derive(Component, Default)]

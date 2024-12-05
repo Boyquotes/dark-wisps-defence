@@ -13,8 +13,10 @@ impl Plugin for CannonballPlugin {
         app
             .add_event::<BuilderCannonball>()
             .add_systems(Update, (
-                cannonball_move_system,
-                cannonball_hit_system,
+                (
+                    cannonball_move_system,
+                    cannonball_hit_system,
+                ).run_if(in_state(GameState::Running)),
             ))
             .add_systems(PostUpdate, (
                 BuilderCannonball::spawn_system,

@@ -11,7 +11,7 @@ impl Plugin for ExplorationCenterPlugin {
             .add_systems(PostUpdate, (
                 BuilderExplorationCenter::spawn_system,
             )).add_systems(Update, (
-                create_expedition_system,
+                create_expedition_system.run_if(in_state(GameState::Running)),
             ));
     }
 }

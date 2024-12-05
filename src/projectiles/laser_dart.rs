@@ -9,8 +9,10 @@ impl Plugin for LaserDartPlugin {
         app.
             add_event::<BuilderLaserDart>()
             .add_systems(Update, (
-                laser_dart_move_system,
-                laser_dart_hit_system,
+                (
+                    laser_dart_move_system,
+                    laser_dart_hit_system,
+                ).run_if(in_state(GameState::Running)),
             )).add_systems(PostUpdate, (
                 BuilderLaserDart::spawn_system,
             ));

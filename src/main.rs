@@ -30,23 +30,23 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             buildings::BuildingsPlugin,
-            camera::CameraPlugin,
-            data_loader::DataLoaderPlugin,
             effects::EffectsPlugin,
             grids::GridsPlugin,
             inventory::InventoryPlugin,
-            map_editor::MapEditorPlugin,
             map_objects::MapObjectsPlugin,
-            mouse::MousePlugin,
             overlays::OverlaysPlugin,
             projectiles::ProjectilesPlugin,
             ui::UiPlugin,
             units::UnitsPlugin,
             wisps::WispsPlugin,
         ))
-        .insert_resource(GameConfig{
-            mode: GameMode::Editor,
-        })
+        .add_plugins((
+            camera::CameraPlugin,
+            common::CommonPlugin,
+            data_loader::DataLoaderPlugin,
+            map_editor::MapEditorPlugin,
+            mouse::MousePlugin,
+        ))
         .add_systems(Startup, generate_default_map)
         .add_systems(Update, common_systems::pulsate_sprites_system)
         .run();

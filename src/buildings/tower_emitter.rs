@@ -13,7 +13,7 @@ impl Plugin for TowerEmitterPlugin {
             .add_systems(PostUpdate, (
                 BuilderTowerEmitter::spawn_system,
             )).add_systems(Update, (
-                shooting_system,
+                shooting_system.run_if(in_state(GameState::Running)),
             ));
     }
 }

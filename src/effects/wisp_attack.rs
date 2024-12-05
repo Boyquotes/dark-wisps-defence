@@ -12,7 +12,7 @@ impl Plugin for WispAttackEffectPlugin {
                 BuilderWispAttackEffect::spawn_system,
             ))
             .add_systems(Update, (
-                remove_explosions_system,
+                remove_effects_system,
                 spawn_random_wisps_effect_system,
             ));
     }
@@ -89,7 +89,7 @@ impl Command for BuilderWispAttackEffect {
     }
 }
 
-fn remove_explosions_system(
+fn remove_effects_system(
     mut commands: Commands,
     explosions: Query<(Entity, &AnimationController), With<MarkerWispAttackEffect>>,
 ) {

@@ -12,7 +12,7 @@ impl Plugin for TowerBlasterPlugin {
             .add_systems(PostUpdate, (
                 BuilderTowerBlaster::spawn_system,
             )).add_systems(Update, (
-                shooting_system,
+                shooting_system.run_if(in_state(GameState::Running)),
             ));
     }
 }

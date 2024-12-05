@@ -11,7 +11,7 @@ impl Plugin for MiningComplexPlugin {
             .add_systems(PostUpdate, (
                 BuilderMiningComplex::spawn_system,
             )).add_systems(Update, (
-                mine_ore_system,
+                mine_ore_system.run_if(in_state(GameState::Running)),
             ));
     }
 }

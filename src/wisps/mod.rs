@@ -20,15 +20,17 @@ impl Plugin for WispsPlugin {
             ))
             .add_event::<spawning::BuilderWisp>()
             .add_systems(PostUpdate, (
-                spawning::BuilderWisp::spawn_system,
+                spawning::BuilderWisp::spawn_system.run_if(in_state(GameState::Running)),
             ))
             .add_systems(Update, (
-                systems::move_wisps,
-                systems::target_wisps,
-                systems::wisp_charge_attack,
-                systems::collide_wisps,
-                systems::remove_dead_wisps,
-                systems::spawn_wisps.run_if(is_game_mode),
+                (
+                    systems::move_wisps,
+                    systems::target_wisps,
+                    systems::wisp_charge_attack,
+                    systems::collide_wisps,
+                    systems::remove_dead_wisps,
+                    systems::spawn_wisps,
+                ).run_if(in_state(GameState::Running)),
             ));
         app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispFireType, materials::WispFireMaterial>);
         app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispWaterType, materials::WispWaterMaterial>);

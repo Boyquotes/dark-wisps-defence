@@ -15,8 +15,10 @@ impl Plugin for RipplePlugin {
                 Material2dPlugin::<RippleMaterial>::default(),
             ))
             .add_systems(Update, (
-                ripple_propagate_system,
-                ripple_hit_system,
+                (
+                    ripple_propagate_system,
+                    ripple_hit_system,
+                ).run_if(in_state(GameState::Running)),
             ))
             .add_systems(PostUpdate, (
                 BuilderRipple::spawn_system,

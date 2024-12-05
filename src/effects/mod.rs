@@ -16,7 +16,7 @@ impl Plugin for EffectsPlugin {
             ))
             .add_systems(
             Update, (
-                common::animate_sprite_system,
+                common::animate_sprite_system.run_if(in_state(GameState::Running)),
             ));
     }
 }

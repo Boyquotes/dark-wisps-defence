@@ -43,12 +43,12 @@ fn main() {
         .add_plugins((
             camera::CameraPlugin,
             common::CommonPlugin,
+            common_systems::CommonSystemsPlugin,
             data_loader::DataLoaderPlugin,
             map_editor::MapEditorPlugin,
             mouse::MousePlugin,
         ))
         .add_systems(Startup, generate_default_map)
-        .add_systems(Update, common_systems::pulsate_sprites_system)
         .run();
 }
 

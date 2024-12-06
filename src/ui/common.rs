@@ -58,13 +58,8 @@ fn mouse_release_system(
 ////////////////////////////////////////////
 ////          Healthbar Widget          ////
 ////////////////////////////////////////////
-
-#[derive(Bundle, Default)]
-pub struct HealthbarBundle {
-    pub node: Node,
-    pub healthbar: Healthbar,
-}
 #[derive(Component)]
+#[require(Node)]
 pub struct Healthbar {
     pub value: f32,
     pub max_value: f32,
@@ -170,12 +165,8 @@ fn on_healthbar_changed_system(
 ////////////////////////////////////////////
 ////          Cost Indicator            ////
 ////////////////////////////////////////////
-#[derive(Bundle, Default)]
-pub struct CostIndicatorBundle {
-    pub node: Node,
-    pub cost_indicator: CostIndicator,
-}
 #[derive(Component)]
+#[require(Node)]
 pub struct CostIndicator {
     pub cost: Cost,
     pub has_required_resources: bool,

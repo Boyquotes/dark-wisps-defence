@@ -76,3 +76,11 @@ impl ColorPulsation {
         }
     }
 }
+
+#[derive(Component)]
+pub struct Level(pub usize);
+impl Default for Level {
+    fn default() -> Self {
+        Self(1)
+    }
+}

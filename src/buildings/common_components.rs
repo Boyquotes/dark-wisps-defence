@@ -4,7 +4,8 @@ use crate::prelude::*;
 use crate::grids::base::GridVersion;
 use crate::wisps::components::WispEntity;
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Default)]
+#[require(Level)]
 pub struct Building;
 
 #[derive(Component, Copy, Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash)]
@@ -32,7 +33,8 @@ impl TechnicalState {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
+#[require(Building)]
 pub struct MarkerTower;
 
 

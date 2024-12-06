@@ -35,7 +35,8 @@ impl Plugin for DisplayInfoPanelPlugin {
             .add_systems(OnExit(DisplayInfoPanelState::DisplayBuilding), on_display_building_exit_system)
             .add_systems(OnEnter(DisplayInfoPanelState::DisplayQuantumField), on_display_quantum_field_enter_system)
             .add_systems(OnExit(DisplayInfoPanelState::DisplayQuantumField), on_display_quantum_field_exit_system);
-        app.world_mut().add_observer(on_recreate_quantum_field_cost_panels_trigger);
+        app.world_mut().add_observer(on_recreate_quantum_field_panel_trigger);
+        app.world_mut().add_observer(on_recreate_building_panel_trigger);
     }
 }
 
@@ -97,12 +98,9 @@ impl Command for UiMapObjectFocusChangedEvent {
     }
 }
 #[derive(Event)]
-pub struct QuantumFieldRecreateCostsTrigger;
-impl Command for QuantumFieldRecreateCostsTrigger {
-    fn apply(self, world: &mut World) {
-        world.trigger(self);
-    }
-}
+pub struct RecreateQuantumFieldPanelTrigger;
+#[derive(Event)]
+pub struct RecreateBuildingPanelTrigger;
 
 fn on_display_enter_system(
     mut display_info_panel: Query<&mut Visibility, With<DisplayInfoPanel>>,
@@ -134,16 +132,11 @@ fn hide_system(
 }
 
 fn on_display_building_enter_system(
-    almanach: Res<Almanach>,
-    display_info_panel: Query<&DisplayInfoPanel>,
+    mut commands: Commands,
     mut building_panel: Query<&mut Node, With<BuildingPanel>>,
-    mut building_name_text: Query<&mut Text, With<BuildingNameText>>,
 ) {
-    let DisplayInfoPanel::Building(building_type, _) = display_info_panel.single() else { unreachable!() };
-    // Update the building name
-    building_name_text.single_mut().0 = almanach.get_building_name(*building_type).to_string();
-
     building_panel.single_mut().display = Display::Flex;
+    commands.trigger(RecreateBuildingPanelTrigger);
 }
 
 fn on_display_building_exit_system(
@@ -182,7 +175,8 @@ fn on_display_panel_focus_changed_system(
     camera_transform.translation.y = world_position.y;
 
     match display_info_panel.single() {
-        DisplayInfoPanel::QuantumField(_) => commands.queue(QuantumFieldRecreateCostsTrigger),
+        DisplayInfoPanel::QuantumField(_) => commands.trigger(RecreateQuantumFieldPanelTrigger),
+        DisplayInfoPanel::Building(_, _) => commands.trigger(RecreateBuildingPanelTrigger),
         _ => (),
     }
 }
@@ -215,6 +209,18 @@ fn show_on_click_system(
 
     ui_map_object_focus_changed_events.send(UiMapObjectFocusChangedEvent::Focus((focused_structure).into()));
     ui_interaction_state.set(UiInteraction::DisplayInfoPanel);
+}
+
+fn on_recreate_building_panel_trigger(
+    _trigger: Trigger<RecreateBuildingPanelTrigger>,
+    almanach: Res<Almanach>,
+    display_info_panel: Query<&DisplayInfoPanel>,
+    mut building_name_text: Query<&mut Text, With<BuildingNameText>>,
+) {
+    println!("Recreating building panel");
+    let DisplayInfoPanel::Building(building_type, _) = display_info_panel.single() else { return; };
+    // Update the building name
+    building_name_text.single_mut().0 = almanach.get_building_name(*building_type).to_string();
 }
 
 fn on_building_destroyed_system(
@@ -280,8 +286,8 @@ fn update_quantum_field_info_panel_system(
     };
 }
 
-fn on_recreate_quantum_field_cost_panels_trigger(
-    _trigger: Trigger<QuantumFieldRecreateCostsTrigger>,
+fn on_recreate_quantum_field_panel_trigger(
+    _trigger: Trigger<RecreateQuantumFieldPanelTrigger>,
     mut commands: Commands,
     display_info_panel: Query<&DisplayInfoPanel>,
     quantum_fields: Query<&QuantumField>,
@@ -298,15 +304,13 @@ fn on_recreate_quantum_field_cost_panels_trigger(
     for cost in quantum_field.get_current_layer_costs() {
         commands.entity(costs_container_entity).with_children(|parent| {
             parent.spawn((
-                CostIndicatorBundle {
-                    node: Node {
-                        margin: UiRect{ top: Val::Px(4.), bottom: Val::Px(4.), ..default() },
-                        ..default()
-                    },
-                    cost_indicator: CostIndicator {
-                        cost: *cost,
-                        ..default()
-                    },
+                Node {
+                    margin: UiRect{ top: Val::Px(4.), bottom: Val::Px(4.), ..default() },
+                    ..default()
+                },
+                CostIndicator {
+                    cost: *cost,
+                    ..default()
                 },
                 QuantumFieldLayerCostPanel,
             ));
@@ -360,7 +364,7 @@ fn on_quantum_field_action_button_click_system(
                 let Ok(mut quantum_field) = quantum_fields.get_mut(*entity) else { return; };
                 if stock.try_pay_costs(quantum_field.get_current_layer_costs()) {
                     quantum_field.move_to_next_layer();
-                    commands.queue(QuantumFieldRecreateCostsTrigger);
+                    commands.trigger(RecreateQuantumFieldPanelTrigger);
                 }
             },
             QuantumFieldActionButton::Hidden => {},
@@ -486,14 +490,12 @@ fn make_building_panel(parent: &mut ChildBuilder) {
             ));
             // Healthbar
             parent.spawn((
-                HealthbarBundle{
-                    node: Node {
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                        ..default()
-                    },
+                Node {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
                     ..default()
                 },
+                Healthbar::default(),
                 BuildingHealthbar,
             ));
         });
@@ -561,17 +563,15 @@ fn make_quantum_field_panel(parent: &mut ChildBuilder) {
                 ));
             });
             parent.spawn((
-                HealthbarBundle{
-                    node: Node {
-                        top: Val::Px(2.0),
-                        width: Val::Percent(60.),
-                        height: Val::Px(20.),
-                        ..default()
-                    },
-                    healthbar: Healthbar {
-                        color: AQUA.into(),
-                        ..default()
-                    },
+                Node {
+                    top: Val::Px(2.0),
+                    width: Val::Percent(60.),
+                    height: Val::Px(20.),
+                    ..default()
+                },
+                Healthbar {
+                    color: AQUA.into(),
+                    ..default()
                 },
                 QuantumFieldLayerHealthbar,
             ));

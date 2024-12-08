@@ -39,7 +39,7 @@ impl BuilderMainBase {
         almanach: Res<Almanach>,
     ) {
         for &BuilderMainBase { entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::MainBase);
+            let grid_imprint = almanach.get_building_info(BuildingType::MainBase).grid_imprint;
             commands.entity(entity).insert((
                 Sprite {
                     image: asset_server.load(MAIN_BASE_BASE_IMAGE),

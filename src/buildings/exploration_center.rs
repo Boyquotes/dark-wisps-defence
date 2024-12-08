@@ -42,7 +42,7 @@ impl BuilderExplorationCenter {
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderExplorationCenter{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::ExplorationCenter);
+            let grid_imprint = almanach.get_building_info(BuildingType::ExplorationCenter).grid_imprint;
             commands.entity(entity).insert((
                 Sprite {
                     image: asset_server.load(EXPLORATION_CENTER_BASE_IMAGE),

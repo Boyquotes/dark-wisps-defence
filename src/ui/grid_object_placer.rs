@@ -51,7 +51,7 @@ pub enum GridObjectPlacer {
 impl GridObjectPlacer {
     pub fn as_grid_imprint(&self, almanach: &Almanach) -> GridImprint {
         match self {
-            GridObjectPlacer::Building(building_type) => almanach.get_building_grid_imprint(*building_type),
+            GridObjectPlacer::Building(building_type) => almanach.get_building_info(*building_type).grid_imprint,
             GridObjectPlacer::Wall => WALL_GRID_IMPRINT,
             GridObjectPlacer::DarkOre => DARK_ORE_GRID_IMPRINT,
             GridObjectPlacer::QuantumField(imprint_selector) => imprint_selector.get(),

@@ -112,7 +112,7 @@ pub fn apply_map(
                 // entity
             }
         };
-        obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type, default()), almanach.get_building_grid_imprint(building.building_type));
+        obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type, default()), almanach.get_building_info(building.building_type).grid_imprint);
     });
     map.quantum_fields.iter().for_each(|quantum_field| {
         let quantum_field_entity = commands.spawn_empty().id();

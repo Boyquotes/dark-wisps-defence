@@ -40,7 +40,7 @@ impl BuilderTowerBlaster {
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderTowerBlaster{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::Blaster));
+            let grid_imprint = almanach.get_building_info(BuildingType::Tower(TowerType::Blaster)).grid_imprint;
             let tower_base_entity = commands.entity(entity).insert((
                 Sprite {
                     image: asset_server.load(TOWER_BLASTER_BASE_IMAGE),

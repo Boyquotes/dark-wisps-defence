@@ -38,7 +38,7 @@ impl BuilderTowerRocketLauncher {
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderTowerRocketLauncher{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::RocketLauncher));
+            let grid_imprint = almanach.get_building_info(BuildingType::Tower(TowerType::RocketLauncher)).grid_imprint;
             let tower_base_entity = commands.entity(entity).insert((
                 Sprite {
                     image: asset_server.load(TOWER_ROCKET_LAUNCHER_BASE_IMAGE),

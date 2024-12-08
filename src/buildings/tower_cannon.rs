@@ -40,7 +40,7 @@ impl BuilderTowerCannon {
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderTowerCannon{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::Tower(TowerType::Cannon));
+            let grid_imprint = almanach.get_building_info(BuildingType::Tower(TowerType::Cannon)).grid_imprint;
             commands.entity(entity).insert((
                 Sprite {
                     image: asset_server.load(TOWER_CANNON_BASE_IMAGE),

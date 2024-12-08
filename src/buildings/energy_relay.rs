@@ -32,7 +32,7 @@ impl BuilderEnergyRelay {
         almanach: Res<Almanach>,
     ) {
         for &BuilderEnergyRelay{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::EnergyRelay);
+            let grid_imprint = almanach.get_building_info(BuildingType::EnergyRelay).grid_imprint;
             commands.entity(entity).insert((
                 Sprite {
                     image: asset_server.load(ENERGY_RELAY_BASE_IMAGE),

@@ -40,7 +40,7 @@ pub fn onclick_building_spawn_system(
     if !mouse_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds())
         || !obstacle_grid.query_building_placement(mouse_coords, *building_type, *grid_imprint) { return; }
     // Payment
-    let building_costs = almanach.get_building_cost(*building_type);
+    let building_costs = &almanach.get_building_info(*building_type).cost;
     if !stock.try_pay_costs(building_costs) { println!("Not enough dark ore"); return; }
     // Creation
     // ---

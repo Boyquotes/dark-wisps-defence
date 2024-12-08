@@ -46,7 +46,7 @@ impl BuilderMiningComplex {
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         for &BuilderMiningComplex{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_grid_imprint(BuildingType::MiningComplex);
+            let grid_imprint = almanach.get_building_info(BuildingType::MiningComplex).grid_imprint;
             let ore_entities_in_range = obstacle_grid.imprint_query_element(grid_position, grid_imprint, query_dark_ore_helper);
             commands.entity(entity).insert((
                 Sprite {

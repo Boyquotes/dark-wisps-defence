@@ -220,7 +220,7 @@ fn on_recreate_building_panel_trigger(
     println!("Recreating building panel");
     let DisplayInfoPanel::Building(building_type, _) = display_info_panel.single() else { return; };
     // Update the building name
-    building_name_text.single_mut().0 = almanach.get_building_name(*building_type).to_string();
+    building_name_text.single_mut().0 = almanach.get_building_info(*building_type).name.to_string();
 }
 
 fn on_building_destroyed_system(

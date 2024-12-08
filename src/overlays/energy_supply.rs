@@ -192,7 +192,7 @@ fn on_grid_placer_changed_system(
             GridObjectPlacer::Building(building_type) if building_type.is_energy_supplier() => {
                 overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Placing{
                     grid_coords: *grid_coords,
-                    grid_imprint: almanach.get_building_grid_imprint(*building_type),
+                    grid_imprint: almanach.get_building_info(*building_type).grid_imprint,
                     range: 15,
                 };
             }

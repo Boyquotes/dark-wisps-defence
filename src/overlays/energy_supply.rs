@@ -6,7 +6,7 @@ use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDim
 use bevy::sprite::{AlphaMode2d, Material2d};
 use crate::prelude::*;
 use crate::search::common::{CARDINAL_DIRECTIONS, VISITED_GRID};
-use crate::ui::display_info_panel::UiMapObjectFocusChangedEvent;
+use crate::ui::display_info_panel::{UiMapObjectFocusedTrigger, UiMapObjectUnfocusedTrigger};
 use crate::grids::base::GridVersion;
 use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -27,9 +27,11 @@ impl Plugin for EnergySupplyOverlayPlugin {
                 on_config_change_system.run_if(resource_changed::<EnergySupplyOverlayConfig>),
                 refresh_display_system.run_if(in_state(EnergySupplyOverlayState::Show)),
                 manage_energy_supply_overlay_global_mode_system,
-                on_building_ui_focus_changed_system.run_if(on_event::<UiMapObjectFocusChangedEvent>),
                 on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
             ));
+        app.world_mut().add_observer(on_building_ui_focused_trigger);
+        app.world_mut().add_observer(on_building_ui_unfocused_trigger);
+
     }
 }
 
@@ -157,25 +159,24 @@ fn refresh_display_system(
     }
 }
 
-fn on_building_ui_focus_changed_system(
-    mut events: EventReader<UiMapObjectFocusChangedEvent>,
+fn on_building_ui_focused_trigger(
+    trigger: Trigger<UiMapObjectFocusedTrigger>,
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
     buildings: Query<&BuildingType>,
 ) {
-    for event in events.read() {
-        match event {
-            UiMapObjectFocusChangedEvent::Focus(entity) => {
-                if buildings.contains(*entity) {
-                    overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight((*entity).into());
-                } else {
-                    overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
-                }
-            }
-            UiMapObjectFocusChangedEvent::Unfocus => {
-                overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
-            }
-        }
+    let focused_entity = trigger.entity();
+    if buildings.contains(focused_entity) {
+        overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight((focused_entity).into());
+    } else {
+        overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
     }
+}
+
+fn on_building_ui_unfocused_trigger(
+    _trigger: Trigger<UiMapObjectUnfocusedTrigger>,
+    mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
+) {
+    overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
 }
 
 fn on_grid_placer_changed_system(

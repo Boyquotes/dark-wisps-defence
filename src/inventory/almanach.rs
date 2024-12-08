@@ -18,6 +18,15 @@ pub struct AlmanachBuildingInfo {
     pub grid_imprint: GridImprint,
 }
 
+pub struct AlmanachUpgradeInfo {
+    pub upgrade_type: UpgradeType,
+    pub levels: Vec<AlmanachUpgradeLevelInfo>,
+}
+pub struct AlmanachUpgradeLevelInfo {
+    pub cost: Vec<Cost>,
+    pub value: f32,
+}
+
 impl Almanach {
     pub fn get_building_info(&self, building_type: BuildingType) -> &AlmanachBuildingInfo {
         let info = self.buildings.get(&building_type).expect(format!("Building {building_type:?} not found in almanach").as_str());

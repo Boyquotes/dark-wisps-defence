@@ -1,3 +1,5 @@
+use bevy::color::palettes::css::BLUE;
+
 use crate::effects::explosions::BuilderExplosion;
 use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterEnergy};
 use crate::prelude::*;
@@ -8,6 +10,7 @@ use crate::grids::wisps::WispsGrid;
 use crate::mouse::MouseInfo;
 use crate::search::flooding::FloodEnergySupplyMode;
 use crate::search::targetfinding::target_find_closest_wisp;
+use crate::ui::display_info_panel::{DisplayInfoPanel, DisplayPanelMainContentRoot, UiMapObjectFocusedTrigger};
 use crate::ui::grid_object_placer::GridObjectPlacer;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
@@ -21,6 +24,27 @@ use super::{
     tower_cannon::BuilderTowerCannon,
     tower_rocket_launcher::BuilderTowerRocketLauncher,
 };
+
+pub struct CommonSystemsPlugin;
+impl Plugin for CommonSystemsPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_systems(PostStartup, initialize_building_panel_content_system)
+            .add_systems(PreUpdate, tick_shooting_timers_system.run_if(in_state(GameState::Running)))
+            .add_systems(Update,(
+                onclick_building_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
+                (
+                    check_energy_supply_system,
+                    targeting_system,
+                    rotate_tower_top_system,
+                    rotational_aiming_system,
+                    damage_control_system,
+                ).run_if(in_state(GameState::Running)),
+                update_building_info_panel_system.run_if(in_state(UiInteraction::DisplayInfoPanel)),
+            ));
+        app.add_observer(on_ui_map_object_focus_changed_trigger);
+    }
+}
 
 pub fn onclick_building_spawn_system(
     mut commands: Commands,
@@ -225,4 +249,101 @@ pub fn rotational_aiming_system(
         let rotation_delta = rotation.speed * time.delta_secs();
         rotation.current_angle += angle_diff.clamp(-rotation_delta, rotation_delta);
     }
+}
+
+////////////////////////////////////////////
+////        Display Info Panel          ////
+////////////////////////////////////////////
+#[derive(Component)]
+struct BuildingInfoPanel;
+#[derive(Component)]
+struct BuildingInfoPanelNameText;
+#[derive(Component)]
+struct BuildingInfoPanelHealthbar;
+
+fn update_building_info_panel_system(
+    buildings: Query<&Health, With<Building>>,
+    display_info_panel: Query<&DisplayInfoPanel>,
+    mut healthbars: Query<&mut Healthbar, With<BuildingInfoPanelHealthbar>>,
+) {
+    let focused_entity = display_info_panel.single().current_focus;
+    let Ok(health) = buildings.get(focused_entity) else { return; };
+    // Update the healthbar
+    let mut healthbar = healthbars.single_mut();
+    healthbar.value = health.get_current() as f32;
+    healthbar.max_value = health.get_max() as f32;
+    let health_percentage = health.get_percent();
+    healthbar.color = Color::linear_rgba(1. - health_percentage, health_percentage, 0., 1.);
+}
+
+fn on_ui_map_object_focus_changed_trigger(
+    trigger: Trigger<UiMapObjectFocusedTrigger>,
+    almanach: Res<Almanach>,
+    mut building_name_text: Query<&mut Text, With<BuildingInfoPanelNameText>>,
+    mut building_panel: Query<&mut Node, With<BuildingInfoPanel>>,
+    buildings: Query<&BuildingType>,
+) {
+    let focused_entity = trigger.entity();
+    let Ok(building_type) = buildings.get(focused_entity) else { 
+        building_panel.single_mut().display = Display::None;
+        return; 
+    };
+    building_panel.single_mut().display = Display::Flex;
+
+    // Update the building name
+    building_name_text.single_mut().0 = almanach.get_building_info(*building_type).name.to_string();
+}
+
+fn initialize_building_panel_content_system(
+    mut commands: Commands,
+    display_info_panel_main_content_root: Query<Entity, With<DisplayPanelMainContentRoot>>,
+) {
+    let display_info_panel_main_content_root = display_info_panel_main_content_root.single();
+    commands.entity(display_info_panel_main_content_root).with_children(|parent| {
+        parent.spawn((
+            Node {
+                display: Display::None,
+                height: Val::Percent(100.),
+                width: Val::Percent(100.),
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::Start,
+                align_items: AlignItems::Start,
+                padding: UiRect::all(Val::Px(2.0)),
+                ..default()
+            },
+            BuildingInfoPanel,
+        )).with_children(|parent| {
+            // Top line of the panel
+            parent.spawn((
+                Node {
+                    width: Val::Percent(100.),
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::Start,
+                    ..default()
+                },
+            )).with_children(|parent| {
+                // Building name
+                parent.spawn((
+                    Text::new("### Building Name ###"),
+                    TextColor::from(BLUE),
+                    TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                    Node {
+                        margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
+                        ..default()
+                    },
+                    BuildingInfoPanelNameText,
+                ));
+                // Healthbar
+                parent.spawn((
+                    Node {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                        ..default()
+                    },
+                    Healthbar::default(),
+                    BuildingInfoPanelHealthbar,
+                ));
+            });
+        });
+    });
 }

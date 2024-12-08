@@ -1,7 +1,9 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, collections::VecDeque};
+
+use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
-use serde::{Deserialize, Serialize};
+use super::base::GridVersion;
 
 pub mod prelude {
     pub use super::*;
@@ -101,5 +103,28 @@ impl GridImprint {
 impl Default for GridImprint {
     fn default() -> Self {
         GridImprint::Rectangle{width: 1, height: 1}
+    }
+}
+
+#[derive(Component, Default)]
+pub struct GridPath {
+    pub grid_version: GridVersion,
+    pub path: VecDeque<GridCoords>,
+}
+impl GridPath {
+    pub fn next_in_path(&self) -> Option<GridCoords> {
+        self.path.front().copied()
+    }
+    pub fn remove_first(&mut self) {
+        self.path.pop_front();
+    }
+    pub fn is_empty(&self) -> bool {
+        self.path.is_empty()
+    }
+    pub fn distance(&self) -> usize {
+        self.path.len()
+    }
+    pub fn at_distance(&self, index: usize) -> Option<GridCoords> {
+        self.path.get(index - 1).copied()
     }
 }

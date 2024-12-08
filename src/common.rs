@@ -1,6 +1,4 @@
-use std::collections::VecDeque;
 use crate::prelude::*;
-use crate::grids::base::GridVersion;
 
 pub mod prelude {
     pub use super::*;
@@ -21,27 +19,11 @@ pub enum GameState {
     Paused,
 }
 
-#[derive(Component, Default)]
-pub struct GridPath {
-    pub grid_version: GridVersion,
-    pub path: VecDeque<GridCoords>,
-}
-impl GridPath {
-    pub fn next_in_path(&self) -> Option<GridCoords> {
-        self.path.front().copied()
-    }
-    pub fn remove_first(&mut self) {
-        self.path.pop_front();
-    }
-    pub fn is_empty(&self) -> bool {
-        self.path.is_empty()
-    }
-    pub fn distance(&self) -> usize {
-        self.path.len()
-    }
-    pub fn at_distance(&self, index: usize) -> Option<GridCoords> {
-        self.path.get(index - 1).copied()
-    }
+pub enum UpgradeType {
+    AttackSpeed,
+    Range,
+    Damage,
+    Health
 }
 
 macro_rules! define_z_indexes {

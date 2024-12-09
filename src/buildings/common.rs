@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use serde::{Deserialize, Serialize};
+
 use crate::utils::id::Id;
 
 use super::prelude::BuildingType;

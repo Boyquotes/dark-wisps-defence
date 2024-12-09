@@ -19,6 +19,7 @@ pub enum GameState {
     Paused,
 }
 
+#[derive(Serialize, Deserialize)]
 pub enum UpgradeType {
     AttackSpeed,
     Range,

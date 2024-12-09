@@ -1,7 +1,6 @@
 use std::fs::File;
 
-use serde::{Deserialize, Serialize};
-use crate::prelude::*;
+use crate::{inventory::almanach::AlmanachBuildingInfo, prelude::*};
 
 pub struct DataLoaderPlugin;
 impl Plugin for DataLoaderPlugin {
@@ -13,15 +12,7 @@ impl Plugin for DataLoaderPlugin {
 
 #[derive(Serialize, Deserialize)]
 struct Data {
-    buildings: Vec<Buildings>,
-}
-#[derive(Serialize, Deserialize)]
-struct Buildings {
-    #[serde(rename = "type")] 
-    building_type: BuildingType,
-    name: String,
-    grid_imprint: GridImprint,
-    cost: Vec<Cost>,
+    buildings: Vec<AlmanachBuildingInfo>,
 }
 
 fn load_data_system(
@@ -29,6 +20,6 @@ fn load_data_system(
 ) {
     let data: Data = serde_yaml::from_reader(File::open(format!("assets/data.yaml")).unwrap()).unwrap();
     data.buildings.into_iter().for_each(
-        |Buildings { building_type, name, grid_imprint, cost }| almanach.add_building(building_type, name, cost, grid_imprint)
+        |building_info| almanach.add_building_info(building_info)
     );
 }

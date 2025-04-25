@@ -93,7 +93,7 @@ fn on_healthbar_added_trigger(
     mut commands: Commands,
     healthbars: Query<&Healthbar>,
 ) {
-    let healthbar_entity = trigger.entity();
+    let healthbar_entity = trigger.target();
     let Ok(healthbar) = healthbars.get(healthbar_entity) else { return; };
     let mut healthbar_children = HealthbarChildren {
         value_rectangle: Entity::PLACEHOLDER,
@@ -206,7 +206,7 @@ fn on_cost_indicator_added_trigger(
     stock: Res<Stock>,
     mut cost_indicators: Query<&mut CostIndicator>,
 ) {
-    let cost_indicator_entity = trigger.entity();
+    let cost_indicator_entity = trigger.target();
     let Ok(mut cost_indicator) = cost_indicators.get_mut(cost_indicator_entity) else { return; };
     // Update the cost indicator state
     cost_indicator.has_required_resources = stock.can_cover(&cost_indicator.cost);
@@ -300,7 +300,7 @@ pub fn on_upgrade_button_added_trigger(
     mut commands: Commands,
     upgrade_buttons: Query<&UpgradeButton>,
 ) {
-    let upgrade_button_entity = trigger.entity();
+    let upgrade_button_entity = trigger.target();
     let Ok(upgrade_button) = upgrade_buttons.get(upgrade_button_entity) else { return; };
 
     // Spawn the full upgrade button structure
@@ -343,7 +343,7 @@ fn on_upgrade_button_rebuild_trigger(
     mut commands: Commands,
     upgrade_buttons: Query<Entity, With<UpgradeButton>>,
 ) {
-    let upgrade_button_entity = trigger.entity();
+    let upgrade_button_entity = trigger.target();
 }
 
 
@@ -352,7 +352,7 @@ fn on_upgrade_button_rebuild_trigger(
 ////////////////////////////////////////////
 pub fn recolor_background_on<E>(color: Color) -> impl Fn(Trigger<E>, Query<&mut BackgroundColor>) {
     move |event, mut background_colors| {
-        let Ok(mut background_color) = background_colors.get_mut(event.entity()) else {
+        let Ok(mut background_color) = background_colors.get_mut(event.target()) else {
             return;
         };
         background_color.0 = color;

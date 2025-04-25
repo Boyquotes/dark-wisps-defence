@@ -88,14 +88,14 @@ pub fn move_main_base_system(
     mut main_base: Query<(Entity, &GridImprint, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
 ) {
     for &EventMoveMainBase { new_grid_position } in events.read() {
-        let (entity, grid_imprint, mut main_base_location, supplier_energy, mut transform) = main_base.single_mut();
-        supplier_created_event_writer.send(SupplierChangedEvent {
+        let Ok((entity, grid_imprint, mut main_base_location, supplier_energy, mut transform)) = main_base.single_mut() else { return; };
+        supplier_created_event_writer.write(SupplierChangedEvent {
             supplier: entity,
             coords: grid_imprint.covered_coords(*main_base_location),
             range: supplier_energy.range,
             mode: FloodEnergySupplyMode::Decrease,
         });
-        supplier_created_event_writer.send(SupplierChangedEvent {
+        supplier_created_event_writer.write(SupplierChangedEvent {
             supplier: entity,
             coords: grid_imprint.covered_coords(new_grid_position),
             range: supplier_energy.range,

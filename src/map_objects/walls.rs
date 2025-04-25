@@ -86,7 +86,7 @@ pub fn onclick_spawn_system(
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Query<&GridObjectPlacer>,
 ) {
-    if !matches!(*grid_object_placer.single(), GridObjectPlacer::Wall) { return; }
+    if !matches!(*grid_object_placer.single().unwrap(), GridObjectPlacer::Wall) { return; }
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {

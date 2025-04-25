@@ -136,7 +136,7 @@ fn emit_delta_events_system(
  ) {
     for (resource_type, delta) in stock.delta.iter() {
         if *delta != 0 {
-            event_writer.send(StockChangedEvent { resource_type: *resource_type, delta: *delta, new_amount: stock.get(*resource_type) });
+            event_writer.write(StockChangedEvent { resource_type: *resource_type, delta: *delta, new_amount: stock.get(*resource_type) });
         }
     }
     stock.delta.values_mut().for_each(|v| *v = 0);

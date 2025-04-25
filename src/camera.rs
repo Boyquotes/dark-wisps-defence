@@ -34,7 +34,7 @@ fn startup(mut commands: Commands) {
 }
 
 fn camera_zoom(
-    mut query: Query<&mut OrthographicProjection, With<MainCamera>>,
+    mut camera: Query<&mut Projection, With<MainCamera>>,
     time: Res<Time>,
     mut mouse_wheel_events: EventReader<MouseWheel>
 ) {
@@ -43,10 +43,14 @@ fn camera_zoom(
         scroll += event.y;
     }
 
-    for mut projection in query.iter_mut() {
-        let mut log_scale = projection.scale.ln();
-        log_scale -= scroll * ZOOM_SPEED * time.delta_secs();
-        projection.scale = log_scale.exp().clamp(ZOOM_MIN, ZOOM_MAX);
+    let Ok(mut projection) = camera.single_mut() else { return; };
+    match &mut *projection {
+        Projection::Orthographic(orthographic) => {
+            let mut log_scale = orthographic.scale.ln();
+            log_scale -= scroll * ZOOM_SPEED * time.delta_secs();
+            orthographic.scale = log_scale.exp().clamp(ZOOM_MIN, ZOOM_MAX);
+        }
+        _ => panic!("Only orthographic projections are supported for zooming"),
     }
 }
 

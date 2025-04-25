@@ -111,7 +111,7 @@ impl ConstructObjectButtonBundle {
             advanced_interaction: Default::default(),
         }
     }
-    pub fn spawn(builder: &mut ChildBuilder, asset_server: &AssetServer, grid_object_placer: GridObjectPlacer) {
+    pub fn spawn(spawner: &mut ChildSpawnerCommands, asset_server: &AssetServer, grid_object_placer: GridObjectPlacer) {
         let image_handle = match &grid_object_placer {
             GridObjectPlacer::Building(building_type) => match building_type {
                 BuildingType::Tower(tower_type) => {
@@ -131,7 +131,7 @@ impl ConstructObjectButtonBundle {
             GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGES[0]),
             _ => None,
         };
-        builder.spawn(ConstructObjectButtonBundle::new(grid_object_placer)).with_children(|parent| {
+        spawner.spawn(ConstructObjectButtonBundle::new(grid_object_placer)).with_children(|parent| {
             if let Some(image_handle) = image_handle {
                 parent.spawn((
                     Node {

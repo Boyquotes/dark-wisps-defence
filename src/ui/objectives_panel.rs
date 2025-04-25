@@ -51,7 +51,7 @@ fn initialize_objectives_panel_system(
         ImageNode {
             image: asset_server.load("ui/objectives_panel.png"),
             image_mode: NodeImageMode::Sliced(TextureSlicer {
-                border: BorderRect::square(20.0),
+                border: BorderRect::all(20.0),
                 center_scale_mode: SliceScaleMode::Stretch,
                 sides_scale_mode: SliceScaleMode::Stretch,
                 max_corner_scale: 1.0,
@@ -81,7 +81,7 @@ fn on_objective_created_system(
     mut events: EventReader<BuilderObjective>,
     objectives_panel: Query<Entity, With<ObjectivesPanel>>,
 ) {
-    let objectives_panel = objectives_panel.single();
+    let Ok(objectives_panel) = objectives_panel.single() else { return; };
     for &BuilderObjective { entity, .. } in events.read() {
         commands.entity(objectives_panel).add_child(entity);
     }
@@ -92,7 +92,7 @@ fn panel_transition_to_visible_system(
     mut next_state: ResMut<NextState<ObjectivesPanelState>>,
     mut objectives_panel: Query<&mut Node, With<ObjectivesPanel>>,
 ) {
-    let mut style = objectives_panel.single_mut();
+    let Ok(mut style) = objectives_panel.single_mut() else { return; };
     let current_top = match style.top {
         Val::Px(top) => top,
         _ => unreachable!(),
@@ -111,7 +111,7 @@ fn panel_transition_to_hidden_system(
     mut next_state: ResMut<NextState<ObjectivesPanelState>>,
     mut objectives_panel: Query<(&ComputedNode, &mut Node), With<ObjectivesPanel>>,
 ) {
-    let (node, mut style) = objectives_panel.single_mut();
+    let Ok((node, mut style)) = objectives_panel.single_mut() else { return; };
     let current_top = match style.top {
         Val::Px(top) => top,
         _ => unreachable!(),
@@ -130,7 +130,7 @@ fn on_click_show_hide_objectives_system(
     mut next_state: ResMut<NextState<ObjectivesPanelState>>,
     objectives_show_hide_button: Query<&Interaction, (With<ObjectivesShowHideButton>, Changed<Interaction>)>,
 ) {
-    let Ok(interaction) = objectives_show_hide_button.get_single() else { return; };
+    let Ok(interaction) = objectives_show_hide_button.single() else { return; };
     if matches!(*interaction, Interaction::Pressed) {
         match current_state.get() {
             ObjectivesPanelState::Hidden => next_state.set(ObjectivesPanelState::TransitionToVisible),

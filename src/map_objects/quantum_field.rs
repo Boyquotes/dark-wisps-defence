@@ -186,7 +186,7 @@ fn onclick_spawn_system(
     grid_object_placer: Query<&GridObjectPlacer>,
     quantum_fields_query: Query<&GridCoords, With<QuantumField>>,
 ) {
-    let GridObjectPlacer::QuantumField(imprint_selector) = grid_object_placer.single() else { return; };
+    let GridObjectPlacer::QuantumField(imprint_selector) = grid_object_placer.single().unwrap() else { return; };
     let grid_imprint = imprint_selector.get();
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacles_grid.bounds()) { return; }
@@ -280,8 +280,8 @@ pub fn create_grid_placer_ui_for_quantum_field_system(
                 advanced_interaction: Default::default(),
             }
         }
-        pub fn spawn(self, builder: &mut ChildBuilder) {
-            builder.spawn((self.button, self.node, self.background_color, self.z_index, self.arrow_button, self.advanced_interaction)).with_children(|parent| {
+        pub fn spawn(self, spawner: &mut ChildSpawnerCommands) {
+            spawner.spawn((self.button, self.node, self.background_color, self.z_index, self.arrow_button, self.advanced_interaction)).with_children(|parent| {
                 parent.spawn((self.text, TextFont::default().with_font_size(12.)));
             });
         }
@@ -314,8 +314,8 @@ pub fn operate_arrows_for_grid_placer_ui_for_quantum_field_system(
     grid_object_placer: Query<&GridObjectPlacer>,
     mut placer_request: ResMut<GridObjectPlacerRequest>,
 ) {
-    let (mut visibility, ui_children, mut grid_placer_ui) = ui.single_mut();
-    let GridObjectPlacer::QuantumField(_) = grid_object_placer.single() else {
+    let Ok((mut visibility, ui_children, mut grid_placer_ui)) = ui.single_mut() else { return; };
+    let GridObjectPlacer::QuantumField(_) = grid_object_placer.single().unwrap() else {
         *visibility = Visibility::Hidden;
         return;
     };
@@ -367,11 +367,11 @@ fn update_quantum_field_info_panel_system(
     mut healthbars: Query<&mut Healthbar, With<QuantumFieldLayerHealthbar>>,
     mut texts: Query<&mut Text, With<QuantumFieldLayerText>>,
 ) {
-    let focused_entity = display_info_panel.single().current_focus;
+    let focused_entity = display_info_panel.single().unwrap().current_focus;
     let Ok((quantum_field, has_expedition_target_marker)) = quantum_fields.get(focused_entity) else { return; };
-    let mut healthbar = healthbars.single_mut();
+    let Ok(mut healthbar) = healthbars.single_mut() else { return; };
     // Update the layer text
-    let mut text = texts.single_mut();
+    let Ok(mut text) = texts.single_mut() else { return; };
     text.0 = if quantum_field.is_solved() {
         "All Quantum Layers Solved".to_string()
     } else {
@@ -382,7 +382,7 @@ fn update_quantum_field_info_panel_system(
     healthbar.value = current_layer_progress as f32;
     healthbar.max_value = current_layer_target as f32;
     // Update the action button
-    *action_button.single_mut() = {
+    *action_button.single_mut().unwrap() = {
         if quantum_field.is_solved() {
             QuantumFieldActionButton::Hidden
         } else if quantum_field.is_current_layer_solved() {
@@ -403,18 +403,18 @@ fn on_ui_map_object_focus_changed_trigger(
     costs_container: Query<Entity, With<QuantumFieldLayerCostsContainer>>,
     costs_panels: Query<Entity, With<QuantumFieldLayerCostPanel>>,
 ) {
-    let focused_entity = trigger.entity();
+    let focused_entity = trigger.target();
     let Ok(quantum_field) = quantum_fields.get(focused_entity) else { 
-        quantum_field_panel.single_mut().display = Display::None;
+        quantum_field_panel.single_mut().unwrap().display = Display::None;
         return;
      };
-    quantum_field_panel.single_mut().display = Display::Flex;
+    quantum_field_panel.single_mut().unwrap().display = Display::Flex;
 
     // Remove the old panels
-    costs_panels.iter().for_each(|entity| commands.entity(entity).despawn_recursive());
+    costs_panels.iter().for_each(|entity| commands.entity(entity).despawn());
 
     // Create the new panels
-    let costs_container_entity = costs_container.single();
+    let Ok(costs_container_entity) = costs_container.single() else { return; };
     for cost in quantum_field.get_current_layer_costs() {
         commands.entity(costs_container_entity).with_children(|parent| {
             parent.spawn((
@@ -436,8 +436,8 @@ fn update_quantum_field_action_button_system(
     mut action_button: Query<(&QuantumFieldActionButton, &mut Node)>,
     mut action_button_text: Query<&mut Text, With<QuantumFieldActionButtonText>>,
 ) {
-    let (action_button, mut style) = action_button.single_mut();
-    let mut text = action_button_text.single_mut();
+    let Ok((action_button, mut style)) = action_button.single_mut() else { return; };
+    let Ok(mut text) = action_button_text.single_mut() else { return; };
     match action_button {
         QuantumFieldActionButton::SendExpeditions => {
             text.0 = "Send Expeditions".to_string();
@@ -464,8 +464,8 @@ fn on_quantum_field_action_button_click_system(
     mut action_button: Query<(&mut QuantumFieldActionButton, &AdvancedInteraction)>,
     mut quantum_fields: Query<&mut QuantumField>,
 ) {
-    let focused_entity = display_info_panel.single().current_focus;
-    let (mut action_button, interaction) = action_button.single_mut();
+    let focused_entity = display_info_panel.single().unwrap().current_focus;
+    let Ok((mut action_button, interaction)) = action_button.single_mut() else { return; };
     if interaction.was_just_released {
         match *action_button {
             QuantumFieldActionButton::SendExpeditions => {
@@ -492,7 +492,7 @@ fn initialize_quantum_field_panel_content_system(
     mut commands: Commands,
     display_info_panel_main_content_root: Query<Entity, With<DisplayPanelMainContentRoot>>,
 ) {
-    let display_info_panel_main_content_root = display_info_panel_main_content_root.single();
+    let Ok(display_info_panel_main_content_root) = display_info_panel_main_content_root.single() else { return; };
     commands.entity(display_info_panel_main_content_root).with_children(|parent| {
         parent.spawn((
             Node {

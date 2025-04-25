@@ -50,8 +50,8 @@ fn on_display_enter_system(
     mut display_info_panel: Query<&mut Visibility, With<DisplayInfoPanel>>,
     mut info_panel_camera: Query<&mut Camera, With<DisplayInfoPanelCamera>>,
 ) {
-    *display_info_panel.single_mut() = Visibility::Inherited;
-    info_panel_camera.single_mut().is_active = true;
+    *display_info_panel.single_mut().unwrap() = Visibility::Inherited;
+    info_panel_camera.single_mut().unwrap().is_active = true;
 }
 
 fn on_display_exit_system(
@@ -59,8 +59,8 @@ fn on_display_exit_system(
     mut display_info_panel: Query<&mut Visibility, With<DisplayInfoPanel>>,
     mut info_panel_camera: Query<&mut Camera, With<DisplayInfoPanelCamera>>,
 ) {
-    *display_info_panel.single_mut() = Visibility::Hidden;
-    info_panel_camera.single_mut().is_active = false;
+    *display_info_panel.single_mut().unwrap() = Visibility::Hidden;
+    info_panel_camera.single_mut().unwrap().is_active = false;
     commands.trigger(UiMapObjectUnfocusedTrigger);
 }
 
@@ -94,11 +94,11 @@ fn show_on_click_system(
     // Center the camera on the focused structure
     let Ok((grid_coords, grid_imprint)) = grid_positions.get(focused_structure) else { return; };
     let world_position = grid_coords.to_world_position_centered(*grid_imprint);
-    let mut camera_transform = info_panel_camera.single_mut();
+    let Ok(mut camera_transform) = info_panel_camera.single_mut() else { return; };
     camera_transform.translation.x = world_position.x;
     camera_transform.translation.y = world_position.y;
 
-    display_info_panel.single_mut().current_focus = focused_structure;
+    display_info_panel.single_mut().unwrap().current_focus = focused_structure;
     commands.trigger_targets(UiMapObjectFocusedTrigger, [focused_structure]);
     next_ui_interaction_state.set(UiInteraction::DisplayInfoPanel);
 }
@@ -108,7 +108,7 @@ fn on_building_destroyed_system(
     mut events: EventReader<BuildingDestroyedEvent>,
     display_info_panel: Query<&DisplayInfoPanel>,
 ) {
-    let current_display_entity = display_info_panel.single().current_focus;
+    let current_display_entity = display_info_panel.single().unwrap().current_focus;
     for event in events.read() {
         if event.0 == current_display_entity {
             ui_interaction_state.set(UiInteraction::Free);
@@ -149,16 +149,16 @@ fn initialize_display_info_panel_system(
         Camera {
             order: 1,
             hdr: true,
-            target: RenderTarget::Image(camera_image_handle.clone()),
+            target: RenderTarget::Image(camera_image_handle.clone().into()),
             is_active: false,
             ..default()
         },
-        OrthographicProjection {
+        Projection::Orthographic(OrthographicProjection {
             near: -1000.,
             far: 1000.,
             scale: 2., // TODO, check new scaling_mode
             ..OrthographicProjection::default_2d()
-        },
+        }),
         DisplayInfoPanelCamera,
     ));
     commands.spawn((

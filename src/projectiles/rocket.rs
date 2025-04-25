@@ -150,7 +150,7 @@ pub fn rocket_hit_system(
     for (entity, rocket_transform, target) in rockets.iter() {
         let rocket_coords = GridCoords::from_transform(&rocket_transform);
         if !rocket_coords.is_in_bounds(wisps_grid.bounds()) {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
             continue;
         }
 
@@ -170,7 +170,7 @@ pub fn rocket_hit_system(
                 health.decrease(50);
             }
         }
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 

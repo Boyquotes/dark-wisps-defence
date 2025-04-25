@@ -1,5 +1,4 @@
 use std::fs::File;
-use bevy::utils::HashSet;
 use crate::prelude::*;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::inventory::objectives::ObjectiveDetails;

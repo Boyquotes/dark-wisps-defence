@@ -104,7 +104,7 @@ fn on_emitter_added_system(
     suppliers: Query<(Entity, &GridCoords, &GridImprint, &EmitterEnergy), Added<EmitterEnergy>>,
 ) {
     for (entity, grid_coords, grid_imprint, emitter) in suppliers.iter() {
-        events.send(EmitterChangedEvent {
+        events.write(EmitterChangedEvent {
             emitter_entity: entity,
             coords: grid_imprint.covered_coords(*grid_coords),
             emissions_details: vec![emitter.0.clone()],

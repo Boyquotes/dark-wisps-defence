@@ -104,12 +104,12 @@ fn on_config_change_system(
 fn on_overlay_show_system(
     mut emission_material_visibility: Query<&mut Visibility, With<EnergySupplyOverlay>>,
 ) {
-    *emission_material_visibility.single_mut() = Visibility::Inherited;
+    *emission_material_visibility.single_mut().unwrap() = Visibility::Inherited;
 }
 fn on_overlay_hide_system(
     mut emission_material_visibility: Query<&mut Visibility, With<EnergySupplyOverlay>>,
 ) {
-    *emission_material_visibility.single_mut() = Visibility::Hidden;
+    *emission_material_visibility.single_mut().unwrap() = Visibility::Hidden;
 }
 
 
@@ -133,11 +133,11 @@ fn refresh_display_system(
     if overlay_config.grid_version != energy_supply_grid.version || overlay_config.secondary_mode != *last_secondary_mode {
         *last_secondary_mode = overlay_config.secondary_mode.clone();
         overlay_config.grid_version = energy_supply_grid.version;
-        let heatmap_material_handle = energy_supply_overlay.single();
+        let Ok(heatmap_material_handle) = energy_supply_overlay.single() else { return; };
         let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
         heatmap_material.configure(&overlay_config.secondary_mode);
         let heatmap_image = images.get_mut(&heatmap_material.heatmap).unwrap();
-        let mut overlay_creator = OverlayHeatmapCreator { energy_supply_grid: &energy_supply_grid, heatmap_data: &mut heatmap_image.data };
+        let mut overlay_creator = OverlayHeatmapCreator { energy_supply_grid: &energy_supply_grid, heatmap_data: heatmap_image.data.as_mut().unwrap() };
         match &overlay_config.secondary_mode {
             EnergySupplyOverlaySecondaryMode::None => {
                 overlay_creator.imprint_current_state(None); 
@@ -164,7 +164,7 @@ fn on_building_ui_focused_trigger(
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
     buildings: Query<&BuildingType>,
 ) {
-    let focused_entity = trigger.entity();
+    let focused_entity = trigger.target();
     if buildings.contains(focused_entity) {
         overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight((focused_entity).into());
     } else {
@@ -185,7 +185,7 @@ fn on_grid_placer_changed_system(
     grid_object_placer: Query<(&GridObjectPlacer, &GridCoords)>,
     mut last_grid_object_placer: Local<(GridObjectPlacer, GridCoords)>,
 ) {
-    let Ok((grid_object_placer, grid_coords)) = grid_object_placer.get_single() else { return; };
+    let Ok((grid_object_placer, grid_coords)) = grid_object_placer.single() else { return; };
     if grid_object_placer != &last_grid_object_placer.0 || grid_coords != &last_grid_object_placer.1 {
         *last_grid_object_placer = (grid_object_placer.clone(), *grid_coords);
         let (grid_object_placer, grid_coords) = (grid_object_placer, grid_coords);

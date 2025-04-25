@@ -78,13 +78,13 @@ pub fn create_grid_object_placer_system(mut commands: Commands) {
 fn on_placing_enter_system(
     mut placer: Query<&mut Visibility, With<GridObjectPlacer>>,
 ) {
-    *placer.single_mut() = Visibility::Inherited;
+    *placer.single_mut().unwrap() = Visibility::Inherited;
 }
 
 fn on_placing_exit_system(
     mut placer: Query<(&mut Visibility, &mut GridObjectPlacer)>,
 ) {
-    let (mut visibility, mut placer) = placer.single_mut();
+    let Ok((mut visibility, mut placer)) = placer.single_mut() else { return; };
     *visibility = Visibility::Hidden;
     *placer = GridObjectPlacer::None;
 }
@@ -95,7 +95,7 @@ fn update_grid_object_placer_system(
     mouse_info: Res<MouseInfo>,
     mut placer: Query<(&mut Transform, &mut Sprite, &GridObjectPlacer, &GridImprint, &mut GridCoords)>,
 ) {
-    let (mut transform, mut sprite, grid_object_placer, grid_imprint, mut grid_coords) = placer.single_mut();
+    let Ok((mut transform, mut sprite, grid_object_placer, grid_imprint, mut grid_coords)) = placer.single_mut() else { return; };
     *grid_coords = mouse_info.grid_coords;
     transform.translation = grid_coords.to_world_position().extend(10.);
     let is_imprint_in_bounds = mouse_info.grid_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds());
@@ -169,7 +169,7 @@ fn on_request_grid_object_placer_system(
     mut placer_request: ResMut<GridObjectPlacerRequest>,
 ) {
     let Some(placer_request) = placer_request.take() else { return; };
-    let (mut sprite, mut grid_object_placer, mut grid_imprint) = placer.single_mut();
+    let Ok((mut sprite, mut grid_object_placer, mut grid_imprint)) = placer.single_mut() else { return; };
     *grid_object_placer = placer_request;
     match &*grid_object_placer {
         GridObjectPlacer::None => panic!("GridObjectPlacer::None should not be possible here"),

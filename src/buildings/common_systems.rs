@@ -55,11 +55,11 @@ pub fn onclick_building_spawn_system(
     almanach: Res<Almanach>,
     mut stock: ResMut<Stock>,
     grid_object_placer: Query<(&GridObjectPlacer, &GridImprint)>,
-    mut main_base: Query<(Entity, &GridCoords), With<MarkerMainBase>>,
+    main_base: Query<(Entity, &GridCoords), With<MarkerMainBase>>,
 ) {
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) { return; }
-    let (grid_object_placer, grid_imprint) = grid_object_placer.single();
+    let Ok((grid_object_placer, grid_imprint)) = grid_object_placer.single() else { return; };
     let GridObjectPlacer::Building(building_type) = grid_object_placer else { return; };
     // Grid Placement Validation
     if !mouse_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds())
@@ -107,7 +107,7 @@ pub fn onclick_building_spawn_system(
             GridAction::Imprint(entity)
         },
         BuildingType::MainBase => {
-            let (main_base_entity, main_base_coords) = main_base.single_mut();
+            let Ok((main_base_entity, main_base_coords)) = main_base.single() else { return; };
             commands.queue(EventMoveMainBase { new_grid_position: mouse_coords });
             GridAction::Reprint{entity: main_base_entity, old_coords: *main_base_coords}
         },
@@ -199,13 +199,13 @@ pub fn damage_control_system(
 ) {
     for (entity, health, grid_imprint, grid_coords, has_emitter_energy, maybe_supplier_energy) in buildings.iter() {
         if health.is_dead() {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
             obstacle_grid.deprint_main_floor(*grid_coords, *grid_imprint);
             if has_emitter_energy {
                 emissions_energy_recalculate_all.0 = true;
             }
             if let Some(suplier_energy) = maybe_supplier_energy {
-                supplier_created_event_writer.send(SupplierChangedEvent {
+                supplier_created_event_writer.write(SupplierChangedEvent {
                     supplier: entity,
                     coords: grid_imprint.covered_coords(*grid_coords),
                     range: suplier_energy.range,
@@ -277,10 +277,10 @@ fn update_building_info_panel_system(
     display_info_panel: Query<&DisplayInfoPanel>,
     mut healthbars: Query<&mut Healthbar, With<BuildingInfoPanelHealthbar>>,
 ) {
-    let focused_entity = display_info_panel.single().current_focus;
+    let focused_entity = display_info_panel.single().unwrap().current_focus;
     let Ok(health) = buildings.get(focused_entity) else { return; };
     // Update the healthbar
-    let mut healthbar = healthbars.single_mut();
+    let Ok(mut healthbar) = healthbars.single_mut() else { return; };
     healthbar.value = health.get_current() as f32;
     healthbar.max_value = health.get_max() as f32;
     let health_percentage = health.get_percent();
@@ -295,16 +295,16 @@ fn on_ui_map_object_focus_changed_trigger(
     mut building_panel: Query<&mut Node, With<BuildingInfoPanel>>,
     buildings: Query<&BuildingType>,
 ) {
-    let focused_entity = trigger.entity();
+    let focused_entity = trigger.target();
     let Ok(building_type) = buildings.get(focused_entity) else { 
-        building_panel.single_mut().display = Display::None;
+        building_panel.single_mut().unwrap().display = Display::None;
         return; 
     };
-    building_panel.single_mut().display = Display::Flex;
+    building_panel.single_mut().unwrap().display = Display::Flex;
     commands.trigger_targets(BuildingInfoPanelEnabledTrigger, [focused_entity]);
 
     // Update the building name
-    building_name_text.single_mut().0 = almanach.get_building_info(*building_type).name.to_string();
+    building_name_text.single_mut().unwrap().0 = almanach.get_building_info(*building_type).name.to_string();
 }
 
 fn on_building_info_panel_enabled_for_towers_trigger(
@@ -312,19 +312,19 @@ fn on_building_info_panel_enabled_for_towers_trigger(
     mut tower_subpanel_root: Query<&mut Node, With<BuildingInfoPanelTowerRoot>>,
     towers: Query<(), With<MarkerTower>>,
 ){
-    let focused_entity = trigger.entity();
+    let focused_entity = trigger.target();
     if !towers.contains(focused_entity) { 
-        tower_subpanel_root.single_mut().display = Display::None;
-        return; 
+        tower_subpanel_root.single_mut().unwrap().display = Display::None;
+        return;
     }
-    tower_subpanel_root.single_mut().display = Display::Flex;
+    tower_subpanel_root.single_mut().unwrap().display = Display::Flex;
 }
 
 fn initialize_building_panel_content_system(
     mut commands: Commands,
     display_info_panel_main_content_root: Query<Entity, With<DisplayPanelMainContentRoot>>,
 ) {
-    let display_info_panel_main_content_root = display_info_panel_main_content_root.single();
+    let Ok(display_info_panel_main_content_root) = display_info_panel_main_content_root.single() else { return; };
     commands.entity(display_info_panel_main_content_root).with_children(|parent| {
         parent.spawn((
             Node {
@@ -376,7 +376,7 @@ fn initialize_building_panel_content_system(
     });
 }
 
-fn initialize_tower_subpanel_content(parent: &mut ChildBuilder) {
+fn initialize_tower_subpanel_content(parent: &mut ChildSpawnerCommands) {
     parent.spawn((
         Node {
             width: Val::Percent(100.),

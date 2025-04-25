@@ -70,7 +70,7 @@ pub fn manage_emissions_overlay_mode_system(
     keys: Res<ButtonInput<KeyCode>>,
     mut emission_material_visibility: Query<&mut Visibility, With<EmissionsOverlay>>,
 ) {
-    let mut visibility = emission_material_visibility.single_mut();
+    let Ok(mut visibility) = emission_material_visibility.single_mut() else { return; };
     if keys.just_pressed(KeyCode::Digit6) {
         *emissions_overlay_mode = EmissionsOverlayMode::None;
         *visibility = Visibility::Hidden;
@@ -94,10 +94,10 @@ pub fn update_emissions_overlay_system(
         EmissionsOverlayMode::Energy(version) => {
             if *version != emissions_grid.version.energy {
                 *version = emissions_grid.version.energy;
-                let heatmap_material_handle = emissions_overlay.single();
+                let Ok(heatmap_material_handle) = emissions_overlay.single() else { return; };
                 let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
                 let heatmap_image = images.get_mut(&heatmap_material.heatmap).unwrap();
-                emissions_grid.imprint_into_heatmap(&mut heatmap_image.data, EmissionsType::Energy);
+                emissions_grid.imprint_into_heatmap(&mut heatmap_image.data.as_mut().unwrap(), EmissionsType::Energy);
             }
         }
     }

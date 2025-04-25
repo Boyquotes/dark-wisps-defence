@@ -39,7 +39,7 @@ fn show_hide_essence_badges_system(
     essences_container: Query<&EssencesContainer>,
     mut nodes: Query<&mut Node, With<EssenceBadge>>,
 ) {
-    let Ok(essences_container) = essences_container.get_single() else { return; };
+    let Ok(essences_container) = essences_container.single() else { return; };
     for event in event_reader.read() {
         let ResourceType::Essence(essence_type) = event.resource_type else { continue; };
         let essence_badge_entity = *essences_container.badges.get(&essence_type).expect("Essence badge entity not found");    

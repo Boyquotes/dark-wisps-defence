@@ -62,7 +62,7 @@ pub fn on_wisp_spawn_attach_material<WispT: Component, MaterialT: Asset + WispMa
     mut materials: ResMut<Assets<MaterialT>>,
     wisps: Query<(), With<WispT>>,
 ) {
-    let entity = trigger.entity();
+    let entity = trigger.target();
     if !wisps.contains(entity) { return; }
     // TODO: Do we need to remove the meash and material if the wisp is removed?
     let wisp_world_size = WISP_GRID_IMPRINT.world_size();

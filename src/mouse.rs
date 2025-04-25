@@ -25,8 +25,8 @@ pub fn update_mouse_info_system(
     ui_nodes: Query<&Interaction, With<ComputedNode>>,
     mut mouse_info: ResMut<MouseInfo>,
 ) {
-    let Ok(window) = window.get_single() else { return; };
-    let (camera, camera_transform) = camera.single();
+    let Ok(window) = window.single() else { return; };
+    let Ok((camera, camera_transform)) = camera.single() else { return; };
 
     if let Some(screen_position) = window.cursor_position() {
         let world_position = camera.viewport_to_world_2d(camera_transform, screen_position).unwrap();

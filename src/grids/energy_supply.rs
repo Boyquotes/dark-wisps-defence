@@ -95,7 +95,7 @@ fn on_supplier_added_system(
     suppliers: Query<(Entity, &GridCoords, &GridImprint, &SupplierEnergy), Added<SupplierEnergy>>,
 ) {
     for (entity, grid_coords, grid_imprint, supplier) in suppliers.iter() {
-        events.send(SupplierChangedEvent {
+        events.write(SupplierChangedEvent {
             supplier: entity,
             coords: grid_imprint.covered_coords(*grid_coords),
             range: supplier.range,

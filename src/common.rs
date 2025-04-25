@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::prelude::*;
 
 pub mod prelude {
@@ -19,12 +21,17 @@ pub enum GameState {
     Paused,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UpgradeType {
     AttackSpeed,
     Range,
     Damage,
     Health
+}
+impl Display for UpgradeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 macro_rules! define_z_indexes {

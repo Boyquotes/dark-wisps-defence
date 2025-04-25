@@ -77,10 +77,5 @@ impl ColorPulsation {
     }
 }
 
-#[derive(Component)]
-pub struct Level(pub usize);
-impl Default for Level {
-    fn default() -> Self {
-        Self(1)
-    }
-}
+#[derive(Component, Default)]
+pub struct Upgrades(pub HashMap<UpgradeType, usize>);

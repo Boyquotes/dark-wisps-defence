@@ -5,7 +5,7 @@ use crate::grids::base::GridVersion;
 use crate::wisps::components::WispEntity;
 
 #[derive(Component, Clone, Debug, Default)]
-#[require(Level)]
+//#[require(Level)]
 pub struct Building;
 
 #[derive(Component, Copy, Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash)]

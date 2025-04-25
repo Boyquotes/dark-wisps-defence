@@ -43,6 +43,7 @@ impl Plugin for CommonSystemsPlugin {
                 update_building_info_panel_system.run_if(in_state(UiInteraction::DisplayInfoPanel)),
             ));
         app.add_observer(on_ui_map_object_focus_changed_trigger);
+        app.add_observer(on_building_info_panel_enabled_for_towers_trigger);
     }
 }
 
@@ -254,12 +255,22 @@ pub fn rotational_aiming_system(
 ////////////////////////////////////////////
 ////        Display Info Panel          ////
 ////////////////////////////////////////////
+/// Common
 #[derive(Component)]
 struct BuildingInfoPanel;
 #[derive(Component)]
 struct BuildingInfoPanelNameText;
 #[derive(Component)]
 struct BuildingInfoPanelHealthbar;
+#[derive(Event)]
+struct BuildingInfoPanelEnabledTrigger;
+// Tower Subpanel
+#[derive(Component)]
+struct BuildingInfoPanelTowerRoot;
+#[derive(Component)]
+struct BuildingInfoPanelTowerUpgradeCountText;
+#[derive(Component)]
+struct BuildingInfoPanelTowerUpgradesContainer;
 
 fn update_building_info_panel_system(
     buildings: Query<&Health, With<Building>>,
@@ -278,6 +289,7 @@ fn update_building_info_panel_system(
 
 fn on_ui_map_object_focus_changed_trigger(
     trigger: Trigger<UiMapObjectFocusedTrigger>,
+    mut commands: Commands,
     almanach: Res<Almanach>,
     mut building_name_text: Query<&mut Text, With<BuildingInfoPanelNameText>>,
     mut building_panel: Query<&mut Node, With<BuildingInfoPanel>>,
@@ -289,9 +301,23 @@ fn on_ui_map_object_focus_changed_trigger(
         return; 
     };
     building_panel.single_mut().display = Display::Flex;
+    commands.trigger_targets(BuildingInfoPanelEnabledTrigger, [focused_entity]);
 
     // Update the building name
     building_name_text.single_mut().0 = almanach.get_building_info(*building_type).name.to_string();
+}
+
+fn on_building_info_panel_enabled_for_towers_trigger(
+    trigger: Trigger<BuildingInfoPanelEnabledTrigger>,
+    mut tower_subpanel_root: Query<&mut Node, With<BuildingInfoPanelTowerRoot>>,
+    towers: Query<(), With<MarkerTower>>,
+){
+    let focused_entity = trigger.entity();
+    if !towers.contains(focused_entity) { 
+        tower_subpanel_root.single_mut().display = Display::None;
+        return; 
+    }
+    tower_subpanel_root.single_mut().display = Display::Flex;
 }
 
 fn initialize_building_panel_content_system(
@@ -344,6 +370,41 @@ fn initialize_building_panel_content_system(
                     BuildingInfoPanelHealthbar,
                 ));
             });
+            // Specialized panels depending on the building type
+            initialize_tower_subpanel_content(parent);
         });
+    });
+}
+
+fn initialize_tower_subpanel_content(parent: &mut ChildBuilder) {
+    parent.spawn((
+        Node {
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
+            flex_direction: FlexDirection::Column,
+            justify_content: JustifyContent::Start,
+            align_items: AlignItems::Start,
+            ..default()
+        },
+        BuildingInfoPanelTowerRoot
+    )).with_children(|parent| {
+        parent.spawn((
+            Text::new("--- Upgrades ##/## ---"),
+            TextColor::from(BLUE),
+            TextLayout::new_with_linebreak(LineBreak::NoWrap),
+            Node {
+                margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
+                ..default()
+            },
+            BuildingInfoPanelTowerUpgradeCountText,
+        ));
+        parent.spawn((
+            Node {
+                width: Val::Percent(100.),
+                justify_items: JustifyItems::Center,
+                ..default()
+            },
+            BuildingInfoPanelTowerUpgradesContainer,
+        ));
     });
 }

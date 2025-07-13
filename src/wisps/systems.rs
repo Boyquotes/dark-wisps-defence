@@ -120,16 +120,27 @@ pub fn wisp_charge_attack(
                 let curr_world_coords = transform.translation.truncate();
                 let interim_target_world_coords = target_coords.to_world_position_centered(GridImprint::default());
                 let direction = interim_target_world_coords - curr_world_coords;
-                let (sx, sy) = (direction.x.signum(), direction.y.signum());
-                let wisp_speed = speed.0 * 5.;
-                transform.translation += Vec3::new(sx * time.delta_secs() * wisp_speed, sy * time.delta_secs() * wisp_speed, 0.);
-                if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
+                let distance = direction.length();
+                
+                if distance < 1. {
+                    // Already close enough, trigger attack
                     *attack = WispChargeAttack::Backoff;
                     commands.queue(BuilderWispAttackEffect::new(transform.translation.xy()));
                     // Deal damage to the building
                     let _ = buildings.get_mut(target_entity).map(|mut health| {
                         health.decrease(1);
                     });
+                } else {
+                    let wisp_speed = time.delta_secs() * speed.0 * 5.; // Speed up during charge
+                    if wisp_speed >= distance {
+                        // Would overshoot, just move to target position
+                        transform.translation = Vec3::new(interim_target_world_coords.x, interim_target_world_coords.y, transform.translation.z);
+                    } else {
+                        // Normal movement
+                        let normalized_direction = direction / distance;
+                        let movement = normalized_direction * wisp_speed;
+                        transform.translation += Vec3::new(movement.x, movement.y, 0.);
+                    }
                 }
             },
             WispChargeAttack::Backoff => {
@@ -137,11 +148,22 @@ pub fn wisp_charge_attack(
                 let curr_world_coords = transform.translation.truncate();
                 let interim_target_world_coords = grid_coords.to_world_position_centered(GridImprint::default());
                 let direction = interim_target_world_coords - curr_world_coords;
-                let (sx, sy) = (direction.x.signum(), direction.y.signum());
-                let wisp_speed = speed.0 * 0.5;
-                transform.translation += Vec3::new(sx * time.delta_secs() * wisp_speed, sy * time.delta_secs() * wisp_speed, 0.);
-                if (transform.translation.truncate().distance(interim_target_world_coords)) < 1. {
+                let distance = direction.length();
+                
+                if distance < 1. {
+                    // Already close enough, start charging again
                     *attack = WispChargeAttack::Charge;
+                } else {
+                    let wisp_speed = time.delta_secs() * speed.0 * 0.5;
+                    if wisp_speed >= distance {
+                        // Would overshoot, just move to target position
+                        transform.translation = Vec3::new(interim_target_world_coords.x, interim_target_world_coords.y, transform.translation.z);
+                    } else {
+                        // Normal movement
+                        let normalized_direction = direction / distance;
+                        let movement = normalized_direction * wisp_speed;
+                        transform.translation += Vec3::new(movement.x, movement.y, 0.);
+                    }
                 }
             },
         }

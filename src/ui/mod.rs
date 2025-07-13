@@ -15,23 +15,20 @@ pub mod prelude {
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((
-            common::UiCommonPlugin,
-            badges::BadgesPlugin,
-            display_info_panel::DisplayInfoPanelPlugin,
-            grid_object_placer::GridObjectPlacerPlugin,
-            objectives_panel::ObjectivesPanelPlugin,
-        ));
-        app.insert_resource(UiConfig::default());
-        app.add_systems(Startup, (
-            construction_menu::initialize_construction_menu_system,
-        ));
-        app.add_systems(Update, (
-            construction_menu::menu_activation_system,
-            construction_menu::construct_building_on_click_system,
-            grid_display::show_hide_grid_system,
-            grid_display::draw_grid_system,
-        ));
+        app
+            .add_plugins((
+                common::UiCommonPlugin,
+                badges::BadgesPlugin,
+                display_info_panel::DisplayInfoPanelPlugin,
+                grid_object_placer::GridObjectPlacerPlugin,
+                objectives_panel::ObjectivesPanelPlugin,
+                construction_menu::ConstructionMenuPlugin,
+            ))
+            .insert_resource(UiConfig::default())
+            .add_systems(Update, (
+                grid_display::show_hide_grid_system,
+                grid_display::draw_grid_system,
+            ));
 
     }
 }

@@ -18,6 +18,21 @@ const NOT_HOVERED_ALPHA: f32 = 0.2;
 const CONSTRUCT_MENU_BUTTON_WIDTH: f32 = 65.;
 const CONSTRUCT_MENU_BUTTON_HEIGHT: f32 = 64.;
 
+pub struct ConstructionMenuPlugin;
+impl Plugin for ConstructionMenuPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_systems(Startup, (
+                initialize_construction_menu_system,
+            ))
+            .add_systems(Update, (
+                menu_activation_system,
+                construct_building_on_click_system,
+            ))
+            .add_observer(BuilderButtonConstructObject::on_add);
+    }
+}
+
 #[derive(Component, Default)]
 pub struct ConstructMenuButton;
 #[derive(Bundle, Default)]
@@ -76,43 +91,28 @@ impl ConstructMenuListPickerBundle {
 }
 
 #[derive(Component)]
+#[require(AdvancedInteraction, Button, FocusPolicy)]
 pub struct ConstructObjectButton {
     pub object_type: GridObjectPlacer,
 }
-#[derive(Bundle)]
-pub struct ConstructObjectButtonBundle {
-    pub button: Button,
-    pub node: Node,
-    pub background_color: BackgroundColor,
-    pub focus_policy: FocusPolicy,
-    pub construct_tower_button: ConstructObjectButton,
-    pub advanced_interaction: AdvancedInteraction,
+#[derive(Component)]
+pub struct BuilderButtonConstructObject {
+    pub object_type: GridObjectPlacer,
 }
-impl ConstructObjectButtonBundle {
-    pub fn new(grid_object_placer: GridObjectPlacer) -> Self {
-        Self {
-            button: Button::default(),
-            node: Node {
-                width: Val::Px(48.),
-                height: Val::Px(48.),
-                margin: UiRect {
-                    left: Val::Px(2.5),
-                    right: Val::Px(2.5),
-                    top: Val::ZERO,
-                    bottom: Val::ZERO,
-                },
-                ..default()
-            },
-            background_color: TURQUOISE.into(),
-            focus_policy: FocusPolicy::Pass,
-            construct_tower_button: ConstructObjectButton {
-                object_type: grid_object_placer,
-            },
-            advanced_interaction: Default::default(),
-        }
+impl BuilderButtonConstructObject{
+    pub fn new(object_type: GridObjectPlacer) -> Self {
+        Self { object_type }
     }
-    pub fn spawn(spawner: &mut ChildSpawnerCommands, asset_server: &AssetServer, grid_object_placer: GridObjectPlacer) {
-        let image_handle = match &grid_object_placer {
+
+    pub fn on_add(
+        trigger: Trigger<OnAdd, BuilderButtonConstructObject>,
+        mut commands: Commands,
+        asset_server: Res<AssetServer>,
+        builders: Query<&BuilderButtonConstructObject>,
+    ) {
+        let entity = trigger.target();
+        let object_type = builders.get(entity).unwrap().object_type.clone();
+        let image_handle = match &object_type {
             GridObjectPlacer::Building(building_type) => match building_type {
                 BuildingType::Tower(tower_type) => {
                     match tower_type {
@@ -131,19 +131,70 @@ impl ConstructObjectButtonBundle {
             GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGES[0]),
             _ => None,
         };
-        spawner.spawn(ConstructObjectButtonBundle::new(grid_object_placer)).with_children(|parent| {
-            if let Some(image_handle) = image_handle {
-                parent.spawn((
-                    Node {
-                        width: Val::Px(48.0),
-                        height: Val::Px(48.0),
-                        ..default()
+
+        commands.entity(entity)
+            .remove::<BuilderButtonConstructObject>()
+            .insert((
+                Node {
+                    width: Val::Px(48.),
+                    height: Val::Px(48.),
+                    margin: UiRect {
+                        left: Val::Px(2.5),
+                        right: Val::Px(2.5),
+                        top: Val::ZERO,
+                        bottom: Val::ZERO,
                     },
-                    ImageNode::new(asset_server.load(image_handle)),
-                ));
-            }
-        });
+                    ..default()
+                },
+                BackgroundColor(TURQUOISE.into()),
+                ConstructObjectButton { object_type },
+            ))
+            .with_children(|parent| {
+                if let Some(image_handle) = image_handle {
+                    parent.spawn((
+                        Node {
+                            width: Val::Px(48.0),
+                            height: Val::Px(48.0),
+                            ..default()
+                        },
+                        ImageNode::new(asset_server.load(image_handle)),
+                    ));
+                }
+            });
     }
+    // pub fn spawn(spawner: &mut ChildSpawnerCommands, asset_server: &AssetServer, grid_object_placer: GridObjectPlacer) {
+    //     let image_handle = match &grid_object_placer {
+    //         GridObjectPlacer::Building(building_type) => match building_type {
+    //             BuildingType::Tower(tower_type) => {
+    //                 match tower_type {
+    //                     TowerType::Blaster => Some(TOWER_BLASTER_BASE_IMAGE),
+    //                     TowerType::Cannon => Some(TOWER_CANNON_BASE_IMAGE),
+    //                     TowerType::RocketLauncher => Some(TOWER_ROCKET_LAUNCHER_BASE_IMAGE),
+    //                     TowerType::Emitter => Some(TOWER_EMITTER_BASE_IMAGE),
+    //                 }
+    //             },
+    //             BuildingType::MainBase => Some(MAIN_BASE_BASE_IMAGE),
+    //             BuildingType::EnergyRelay => Some(ENERGY_RELAY_BASE_IMAGE),
+    //             BuildingType::ExplorationCenter => Some(EXPLORATION_CENTER_BASE_IMAGE),
+    //             BuildingType::MiningComplex => Some(MINING_COMPLEX_BASE_IMAGE),
+    //             _ => None,
+    //         },
+    //         GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGES[0]),
+    //         _ => None,
+    //     };
+    //     spawner.spawn(ConstructObjectButtonBundle::new(grid_object_placer)).with_children(|parent| {
+    //         if let Some(image_handle) = image_handle {
+    //             parent.spawn((
+    //                 Node {
+    //                     width: Val::Px(48.0),
+    //                     height: Val::Px(48.0),
+    //                     ..default()
+    //                 },
+    //                 ImageNode::new(asset_server.load(image_handle)),
+    //             ));
+    //         }
+    //     });
+    // }
 }
 
 pub fn create_construct_menu(
@@ -169,10 +220,10 @@ pub fn create_construct_menu(
                 ConstructMenuListPickerBundle::new(),
             ).with_children(|mut parent| {
                 // Specific tower to construct
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::Blaster).into());
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::Cannon).into());
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::RocketLauncher).into());
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::Tower(TowerType::Emitter).into());
+                parent.spawn(BuilderButtonConstructObject::new(BuildingType::Tower(TowerType::Blaster).into()));
+                parent.spawn(BuilderButtonConstructObject::new(BuildingType::Tower(TowerType::Cannon).into()));
+                parent.spawn(BuilderButtonConstructObject::new(BuildingType::Tower(TowerType::RocketLauncher).into()));
+                parent.spawn(BuilderButtonConstructObject::new(BuildingType::Tower(TowerType::Emitter).into()));
             });
         });
         parent.spawn(
@@ -183,9 +234,9 @@ pub fn create_construct_menu(
                 ConstructMenuListPickerBundle::new(),
             ).with_children(|mut parent| {
                 // Specific building to construct
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::EnergyRelay.into());
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::MiningComplex.into());
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::ExplorationCenter.into());
+                parent.spawn(BuilderButtonConstructObject::new(BuildingType::EnergyRelay.into()));
+                parent.spawn(BuilderButtonConstructObject::new(BuildingType::MiningComplex.into()));
+                parent.spawn(BuilderButtonConstructObject::new(BuildingType::ExplorationCenter.into()));
             });
         });
     }).with_children(|parent| {
@@ -198,10 +249,10 @@ pub fn create_construct_menu(
                 ConstructMenuListPickerBundle::new(),
             ).with_children(|mut parent| {
                 // Specific editor buildings to construct
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, BuildingType::MainBase.into());
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::DarkOre);
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::Wall);
-                ConstructObjectButtonBundle::spawn(&mut parent, asset_server, GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default()));
+                parent.spawn(BuilderButtonConstructObject::new(BuildingType::MainBase.into()));
+                parent.spawn(BuilderButtonConstructObject::new(GridObjectPlacer::DarkOre));
+                parent.spawn(BuilderButtonConstructObject::new(GridObjectPlacer::Wall));
+                parent.spawn(BuilderButtonConstructObject::new(GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default())));
             });
         });
     }).id();

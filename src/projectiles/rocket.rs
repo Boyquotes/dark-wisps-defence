@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
 use crate::search::common::ALL_DIRECTIONS;
-use crate::wisps::components::{Wisp, WispEntity};
+use crate::wisps::components::Wisp;
 use crate::effects::explosions::BuilderExplosion;
 
 
@@ -35,16 +35,16 @@ pub struct MarkerRocketExhaust;
 
 // Rocket follows Wisp, and if the wisp no longer exists, looks for another target
 #[derive(Component)]
-pub struct RocketTarget(pub WispEntity);
+pub struct RocketTarget(pub Entity);
 
 #[derive(Event)]
 pub struct BuilderRocket {
     world_position: Vec2,
     rotation: Quat,
-    target_wisp: WispEntity,
+    target_wisp: Entity,
 }
 impl BuilderRocket {
-    pub fn new(world_position: Vec2, rotation: Quat, target_wisp: WispEntity) -> Self {
+    pub fn new(world_position: Vec2, rotation: Quat, target_wisp: Entity) -> Self {
         Self {
             world_position,
             rotation,
@@ -101,11 +101,11 @@ pub fn rocket_move_system(
 ) {
     let mut wisps_iter = wisps.iter();
     for (mut transform, mut target) in rockets.iter_mut() {
-        let target_position = if let Ok((_, wisp_transform)) = wisps.get(*target.0) {
+        let target_position = if let Ok((_, wisp_transform)) = wisps.get(target.0) {
             wisp_transform.translation.xy()
         } else {
             wisps_iter.next().map_or(Vec2::ZERO, |(wisp_entity, wisp_transform)| {
-                target.0 = wisp_entity.into();
+                target.0 = wisp_entity;
                 wisp_transform.translation.xy()
             })
         };
@@ -154,7 +154,7 @@ pub fn rocket_hit_system(
             continue;
         }
 
-        let Ok(wisp_transform) = wisps_transforms.get(*target.0) else { continue };
+        let Ok(wisp_transform) = wisps_transforms.get(target.0) else { continue };
         if rocket_transform.translation.xy().distance(wisp_transform.translation.xy()) > 6. { continue; }
 
         let coords = GridCoords::from_transform(&rocket_transform);
@@ -166,7 +166,7 @@ pub fn rocket_hit_system(
 
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {
-                let Ok(mut health) = wisps_health.get_mut(**wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
+                let Ok(mut health) = wisps_health.get_mut(*wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
                 health.decrease(50);
             }
         }

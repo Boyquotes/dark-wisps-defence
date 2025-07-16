@@ -80,7 +80,7 @@ pub fn shooting_system(
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
 
-        if !wisps.contains(*target_wisp) {
+        if !wisps.contains(target_wisp) {
             // Target wisp does not exist anymore
             *target = TowerWispTarget::SearchForNewTarget;
             continue;

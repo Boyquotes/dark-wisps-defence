@@ -54,7 +54,7 @@ pub struct EnergySupplyOverlayConfig {
 pub enum EnergySupplyOverlaySecondaryMode {
     #[default]
     None,
-    Highlight(BuildingId),
+    Highlight{ building: Entity },
     Placing{grid_coords: GridCoords, grid_imprint: GridImprint, range: usize},
 }
 impl EnergySupplyOverlaySecondaryMode {
@@ -72,7 +72,7 @@ pub struct EnergySupplyHeatmapMaterial {
 impl EnergySupplyHeatmapMaterial {
     fn configure(&mut self, secondary_mode: &EnergySupplyOverlaySecondaryMode) {
         match secondary_mode {
-            EnergySupplyOverlaySecondaryMode::Highlight(_) => {
+            EnergySupplyOverlaySecondaryMode::Highlight{building: _} => {
                 self.highlight_enabled = 1;
             }
             _ => self.highlight_enabled = 0,
@@ -142,8 +142,8 @@ fn refresh_display_system(
             EnergySupplyOverlaySecondaryMode::None => {
                 overlay_creator.imprint_current_state(None); 
             }
-            EnergySupplyOverlaySecondaryMode::Highlight(building_id) => {
-                overlay_creator.imprint_current_state(Some(*building_id)); 
+            EnergySupplyOverlaySecondaryMode::Highlight{ building } => {
+                overlay_creator.imprint_current_state(Some(*building)); 
             }
             EnergySupplyOverlaySecondaryMode::Placing{grid_coords, grid_imprint, range} => {
                 overlay_creator.imprint_current_state(None); 
@@ -164,9 +164,9 @@ fn on_building_ui_focused_trigger(
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
     buildings: Query<&BuildingType>,
 ) {
-    let focused_entity = trigger.target();
-    if buildings.contains(focused_entity) {
-        overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight((focused_entity).into());
+    let focused_building = trigger.target();
+    if buildings.contains(focused_building) {
+        overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight{building: focused_building};
     } else {
         overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
     }
@@ -256,7 +256,7 @@ impl OverlayHeatmapCreator<'_> {
     /// Rules as as follows:
     /// - Alpha value(chunk[3]) above 0 means it has energy supply
     /// - Red value(chunk[0]) == 255 means it has supply but no power(ie, the supplier(s) are not connected to the main power grid)
-    fn imprint_current_state(&mut self, highlight_supplier: Option<BuildingId>) {
+    fn imprint_current_state(&mut self, highlight_supplier: Option<Entity>) {
         let mut idx = 0;
         let alpha_value = if highlight_supplier.is_some() { 5 } else { Self::ALPHA_VALUE };
         self.heatmap_data.chunks_mut(4).for_each(|chunk| {
@@ -266,7 +266,7 @@ impl OverlayHeatmapCreator<'_> {
                 // Mark as has supply
                 chunk[3] = alpha_value;
                 if let Some(highlighted_supplier) = highlight_supplier {
-                    if grid_field.has_supplier(*highlighted_supplier) {
+                    if grid_field.has_supplier(highlighted_supplier) {
                         chunk[3] = Self::ALPHA_VALUE;
                     }
                 }

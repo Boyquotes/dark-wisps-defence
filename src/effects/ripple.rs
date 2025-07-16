@@ -125,7 +125,7 @@ pub fn ripple_hit_system(
         for x in lower_bound_x..=upper_bound_x {
             for y in lower_bound_y..=upper_bound_y {
                 for wisp in &wisps_grid[GridCoords{ x, y }] {
-                    let Ok((mut wisp_health, wisp_transform)) = wisps.get_mut(**wisp) else { continue; };
+                    let Ok((mut wisp_health, wisp_transform)) = wisps.get_mut(*wisp) else { continue; };
                     let distance = wisp_transform.translation.distance(ripple_transform.translation);
                     // Hit only wisps that are up to 5 units away from the front of the ripple
                     if distance > ripple.current_radius || distance < ripple.current_radius - 1. { continue; }

@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
-use crate::wisps::components::{Wisp, WispEntity};
+use crate::wisps::components::Wisp;
 
 pub struct LaserDartPlugin;
 impl Plugin for LaserDartPlugin {
@@ -25,18 +25,18 @@ pub struct MarkerLaserDart;
 // LaserDart follows Wisp, and if the wisp no longer exists, follows the target vector
 #[derive(Component, Default)]
 pub struct LaserDartTarget {
-    pub target_wisp: Option<WispEntity>,
+    pub target_wisp: Option<Entity>,
     pub target_vector: Vec2,
 }
 
 #[derive(Event)]
 pub struct BuilderLaserDart {
     world_position: Vec2,
-    target_wisp: WispEntity,
+    target_wisp: Entity,
     target_vector: Vec2,
 }
 impl BuilderLaserDart {
-    pub fn new(world_position: Vec2, target_wisp: WispEntity, target_vector: Vec2) -> Self {
+    pub fn new(world_position: Vec2, target_wisp: Entity, target_vector: Vec2) -> Self {
         Self {
             world_position,
             target_wisp,
@@ -81,7 +81,7 @@ pub fn laser_dart_move_system(
     for (mut transform, mut target) in laser_darts.iter_mut() {
         // If the target wisp still exists - follow it by updating the target vector
         if let Some(target_wisp) = target.target_wisp {
-            if let Ok(wisp_transform) = wisps.get(*target_wisp) {
+            if let Ok(wisp_transform) = wisps.get(target_wisp) {
                 target.target_vector = (wisp_transform.translation.xy() - transform.translation.xy()).normalize();
             } else {
                 target.target_wisp = None;
@@ -105,7 +105,7 @@ pub fn laser_dart_hit_system(
         }
         let wisps_in_coords = &wisps_grid[coords];
         for wisp in wisps_in_coords {
-            let Ok((mut health, wisp_transform)) = wisps.get_mut(**wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
+            let Ok((mut health, wisp_transform)) = wisps.get_mut(*wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
             if laser_dart_transform.translation.xy().distance(wisp_transform.translation.xy()) < 8. {
                 health.decrease(1);
                 commands.entity(entity).despawn();

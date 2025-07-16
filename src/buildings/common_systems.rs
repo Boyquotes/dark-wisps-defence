@@ -145,7 +145,7 @@ pub fn targeting_system(
         if !technical_state.has_energy_supply { continue; }
         match *target {
             TowerWispTarget::Wisp(wisp_entity) => {
-                if let Ok(wisp_coords) = wisps.get(*wisp_entity) {
+                if let Ok(wisp_coords) = wisps.get(wisp_entity) {
                     // Check if wisp is still in range. For now we use Manhattan distance to check. This may not be correct for all tower types.
                     if coords.manhattan_distance(wisp_coords) as usize <= range.0 { continue; }
                 }
@@ -226,7 +226,7 @@ pub fn rotate_tower_top_system(
 ) {
     for (tower_rotational_top, mut tower_top_transform) in tower_rotational_top.iter_mut() {
         let parent_building = tower_rotational_top.0;
-        let tower_top_rotation = towers.get(*parent_building).unwrap();
+        let tower_top_rotation = towers.get(parent_building).unwrap();
 
         // Offset due to image naturally pointing downwards
         tower_top_transform.rotation = Quat::from_rotation_z(tower_top_rotation.current_angle);
@@ -240,7 +240,7 @@ pub fn rotational_aiming_system(
 ) {
     for (mut rotation, target, tower_transform) in towers.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = target else { continue; };
-        let Ok(wisp_position) = wisps.get(**target_wisp).map(|target| target.translation.xy()) else { continue; };
+        let Ok(wisp_position) = wisps.get(*target_wisp).map(|target| target.translation.xy()) else { continue; };
 
         let direction_to_target = wisp_position - tower_transform.translation.xy();
         let target_angle = direction_to_target.y.atan2(direction_to_target.x);

@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use crate::prelude::*;
 use crate::grids::base::GridVersion;
-use crate::wisps::components::WispEntity;
 
 #[derive(Component, Clone, Debug, Default)]
 //#[require(Level)]
@@ -40,7 +39,7 @@ pub struct MarkerTower;
 
 // Building sub-parts markers
 #[derive(Component)]
-pub struct MarkerTowerRotationalTop(pub BuildingId);
+pub struct MarkerTowerRotationalTop(pub Entity);
 
 #[derive(Component)]
 pub struct TowerShootingTimer(pub Timer);
@@ -57,7 +56,7 @@ impl TowerShootingTimer {
 pub enum TowerWispTarget {
     #[default]
     SearchForNewTarget,
-    Wisp(WispEntity),
+    Wisp(Entity),
     NoValidTargets(GridVersion),
 }
 

@@ -1,8 +1,5 @@
 use crate::prelude::*;
 use crate::grids::base::GridVersion;
-use crate::utils::id::Id;
-
-pub type WispEntity = Id<Wisp, Entity>;
 
 #[derive(Component, Copy, Clone)]
 pub enum WispType {

@@ -2,7 +2,6 @@ use std::collections::BinaryHeap;
 use crate::prelude::*;
 use crate::grids::obstacles::ObstacleGrid;
 use crate::grids::wisps::WispsGrid;
-use crate::wisps::components::WispEntity;
 
 use super::common::{VISITED_GRID, CARDINAL_DIRECTIONS, State};
 
@@ -16,7 +15,7 @@ pub fn target_find_closest_wisp(
     start_coords: Vec<GridCoords>,
     range: usize,
     ignore_obstacles: bool,
-) -> Option<(GridCoords, WispEntity)> {
+) -> Option<(GridCoords, Entity)> {
     VISITED_GRID.with_borrow_mut(|visited_grid| {
         visited_grid.resize_and_reset(obstacle_grid.bounds());
         let mut queue = BinaryHeap::new();

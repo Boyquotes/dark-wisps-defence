@@ -125,7 +125,7 @@ pub fn cannonball_hit_system(
 
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {
-                let Ok(mut health) = wisps.get_mut(**wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
+                let Ok(mut health) = wisps.get_mut(*wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
                 health.decrease(100);
             }
         }

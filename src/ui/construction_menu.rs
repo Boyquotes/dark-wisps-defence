@@ -30,7 +30,8 @@ impl Plugin for ConstructionMenuPlugin {
                 construct_building_on_click_system,
             ))
             .add_observer(ConstructObjectButton::on_add)
-            .add_observer(ButtonConstructMenu::on_add);
+            .add_observer(ButtonConstructMenu::on_add)
+            .add_observer(ConstructMenuListPicker::on_add);
     }
 }
 
@@ -59,20 +60,16 @@ impl ButtonConstructMenu {
 }
 
 #[derive(Component, Default)]
+#[require(Button)]
 pub struct ConstructMenuListPicker;
-#[derive(Bundle, Default)]
-pub struct ConstructMenuListPickerBundle {
-    pub button: Button,
-    pub node: Node,
-    pub background_color: BackgroundColor,
-    pub z_index: GlobalZIndex,
-    pub construct_menu_list_picker: ConstructMenuListPicker,
-}
-impl ConstructMenuListPickerBundle {
-    pub fn new() -> Self {
-        Self {
-            button: Button::default(),
-            node: Node {
+impl ConstructMenuListPicker {
+    pub fn on_add(
+        trigger: Trigger<OnAdd, ConstructMenuListPicker>,
+        mut commands: Commands,
+    ) {
+        let entity = trigger.target();
+        commands.entity(entity).insert((
+            Node {
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
                 left: Val::Px(65.),
@@ -82,17 +79,16 @@ impl ConstructMenuListPickerBundle {
                     top: Val::ZERO,
                     bottom: Val::ZERO,
                 },
-                ..Default::default()
+                ..default()
             },
-            background_color: Color::BLACK.into(),
-            z_index: GlobalZIndex(-1),
-            construct_menu_list_picker: ConstructMenuListPicker::default(),
-        }
+            BackgroundColor(Color::BLACK.into()),
+            GlobalZIndex(-1),
+        ));
     }
 }
 
 #[derive(Component)]
-#[require(AdvancedInteraction, Button, FocusPolicy)]
+#[require(Button, FocusPolicy, AdvancedInteraction)]
 pub struct ConstructObjectButton {
     pub object_type: GridObjectPlacer,
 }
@@ -178,8 +174,8 @@ pub fn create_construct_menu(
         ).with_children(|parent| {
             // Construct towers list picker
             parent.spawn(
-                ConstructMenuListPickerBundle::new(),
-            ).with_children(|mut parent| {
+                ConstructMenuListPicker,
+            ).with_children(|parent| {
                 // Specific tower to construct
                 parent.spawn(ConstructObjectButton::new(BuildingType::Tower(TowerType::Blaster).into()));
                 parent.spawn(ConstructObjectButton::new(BuildingType::Tower(TowerType::Cannon).into()));
@@ -192,8 +188,8 @@ pub fn create_construct_menu(
         ).with_children(|parent| {
             // Construct buildings list picker
             parent.spawn(
-                ConstructMenuListPickerBundle::new(),
-            ).with_children(|mut parent| {
+                ConstructMenuListPicker,
+            ).with_children(|parent| {
                 // Specific building to construct
                 parent.spawn(ConstructObjectButton::new(BuildingType::EnergyRelay.into()));
                 parent.spawn(ConstructObjectButton::new(BuildingType::MiningComplex.into()));
@@ -207,8 +203,8 @@ pub fn create_construct_menu(
         ).with_children(|parent| {
             // Construct editor list picker
             parent.spawn(
-                ConstructMenuListPickerBundle::new(),
-            ).with_children(|mut parent| {
+                ConstructMenuListPicker,
+            ).with_children(|parent| {
                 // Specific editor buildings to construct
                 parent.spawn(ConstructObjectButton::new(BuildingType::MainBase.into()));
                 parent.spawn(ConstructObjectButton::new(GridObjectPlacer::DarkOre));

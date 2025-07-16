@@ -4,7 +4,10 @@ use bevy::{
     sprite::{AlphaMode2d, Material2d, Material2dPlugin}
 };
 
-use crate::{grids::wisps::WispsGrid, prelude::*, wisps::components::Wisp};
+use lib_grid::grids::wisps::WispsGrid;
+
+use crate::prelude::*;
+use crate::wisps::components::Wisp;
 
 pub struct RipplePlugin;
 impl Plugin for RipplePlugin {

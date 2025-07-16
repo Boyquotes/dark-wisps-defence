@@ -1,8 +1,10 @@
 use bevy::color::palettes::css::YELLOW;
 use bevy::render::camera::RenderTarget;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
+
+use lib_grid::grids::obstacles::{Field, ObstacleGrid};
+
 use crate::prelude::*;
-use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 
 pub struct DisplayInfoPanelPlugin;

@@ -1,5 +1,6 @@
+use lib_grid::grids::base::GridVersion;
+
 use crate::prelude::*;
-use crate::grids::base::GridVersion;
 
 #[derive(Component, Copy, Clone)]
 pub enum WispType {

@@ -3,8 +3,8 @@ use bevy::reflect::TypePath;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
 use bevy::sprite::{AlphaMode2d, Material2d};
-use crate::grids::base::GridVersion;
-use crate::grids::emissions::{EmissionsGrid, EmissionsType};
+use lib_grid::grids::base::GridVersion;
+use lib_grid::grids::emissions::{EmissionsGrid, EmissionsType};
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
 pub struct EmissionHeatmapMaterial {

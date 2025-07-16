@@ -1792,6 +1792,8 @@ name = "dark-wisps-defence"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "lib-core",
+ "lib-grid",
  "nanorand",
  "serde",
  "serde_yaml",
@@ -2569,6 +2571,23 @@ dependencies = [
  "byteorder",
  "ogg",
  "tinyvec",
+]
+
+[[package]]
+name = "lib-core"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "serde",
+]
+
+[[package]]
+name = "lib-grid"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "lib-core",
+ "serde",
 ]
 
 [[package]]

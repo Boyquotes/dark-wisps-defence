@@ -5,7 +5,6 @@ mod common_systems;
 mod common;
 mod data_loader;
 mod effects;
-mod grids;
 mod inventory;
 mod map_editor;
 mod map_loader;
@@ -14,14 +13,13 @@ mod mouse;
 mod overlays;
 mod prelude;
 mod projectiles;
-mod search;
 mod ui;
 mod units;
 mod utils;
 mod wisps;
 
 use crate::prelude::*;
-use crate::grids::obstacles::ObstacleGrid;
+use lib_grid::grids::obstacles::ObstacleGrid;
 use crate::map_editor::MapInfo;
 
 fn main() {
@@ -33,7 +31,7 @@ fn main() {
                 .set(WindowPlugin{ primary_window: Some(Window { present_mode: bevy::window::PresentMode::AutoNoVsync, ..default()}), ..default() }),
             buildings::BuildingsPlugin,
             effects::EffectsPlugin,
-            grids::GridsPlugin,
+            lib_grid::grids::GridsPlugin,
             inventory::InventoryPlugin,
             map_objects::MapObjectsPlugin,
             overlays::OverlaysPlugin,

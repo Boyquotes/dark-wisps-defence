@@ -1,6 +1,7 @@
+use lib_grid::grids::energy_supply::EnergySupplyGrid;
+
 use crate::effects::ripple::BuilderRipple;
 use crate::prelude::*;
-use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::wisps::components::Wisp;
 
 use super::common_components::TowerWispTarget;

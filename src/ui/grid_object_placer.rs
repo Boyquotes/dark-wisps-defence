@@ -1,6 +1,7 @@
+use lib_grid::grids::energy_supply::EnergySupplyGrid;
+use lib_grid::grids::obstacles::ObstacleGrid;
+
 use crate::prelude::*;
-use crate::grids::energy_supply::EnergySupplyGrid;
-use crate::grids::obstacles::ObstacleGrid;
 use crate::map_objects::dark_ore::DARK_ORE_GRID_IMPRINT;
 use crate::map_objects::quantum_field::QuantumFieldImprintSelector;
 use crate::map_objects::walls::WALL_GRID_IMPRINT;

@@ -1,25 +1,11 @@
 use std::time::Duration;
 
 use crate::prelude::*;
-use crate::grids::base::GridVersion;
+use lib_grid::grids::base::GridVersion;
 
 #[derive(Component, Clone, Debug, Default)]
 //#[require(Level)]
 pub struct Building;
-
-#[derive(Component, Copy, Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash)]
-pub enum BuildingType {
-    EnergyRelay,
-    MainBase,
-    Tower(TowerType),
-    MiningComplex,
-    ExplorationCenter,
-}
-impl BuildingType {
-    pub fn is_energy_supplier(&self) -> bool {
-        matches!(self, BuildingType::MainBase | BuildingType::EnergyRelay)
-    }
-}
 
 #[derive(Component, Default)]
 pub struct TechnicalState {

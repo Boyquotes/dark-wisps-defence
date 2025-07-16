@@ -1,7 +1,9 @@
 use bevy::color::palettes::css::GRAY;
+
+use lib_grid::grids::emissions::EmissionsEnergyRecalculateAll;
+use lib_grid::grids::obstacles::{Field, ObstacleGrid};
+
 use crate::prelude::*;
-use crate::grids::emissions::EmissionsEnergyRecalculateAll;
-use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 

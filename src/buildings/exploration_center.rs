@@ -1,5 +1,6 @@
+use lib_grid::grids::energy_supply::EnergySupplyGrid;
+
 use crate::prelude::*;
-use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::map_objects::common::{ExpeditionTargetMarker, ExpeditionZone};
 use crate::units::expedition_drone::BuilderExpeditionDrone;
 

@@ -1,15 +1,16 @@
 use bevy::color::palettes::css::BLUE;
 
+use lib_grid::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterEnergy};
+use lib_grid::grids::base::GridVersion;
+use lib_grid::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, SupplierEnergy};
+use lib_grid::grids::obstacles::{BelowField, Field, ObstacleGrid};
+use lib_grid::grids::wisps::WispsGrid;
+use lib_grid::search::flooding::FloodEnergySupplyMode;
+use lib_grid::search::targetfinding::target_find_closest_wisp;
+
 use crate::effects::explosions::BuilderExplosion;
-use crate::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterEnergy};
 use crate::prelude::*;
-use crate::grids::base::GridVersion;
-use crate::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, SupplierEnergy};
-use crate::grids::obstacles::{BelowField, Field, ObstacleGrid};
-use crate::grids::wisps::WispsGrid;
 use crate::mouse::MouseInfo;
-use crate::search::flooding::FloodEnergySupplyMode;
-use crate::search::targetfinding::target_find_closest_wisp;
 use crate::ui::display_info_panel::{DisplayInfoPanel, DisplayPanelMainContentRoot, UiMapObjectFocusedTrigger};
 use crate::ui::grid_object_placer::GridObjectPlacer;
 use crate::utils::math::angle_difference;

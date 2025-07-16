@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::lib_prelude::*;
 use crate::grids::base::{BaseGrid, GridVersion};
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -40,7 +41,6 @@ impl From<BelowField> for Field {
         match below_field {
             BelowField::Empty => Field::Empty,
             BelowField::DarkOre(entity) => Field::DarkOre(entity),
-            _ => unreachable!(),
         }
     }
 }
@@ -174,7 +174,7 @@ impl ObstacleGrid {
         match building_type {
             BuildingType::MiningComplex => {
                 //MiningComplex requires at least one DarkOre cell and no other obstacles
-                let GridImprint::Rectangle{ width, height } = imprint else { panic!("MiningComplex imprint is not a rectangle"); };
+                let GridImprint::Rectangle{ width, height } = imprint;
                 let mut has_dark_ore = false;
                 for y in 0..height {
                     for x in 0..width {

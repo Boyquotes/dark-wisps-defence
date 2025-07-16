@@ -1,7 +1,8 @@
-use crate::grids::obstacles::{self, Field, ObstacleGrid};
+use lib_grid::grids::obstacles::{Field, BelowField, ObstacleGrid};
+use lib_grid::grids::energy_supply::EnergySupplyGrid;
+
 use crate::map_objects::dark_ore::DarkOre;
 use crate::prelude::*;
-use crate::grids::energy_supply::EnergySupplyGrid;
 
 pub struct MiningComplexPlugin;
 impl Plugin for MiningComplexPlugin {
@@ -79,7 +80,7 @@ impl Command for BuilderMiningComplex {
 
 // Helper to execute on every obstacle grid field to gather the dark_ore entities
 fn query_dark_ore_helper(field: &Field) -> Option<Entity> {
-    if let obstacles::Field::Building(_, BuildingType::MiningComplex, obstacles::BelowField::DarkOre(dark_ore_entity)) = field { Some(*dark_ore_entity) } else { None }
+    if let Field::Building(_, BuildingType::MiningComplex, BelowField::DarkOre(dark_ore_entity)) = field { Some(*dark_ore_entity) } else { None }
 }
 
 fn mine_ore_system(

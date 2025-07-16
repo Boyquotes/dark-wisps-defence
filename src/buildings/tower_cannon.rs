@@ -1,5 +1,6 @@
+use lib_grid::grids::energy_supply::EnergySupplyGrid;
+
 use crate::prelude::*;
-use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::projectiles::cannonball::BuilderCannonball;
 use crate::wisps::components::Wisp;
 use crate::wisps::spawning::WISP_GRID_IMPRINT;

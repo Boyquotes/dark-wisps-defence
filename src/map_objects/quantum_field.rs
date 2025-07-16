@@ -1,6 +1,8 @@
 use bevy::color::palettes::css::{AQUA, BLUE, INDIGO};
+
+use lib_grid::grids::obstacles::{Field, ObstacleGrid};
+
 use crate::prelude::*;
-use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::map_objects::common::ExpeditionZone;
 use crate::mouse::MouseInfo;
 use crate::ui::common::AdvancedInteraction;

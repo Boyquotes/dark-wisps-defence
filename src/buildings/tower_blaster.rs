@@ -1,5 +1,6 @@
+use lib_grid::grids::energy_supply::EnergySupplyGrid;
+
 use crate::prelude::*;
-use crate::grids::energy_supply::EnergySupplyGrid;
 use crate::projectiles::laser_dart::BuilderLaserDart;
 use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;

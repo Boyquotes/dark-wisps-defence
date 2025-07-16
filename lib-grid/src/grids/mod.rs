@@ -6,7 +6,11 @@ pub mod visited;
 pub mod emissions;
 pub mod energy_supply;
 
-use crate::prelude::*;
+use crate::lib_prelude::*;
+
+pub mod prelude {
+    pub use super::common::prelude::*;
+}
 
 pub struct GridsPlugin;
 impl Plugin for GridsPlugin {

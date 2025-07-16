@@ -1,6 +1,8 @@
 use bevy::color::palettes::css::GRAY;
+
+use lib_grid::grids::obstacles::ObstacleGrid;
+
 use crate::prelude::*;
-use crate::grids::obstacles::ObstacleGrid;
 use crate::ui::UiConfig;
 
 pub fn show_hide_grid_system(mut ui_config: ResMut<UiConfig>, keys: Res<ButtonInput<KeyCode>>) {

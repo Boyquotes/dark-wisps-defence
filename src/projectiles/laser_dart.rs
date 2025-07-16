@@ -1,5 +1,6 @@
+use lib_grid::grids::wisps::WispsGrid;
+
 use crate::prelude::*;
-use crate::grids::wisps::WispsGrid;
 use crate::projectiles::components::MarkerProjectile;
 use crate::wisps::components::Wisp;
 

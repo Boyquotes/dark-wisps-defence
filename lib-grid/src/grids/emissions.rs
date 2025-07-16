@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::lib_prelude::*;
 use crate::grids::base::{BaseGrid, GridVersion};
 use crate::grids::obstacles::ObstacleGrid;
 use crate::search::flooding::{flood_emissions, FloodEmissionsDetails};
@@ -129,7 +130,7 @@ fn emissions_calculations_system(
     mut events: EventReader<EmitterChangedEvent>,
     mut emissions_grid: ResMut<EmissionsGrid>,
     obstacle_grid: Res<ObstacleGrid>,
-    emitters_buildings: Query<(&EmitterEnergy, &GridImprint, &GridCoords), With<Building>>,
+    emitters_buildings: Query<(&EmitterEnergy, &GridImprint, &GridCoords)>,
 ) {
     if recalculate_all.0 {
         recalculate_all.0 = false;

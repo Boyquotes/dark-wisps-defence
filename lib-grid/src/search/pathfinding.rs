@@ -1,5 +1,6 @@
 use std::collections::BinaryHeap;
 use crate::prelude::*;
+use crate::lib_prelude::*;
 use crate::grids::emissions::EmissionsGrid;
 use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::search::common::{State, ALL_DIRECTIONS};

@@ -1,13 +1,25 @@
 [package]
 name = "dark-wisps-defence"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 bevy = { version = "0.16.*", features = ["dynamic_linking"] }
 nanorand = "0.7.0"
 serde = "1.0.*"
 serde_yaml = "0.9.34"
+
+[dependencies.lib-core]
+path = "lib-core"
+
+[dependencies.lib-grid]
+path = "lib-grid"
+
+[workspace]
+members = [
+  "lib-core",
+  "lib-grid",
+]
 
 [profile.release]
 codegen-units = 1

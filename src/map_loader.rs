@@ -1,5 +1,6 @@
-use core::panic;
 use std::fs::File;
+
+use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
 use crate::prelude::*;
 use crate::buildings::energy_relay::BuilderEnergyRelay;
@@ -8,7 +9,6 @@ use crate::buildings::main_base::BuilderMainBase;
 use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
-use crate::grids::obstacles::{Field, ObstacleGrid};
 use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails};
 use crate::map_objects::dark_ore::{BuilderDarkOre, DARK_ORE_GRID_IMPRINT};
 use crate::map_objects::quantum_field::BuilderQuantumField;

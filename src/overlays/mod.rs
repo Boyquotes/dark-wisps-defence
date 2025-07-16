@@ -7,7 +7,7 @@ use bevy::sprite::Material2dPlugin;
 pub struct OverlaysPlugin;
 impl Plugin for OverlaysPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(emissions::EmissionsOverlayMode::Energy(0));
+        app.insert_resource(emissions::EmissionsOverlayMode::Energy(u32::MAX)); // u32::MAX to force redraw on first frame
         app.add_plugins((
             energy_supply::EnergySupplyOverlayPlugin,
             Material2dPlugin::<emissions::EmissionHeatmapMaterial>::default(),

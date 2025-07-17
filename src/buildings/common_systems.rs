@@ -212,7 +212,7 @@ pub fn damage_control_system(
                 });
             }
             grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
-                commands.queue(BuilderExplosion::new(coords));
+                commands.spawn(BuilderExplosion(coords));
             });
             commands.queue(BuildingDestroyedEvent(entity));
         }

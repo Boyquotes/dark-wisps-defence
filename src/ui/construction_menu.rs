@@ -136,7 +136,6 @@ impl ConstructObjectButton{
                         BuildingType::EnergyRelay => Some(ENERGY_RELAY_BASE_IMAGE),
                         BuildingType::ExplorationCenter => Some(EXPLORATION_CENTER_BASE_IMAGE),
                         BuildingType::MiningComplex => Some(MINING_COMPLEX_BASE_IMAGE),
-                        _ => None,
                     },
                     GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGES[0]),
                     _ => None,

@@ -5,14 +5,11 @@ pub struct ExplosionPlugin;
 impl Plugin for ExplosionPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderExplosion>()
             .init_resource::<ExplosionAtlas>()
-            .add_systems(PostUpdate, (
-                BuilderExplosion::spawn_system,
-            ))
             .add_systems(Update, (
                 remove_explosions_system,
-            ));
+            ))
+            .add_observer(BuilderExplosion::on_add);
     }
 }
 
@@ -43,24 +40,23 @@ impl FromWorld for ExplosionAtlas {
 }
 
 #[derive(Component)]
-pub struct MarkerExplosion;
+pub struct Explosion;
 
-#[derive(Event)]
-pub struct BuilderExplosion {
-    pub grid_position: GridCoords,
-}
-
+#[derive(Component)]
+pub struct BuilderExplosion(pub GridCoords);
 impl BuilderExplosion {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self { grid_position }
-    }
-    pub fn spawn_system(
+    fn on_add(
+        trigger: Trigger<OnAdd, BuilderExplosion>,
         mut commands: Commands,
-        mut events: EventReader<BuilderExplosion>,
         explosion_atlas: Res<ExplosionAtlas>,
+        builders: Query<&BuilderExplosion>,
     ) {
-        for &BuilderExplosion { grid_position } in events.read() {
-            commands.spawn((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        commands.entity(entity)
+            .remove::<BuilderExplosion>()
+            .insert((
                 Sprite {
                     image: explosion_atlas.texture_handle.clone(),
                     texture_atlas: Some(TextureAtlas {
@@ -71,24 +67,18 @@ impl BuilderExplosion {
                     ..default()
                 },
                 Transform {
-                    translation: grid_position.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
+                    translation: builder.0.to_world_position_centered(GridImprint::Rectangle { width: 1, height: 1 }).extend(Z_GROUND_EFFECT),
                     ..default()
                 },
                 AnimationController::new(0, 3, 0.1, false),
-                MarkerExplosion,
+                Explosion,
             ));
-        }
     }
 } 
-impl Command for BuilderExplosion {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
-    }
-}
 
 fn remove_explosions_system(
     mut commands: Commands,
-    explosions: Query<(Entity, &AnimationController), With<MarkerExplosion>>,
+    explosions: Query<(Entity, &AnimationController), With<Explosion>>,
 ) {
     for (explosion_entity, animation_controller) in &explosions {
         if animation_controller.has_finished {

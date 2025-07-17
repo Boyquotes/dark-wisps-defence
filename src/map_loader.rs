@@ -1,7 +1,10 @@
 use std::fs::File;
 
+use bevy::ecs::system::RunSystemOnce;
+
 use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
+use crate::map_editor::MapInfo;
 use crate::prelude::*;
 use crate::buildings::energy_relay::BuilderEnergyRelay;
 use crate::buildings::exploration_center::BuilderExplorationCenter;
@@ -13,6 +16,34 @@ use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails};
 use crate::map_objects::dark_ore::{BuilderDarkOre, DARK_ORE_GRID_IMPRINT};
 use crate::map_objects::quantum_field::BuilderQuantumField;
 use crate::map_objects::walls::{BuilderWall, WALL_GRID_IMPRINT};
+
+pub struct LoadMapCommand(pub String);
+impl Command for LoadMapCommand {
+    fn apply(self, world: &mut World) {
+        world.run_system_once_with(load_map_system, self.0).unwrap();
+    }
+}
+
+fn load_map_system(
+    In(map_name): In<String>,
+    mut commands: Commands,
+    mut obstacles_grid: ResMut<ObstacleGrid>,
+    mut map_info: ResMut<MapInfo>,
+    almanach: Res<Almanach>,
+) {
+    let map = load_map(&map_name);
+    map_info.name = map_name;
+    map_info.grid_width = map.width;
+    map_info.grid_height = map.height;
+    map_info.world_width = map.width as f32 * CELL_SIZE;
+    map_info.world_height = map.height as f32 * CELL_SIZE;
+    apply_map(
+        map,
+        &mut commands, 
+        &mut obstacles_grid,
+        &almanach,
+    );
+}
 
 /// Represents yaml content for a map
 #[derive(Debug, Deserialize, Serialize, Default)]

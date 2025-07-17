@@ -2,6 +2,15 @@ use crate::prelude::*;
 use crate::lib_prelude::*;
 use crate::grids::base::{BaseGrid, GridVersion};
 
+pub struct ObstaclesGridPlugin;
+impl Plugin for ObstaclesGridPlugin {
+    fn build(&self, app: &mut App) {
+        let mut obstacle_grid = ObstacleGrid::new_empty();
+        obstacle_grid.resize_and_reset((100, 100));
+        app.insert_resource(obstacle_grid);
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Field {
     #[default]

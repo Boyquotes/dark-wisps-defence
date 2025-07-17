@@ -19,13 +19,8 @@ impl Plugin for GridsPlugin {
             .add_plugins((
                 emissions::EmissionsPlugin,
                 energy_supply::EnergySupplyPlugin,
+                obstacles::ObstaclesGridPlugin,
+                wisps::WispsGridPlugin,
             ));
-
-        let mut obstacle_grid = obstacles::ObstacleGrid::new_empty();
-        obstacle_grid.resize_and_reset((100, 100));
-        app.insert_resource(obstacle_grid);
-        let mut wisps_grid = wisps::WispsGrid::new_empty();
-        wisps_grid.resize_and_reset((100, 100));
-        app.insert_resource(wisps_grid);
     }
 }

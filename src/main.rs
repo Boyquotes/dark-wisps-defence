@@ -19,8 +19,6 @@ mod utils;
 mod wisps;
 
 use crate::prelude::*;
-use lib_grid::grids::obstacles::ObstacleGrid;
-use crate::map_editor::MapInfo;
 
 fn main() {
     App::new()
@@ -48,26 +46,6 @@ fn main() {
             map_editor::MapEditorPlugin,
             mouse::MousePlugin,
         ))
-        .add_systems(Startup, generate_default_map)
+        .add_systems(Startup, |mut commands: Commands| commands.queue(map_loader::LoadMapCommand("test_map".to_string())))
         .run();
-}
-
-pub fn generate_default_map(
-    mut commands: Commands,
-    mut obstacles_grid: ResMut<ObstacleGrid>,
-    mut map_info: ResMut<MapInfo>,
-    almanach: Res<Almanach>,
-) {
-    let map = map_loader::load_map("test_map");
-    map_info.name = "test_map".to_string();
-    map_info.grid_width = map.width;
-    map_info.grid_height = map.height;
-    map_info.world_width = map.width as f32 * CELL_SIZE;
-    map_info.world_height = map.height as f32 * CELL_SIZE;
-    map_loader::apply_map(
-        map,
-        &mut commands, 
-        &mut obstacles_grid,
-        &almanach,
-    );
 }

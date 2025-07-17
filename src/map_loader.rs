@@ -84,14 +84,12 @@ pub fn apply_map(
     almanach: &Almanach,
 ) {
     map.walls.iter().for_each(|wall_coords| {
-        let wall_entity = commands.spawn_empty().id();
+        let wall_entity = commands.spawn(BuilderWall::new(*wall_coords)).id();
         obstacle_grid.imprint(*wall_coords, Field::Wall(wall_entity), WALL_GRID_IMPRINT);
-        commands.queue(BuilderWall::new(wall_entity,*wall_coords));
     });
     let _dark_ores = map.dark_ores.iter().map(|dark_ore_coords| {
-        let dark_ore_entity = commands.spawn_empty().id();
+        let dark_ore_entity = commands.spawn(BuilderDarkOre::new(*dark_ore_coords)).id();
         obstacle_grid.imprint(*dark_ore_coords, Field::DarkOre(dark_ore_entity), DARK_ORE_GRID_IMPRINT);
-        commands.queue(BuilderDarkOre::new(dark_ore_entity, *dark_ore_coords));
         (*dark_ore_coords, dark_ore_entity)
     }).collect::<HashMap<_,_>>();
     map.buildings.iter().for_each(|building| {
@@ -146,10 +144,9 @@ pub fn apply_map(
         obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type, default()), almanach.get_building_info(building.building_type).grid_imprint);
     });
     map.quantum_fields.iter().for_each(|quantum_field| {
-        let quantum_field_entity = commands.spawn_empty().id();
         let grid_imprint = GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size };
+        let quantum_field_entity = commands.spawn(BuilderQuantumField::new(quantum_field.coords, grid_imprint)).id();
         obstacle_grid.imprint(quantum_field.coords, Field::QuantumField(quantum_field_entity), grid_imprint);
-        commands.queue(BuilderQuantumField::new(quantum_field_entity, quantum_field.coords, grid_imprint));
     });
     map.objectives.into_iter().for_each(|objective_details| {
        let objective_entity = commands.spawn_empty().id();

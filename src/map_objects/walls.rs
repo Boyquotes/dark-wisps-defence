@@ -10,14 +10,11 @@ pub struct WallPlugin;
 impl Plugin for WallPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderWall>()
-            .add_systems(PostUpdate, (
-                BuilderWall::spawn_system,
-            ))
             .add_systems(Update, (
                 onclick_spawn_system,
                 color_rotation_system,
-            ));
+            ))
+            .add_observer(BuilderWall::on_add);
     }
 }
 
@@ -26,40 +23,39 @@ pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, he
 #[derive(Component)]
 pub struct Wall;
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderWall {
-    pub entity: Entity,
     pub grid_position: GridCoords,
 }
 
 impl BuilderWall {
-    pub fn new(entity: Entity, grid_position: GridCoords) -> Self { 
-        Self { entity, grid_position }
+    pub fn new(grid_position: GridCoords) -> Self { 
+        Self { grid_position }
     }
-    pub fn spawn_system(
+    
+    fn on_add(
+        trigger: Trigger<OnAdd, BuilderWall>,
         mut commands: Commands,
-        mut events: EventReader<BuilderWall>,
         mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
-     ) {
-        for &BuilderWall { entity, grid_position } in events.read() {
-            commands.entity(entity).insert((
+        builders: Query<&BuilderWall>,
+    ) {
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        commands.entity(entity)
+            .remove::<BuilderWall>()
+            .insert((
                 Sprite {
                     color: GRAY.into(), // Color::hsla(0., 0.5, 1.3, 0.8); for hdr
                     custom_size: Some(WALL_GRID_IMPRINT.world_size()),
                     ..default()
                 },
-                Transform::from_translation(grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(Z_OBSTACLE)),
-                grid_position,
+                Transform::from_translation(builder.grid_position.to_world_position_centered(WALL_GRID_IMPRINT).extend(Z_OBSTACLE)),
+                builder.grid_position,
                 WALL_GRID_IMPRINT,
                 Wall,
             ));
-            emissions_energy_recalculate_all.0 = true;
-        }
-    }
-}
-impl Command for BuilderWall {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
+        emissions_energy_recalculate_all.0 = true;
     }
 }
 
@@ -93,8 +89,7 @@ pub fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a wall
         if obstacle_grid[mouse_coords].is_empty() {
-            let wall_entity = commands.spawn_empty().id();
-            commands.queue(BuilderWall::new(wall_entity, mouse_coords));
+            let wall_entity = commands.spawn(BuilderWall::new(mouse_coords)).id();
             obstacle_grid.imprint(mouse_coords, Field::Wall(wall_entity), WALL_GRID_IMPRINT);
         }
     } else if mouse.pressed(MouseButton::Right) {

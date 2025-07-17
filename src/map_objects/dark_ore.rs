@@ -9,14 +9,11 @@ pub struct DarkOrePlugin;
 impl Plugin for DarkOrePlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderDarkOre>()
-            .add_systems(PostUpdate, (
-                BuilderDarkOre::spawn_system,
-            ))
             .add_systems(Update, (
                 onclick_spawn_system,
                 remove_empty_dark_ore_system,
-            ));
+            ))
+            .add_observer(BuilderDarkOre::on_add);
     }
 }
 
@@ -28,45 +25,43 @@ pub struct DarkOre {
     pub amount: i32,
 }
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderDarkOre {
-    pub entity: Entity,
     pub grid_position: GridCoords,
 }
-
 impl BuilderDarkOre {
-    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
-        Self { entity, grid_position }
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { grid_position }
     }
-    pub fn spawn_system(
+    
+    fn on_add(
+        trigger: Trigger<OnAdd, BuilderDarkOre>,
         mut commands: Commands,
-        mut events: EventReader<BuilderDarkOre>,
+        builders: Query<&BuilderDarkOre>,
         asset_server: Res<AssetServer>,
     ) {
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
         let mut rng = nanorand::tls_rng();
-        for &BuilderDarkOre { entity, grid_position } in events.read() {
-            commands.entity(entity).insert((
+        commands.entity(entity)
+            .remove::<BuilderDarkOre>()
+            .insert((
                 Sprite {
                     image: asset_server.load(DARK_ORE_BASE_IMAGES[rng.generate_range(0usize..2usize)]),
                     custom_size: Some(DARK_ORE_GRID_IMPRINT.world_size()),
                     ..Default::default()
                 },
                 Transform {
-                    translation: grid_position.to_world_position_centered(DARK_ORE_GRID_IMPRINT).extend(Z_OBSTACLE),
+                    translation: builder.grid_position.to_world_position_centered(DARK_ORE_GRID_IMPRINT).extend(Z_OBSTACLE),
                     // select one of: Left, Up, Right, Down
                     rotation: Quat::from_rotation_z([0., PI / 2., PI, 3. * PI / 2.][rng.generate_range(0usize..4usize)] as f32),
                     ..default()
                 },
-                grid_position,
+                builder.grid_position,
                 DarkOre { amount: 1000 },
                 DARK_ORE_GRID_IMPRINT,
             ));
-        }
-    }
-}
-impl Command for BuilderDarkOre {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 
@@ -99,8 +94,7 @@ fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a dark_ore
         if obstacle_grid.imprint_query_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| field.is_empty()) {
-            let dark_ore_entity = commands.spawn_empty().id();
-            commands.queue(BuilderDarkOre::new(dark_ore_entity, mouse_coords));
+            let dark_ore_entity = commands.spawn(BuilderDarkOre::new(mouse_coords)).id();
             obstacle_grid.imprint(mouse_coords, Field::DarkOre(dark_ore_entity), DARK_ORE_GRID_IMPRINT);
         }
     } else if mouse.pressed(MouseButton::Right) {

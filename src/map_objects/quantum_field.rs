@@ -14,10 +14,6 @@ pub struct QuantumFieldPlugin;
 impl Plugin for QuantumFieldPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderQuantumField>()
-            .add_systems(PostUpdate, (
-                BuilderQuantumField::spawn_system,
-            ))
             .add_systems(Startup, (
                 create_grid_placer_ui_for_quantum_field_system,
             ))
@@ -33,8 +29,9 @@ impl Plugin for QuantumFieldPlugin {
                     update_quantum_field_action_button_system.after(update_quantum_field_info_panel_system), // This ordering prevents button flickering
                     on_quantum_field_action_button_click_system.after(update_quantum_field_action_button_system), // This ordering prevents button flickering
                 ).run_if(in_state(UiInteraction::DisplayInfoPanel)),
-            ));
-        app.add_observer(on_ui_map_object_focus_changed_trigger);
+            ))
+            .add_observer(BuilderQuantumField::on_add)
+            .add_observer(on_ui_map_object_focus_changed_trigger);
     }
 }
 
@@ -115,30 +112,36 @@ pub struct QuantumFieldLayer {
     pub costs: Vec<Cost>,
 }
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderQuantumField {
-    pub entity: Entity,
     pub grid_position: GridCoords,
     pub grid_imprint: GridImprint,
 }
+
 impl BuilderQuantumField {
-    pub fn new(entity: Entity, grid_position: GridCoords, grid_imprint: GridImprint) -> Self {
-        Self { entity, grid_position, grid_imprint }
+    pub fn new(grid_position: GridCoords, grid_imprint: GridImprint) -> Self {
+        Self { grid_position, grid_imprint }
     }
-    pub fn spawn_system(
+    
+    fn on_add(
+        trigger: Trigger<OnAdd, BuilderQuantumField>,
         mut commands: Commands,
-        mut events: EventReader<BuilderQuantumField>,
+        builders: Query<&BuilderQuantumField>,
     ) {
-        for &BuilderQuantumField{ entity, grid_position, grid_imprint } in events.read() {
-            commands.entity(entity).insert((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        commands.entity(entity)
+            .remove::<BuilderQuantumField>()
+            .insert((
                 Sprite {
-                    custom_size: Some(grid_imprint.world_size()),
+                    custom_size: Some(builder.grid_imprint.world_size()),
                     color: INDIGO.into(),
                     ..Default::default()
                 },
-                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_OBSTACLE)),
-                grid_position,
-                grid_imprint,
+                Transform::from_translation(builder.grid_position.to_world_position_centered(builder.grid_imprint).extend(Z_OBSTACLE)),
+                builder.grid_position,
+                builder.grid_imprint,
                 QuantumField {
                     current_layer: 0,
                     current_layer_progress: 0,
@@ -159,12 +162,6 @@ impl BuilderQuantumField {
                 },
                 ExpeditionZone::default(),
             ));
-        }
-    }
-}
-impl Command for BuilderQuantumField {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 
@@ -194,8 +191,7 @@ fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a quantum_field
         if obstacles_grid.imprint_query_all(mouse_coords, grid_imprint, |field| field.is_empty()) {
-            let quantum_field_entity = commands.spawn_empty().id();
-            commands.queue(BuilderQuantumField::new(quantum_field_entity, mouse_coords, grid_imprint));
+            let quantum_field_entity = commands.spawn(BuilderQuantumField::new(mouse_coords, grid_imprint)).id();
             obstacles_grid.imprint(mouse_coords, Field::QuantumField(quantum_field_entity), grid_imprint);
         }
     } else if mouse.pressed(MouseButton::Right) {

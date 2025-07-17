@@ -1,6 +1,5 @@
-use crate::prelude::*;
 use crate::lib_prelude::*;
-use crate::grids::base::{BaseGrid, GridVersion};
+use crate::grids::base::BaseGrid;
 
 pub type VisitedGrid = BaseGrid<bool, GridVersion>;
 impl VisitedGrid {

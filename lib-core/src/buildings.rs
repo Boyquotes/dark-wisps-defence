@@ -1,6 +1,6 @@
 use crate::lib_prelude::*;
 
-pub mod prelude {
+pub mod buildings_prelude {
     pub use super::*;
 }
 

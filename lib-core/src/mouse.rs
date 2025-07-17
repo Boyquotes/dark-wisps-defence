@@ -1,6 +1,12 @@
-use crate::prelude::*;
 use bevy::window::PrimaryWindow;
+
+use crate::prelude::*;
+use crate::lib_prelude::*;
 use crate::camera::MainCamera;
+
+pub mod mouse_prelude {
+    pub use super::MouseInfo;
+}
 
 pub struct MousePlugin;
 impl Plugin for MousePlugin {

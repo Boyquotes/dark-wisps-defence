@@ -4,7 +4,6 @@ use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
 use crate::prelude::*;
 use crate::map_objects::common::ExpeditionZone;
-use crate::mouse::MouseInfo;
 use crate::ui::common::AdvancedInteraction;
 use crate::ui::display_info_panel::{DisplayInfoPanel, DisplayPanelMainContentRoot, UiMapObjectFocusedTrigger};
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};

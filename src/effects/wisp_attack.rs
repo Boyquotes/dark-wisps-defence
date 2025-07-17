@@ -1,4 +1,3 @@
-use crate::mouse::MouseInfo;
 use crate::prelude::*;
 use crate::effects::common::AnimationController;
 

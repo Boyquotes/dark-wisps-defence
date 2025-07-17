@@ -5,7 +5,6 @@ use crate::prelude::*;
 use crate::map_objects::dark_ore::DARK_ORE_GRID_IMPRINT;
 use crate::map_objects::quantum_field::QuantumFieldImprintSelector;
 use crate::map_objects::walls::WALL_GRID_IMPRINT;
-use crate::mouse::MouseInfo;
 
 pub struct GridObjectPlacerPlugin;
 impl Plugin for GridObjectPlacerPlugin {

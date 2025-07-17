@@ -1,5 +1,4 @@
 mod buildings;
-mod camera;
 mod common_components;
 mod common_systems;
 mod common;
@@ -9,7 +8,6 @@ mod inventory;
 mod map_editor;
 mod map_loader;
 mod map_objects;
-mod mouse;
 mod overlays;
 mod prelude;
 mod projectiles;
@@ -29,7 +27,6 @@ fn main() {
                 .set(WindowPlugin{ primary_window: Some(Window { present_mode: bevy::window::PresentMode::AutoNoVsync, ..default()}), ..default() }),
             buildings::BuildingsPlugin,
             effects::EffectsPlugin,
-            lib_grid::grids::GridsPlugin,
             inventory::InventoryPlugin,
             map_objects::MapObjectsPlugin,
             overlays::OverlaysPlugin,
@@ -39,12 +36,14 @@ fn main() {
             wisps::WispsPlugin,
         ))
         .add_plugins((
-            camera::CameraPlugin,
+            lib_grid::grids::GridsPlugin,
+            lib_core::LibCorePlugin,
+        ))
+        .add_plugins((
             common::CommonPlugin,
             common_systems::CommonSystemsPlugin,
             data_loader::DataLoaderPlugin,
             map_editor::MapEditorPlugin,
-            mouse::MousePlugin,
         ))
         .add_systems(Startup, |mut commands: Commands| commands.queue(map_loader::LoadMapCommand("test_map".to_string())))
         .run();

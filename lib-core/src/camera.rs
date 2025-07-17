@@ -1,5 +1,5 @@
 use bevy::{core_pipeline::bloom::Bloom, input::mouse::MouseWheel};
-use crate::prelude::*;
+use crate::lib_prelude::*;
 
 const ZOOM_MIN: f32 = 1.;
 const ZOOM_MAX: f32 = 4.;

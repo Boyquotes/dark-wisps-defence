@@ -5,7 +5,6 @@ use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimensio
 use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
 use crate::prelude::*;
-use crate::mouse::MouseInfo;
 
 pub struct DisplayInfoPanelPlugin;
 impl Plugin for DisplayInfoPanelPlugin {

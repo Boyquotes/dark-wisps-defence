@@ -5,7 +5,6 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
 use bevy::sprite::{AlphaMode2d, Material2d, Material2dPlugin};
 
-use lib_grid::grids::base::GridVersion;
 use lib_grid::grids::energy_supply::EnergySupplyGrid;
 use lib_grid::search::common::{CARDINAL_DIRECTIONS, VISITED_GRID};
 

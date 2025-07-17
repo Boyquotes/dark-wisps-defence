@@ -1,8 +1,22 @@
+use bevy::app::{App, Plugin};
+
 pub mod buildings;
+mod camera;
+pub mod grids;
+pub mod mouse;
+
+pub struct LibCorePlugin;
+impl Plugin for LibCorePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins((camera::CameraPlugin, mouse::MousePlugin));
+    }
+}
 
 
 pub mod prelude {
-    pub use crate::buildings::prelude::*;
+    pub use crate::buildings::buildings_prelude::*;
+    pub use crate::grids::grids_prelude::*;
+    pub use crate::mouse::mouse_prelude::*;
 }
 
 pub mod lib_prelude {

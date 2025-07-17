@@ -1,5 +1,8 @@
 use std::{cell::RefCell, cmp::Ordering};
-use crate::grids::{common::GridCoords, visited::{TrackingGrid, VisitedGrid}};
+
+use lib_core::grids::GridCoords;
+
+use crate::grids::visited::{TrackingGrid, VisitedGrid};
 
 pub const CARDINAL_DIRECTIONS: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 pub const ALL_DIRECTIONS: [(i32, i32); 8] = [

@@ -3,7 +3,6 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
 use bevy::sprite::{AlphaMode2d, Material2d, Material2dPlugin};
 
-use lib_grid::grids::base::GridVersion;
 use lib_grid::grids::emissions::{EmissionsGrid, EmissionsType};
 
 use crate::prelude::*;

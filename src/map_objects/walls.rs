@@ -4,7 +4,6 @@ use lib_grid::grids::emissions::EmissionsEnergyRecalculateAll;
 use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
 use crate::prelude::*;
-use crate::mouse::MouseInfo;
 use crate::ui::grid_object_placer::GridObjectPlacer;
 
 pub struct WallPlugin;

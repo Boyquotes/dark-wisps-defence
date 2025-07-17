@@ -2,7 +2,6 @@ use bevy::color::palettes::css::{TURQUOISE, WHITE};
 use bevy::ui::FocusPolicy;
 
 use crate::buildings::tower_emitter::TOWER_EMITTER_BASE_IMAGE;
-use crate::mouse::MouseInfo;
 use crate::prelude::*;
 use crate::buildings::energy_relay::ENERGY_RELAY_BASE_IMAGE;
 use crate::buildings::exploration_center::EXPLORATION_CENTER_BASE_IMAGE;

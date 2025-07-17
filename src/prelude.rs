@@ -5,7 +5,6 @@ pub use bevy::prelude::*;
 pub use bevy::platform::collections::{HashMap, HashSet};
 
 pub use lib_core::prelude::*;
-pub use lib_grid::prelude::*;
 
 pub use crate::common::prelude::*;
 pub use crate::common_components::prelude::*;

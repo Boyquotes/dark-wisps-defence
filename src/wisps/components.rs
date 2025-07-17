@@ -1,5 +1,3 @@
-use lib_grid::grids::base::GridVersion;
-
 use crate::prelude::*;
 
 #[derive(Component, Copy, Clone)]

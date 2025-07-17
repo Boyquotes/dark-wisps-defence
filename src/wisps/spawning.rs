@@ -5,52 +5,51 @@ use super::materials::WispMaterial;
 
 pub const WISP_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderWisp {
-    pub entity: Entity,
-    pub wisp_type: WispType,
-    pub grid_coords: GridCoords,
+    wisp_type: WispType,
+    grid_coords: GridCoords,
 }
 
 impl BuilderWisp {
-    pub fn new(entity: Entity, wisp_type: WispType, grid_coords: GridCoords) -> Self {
-        Self { entity, wisp_type, grid_coords }
+    pub fn new(wisp_type: WispType, grid_coords: GridCoords) -> Self {
+        Self { wisp_type, grid_coords }
     }
-    pub fn spawn_system(
+
+    pub fn on_add(
+        trigger: Trigger<OnAdd, BuilderWisp>,
         mut commands: Commands,
-        mut events: EventReader<BuilderWisp>,
+        builders: Query<&BuilderWisp>,
     ) {
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
         let mut rng = nanorand::tls_rng();
-        for &BuilderWisp { entity, wisp_type, grid_coords } in events.read() {
-            let mut commands = commands.entity(entity);
-            commands.insert((
-                grid_coords,
+        let mut entity_commands = commands.entity(entity);
+        entity_commands
+            .remove::<BuilderWisp>()
+            .insert((
+                builder.grid_coords,
                 Health::new(10),
                 Speed(30.),
                 Transform {
-                    translation: grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP),
+                    translation: builder.grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP),
                     rotation: Quat::from_rotation_z(rng.generate::<f32>() * 2. * std::f32::consts::PI),
                     ..default()
                 },
                 Wisp,
-                wisp_type,
+                builder.wisp_type,
                 WispState::default(),
                 WispChargeAttack::default(),
                 WispAttackRange(1),
                 GridPath::default(),
             ));
-            match wisp_type {
-                WispType::Fire => commands.insert((WispFireType, EssencesContainer::from(EssenceContainer::new(EssenceType::Fire, 1)))) ,
-                WispType::Water => commands.insert((WispWaterType, EssencesContainer::from(EssenceContainer::new(EssenceType::Water, 1)))) ,
-                WispType::Light => commands.insert((WispLightType, EssencesContainer::from(EssenceContainer::new(EssenceType::Light, 1)))) ,
-                WispType::Electric => commands.insert((WispElectricType, EssencesContainer::from(EssenceContainer::new(EssenceType::Electric, 1)))),
-            };
-        }
-    }
-}
-impl Command for BuilderWisp {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
+        match builder.wisp_type {
+            WispType::Fire => entity_commands.insert((WispFireType, EssencesContainer::from(EssenceContainer::new(EssenceType::Fire, 1)))),
+            WispType::Water => entity_commands.insert((WispWaterType, EssencesContainer::from(EssenceContainer::new(EssenceType::Water, 1)))),
+            WispType::Light => entity_commands.insert((WispLightType, EssencesContainer::from(EssenceContainer::new(EssenceType::Light, 1)))),
+            WispType::Electric => entity_commands.insert((WispElectricType, EssencesContainer::from(EssenceContainer::new(EssenceType::Electric, 1)))),
+        };
     }
 }
 

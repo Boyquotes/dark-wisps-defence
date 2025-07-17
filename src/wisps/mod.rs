@@ -18,10 +18,6 @@ impl Plugin for WispsPlugin {
                 Material2dPlugin::<materials::WispElectricMaterial>::default(),
                 
             ))
-            .add_event::<spawning::BuilderWisp>()
-            .add_systems(PostUpdate, (
-                spawning::BuilderWisp::spawn_system.run_if(in_state(GameState::Running)),
-            ))
             .add_systems(Update, (
                 (
                     systems::move_wisps,
@@ -31,10 +27,11 @@ impl Plugin for WispsPlugin {
                     systems::remove_dead_wisps,
                     systems::spawn_wisps,
                 ).run_if(in_state(GameState::Running)),
-            ));
-        app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispFireType, materials::WispFireMaterial>);
-        app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispWaterType, materials::WispWaterMaterial>);
-        app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispLightType, materials::WispLightMaterial>);
-        app.add_observer(spawning::on_wisp_spawn_attach_material::<components::WispElectricType, materials::WispElectricMaterial>);
+            ))
+            .add_observer(spawning::BuilderWisp::on_add)
+            .add_observer(spawning::on_wisp_spawn_attach_material::<components::WispFireType, materials::WispFireMaterial>)
+            .add_observer(spawning::on_wisp_spawn_attach_material::<components::WispWaterType, materials::WispWaterMaterial>)
+            .add_observer(spawning::on_wisp_spawn_attach_material::<components::WispLightType, materials::WispLightMaterial>)
+            .add_observer(spawning::on_wisp_spawn_attach_material::<components::WispElectricType, materials::WispElectricMaterial>);
     }
 }

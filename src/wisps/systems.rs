@@ -214,8 +214,7 @@ pub fn spawn_wisps(
                 GridCoords{x: obstacle_grid.width - 1, y: rng.generate_range(1..=obstacle_grid.height)}
             }
         };
-        let wisp_entity = commands.spawn_empty().id();
-        commands.queue(BuilderWisp::new(wisp_entity, WispType::random(), grid_coords));
+        let wisp_entity = commands.spawn(BuilderWisp::new(WispType::random(), grid_coords)).id();
         wisps_grid.wisp_add(grid_coords, wisp_entity.into());
     }
 }

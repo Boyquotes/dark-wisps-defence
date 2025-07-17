@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use bevy::reflect::TypePath;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
-use bevy::sprite::{AlphaMode2d, Material2d};
+use bevy::sprite::{AlphaMode2d, Material2d, Material2dPlugin};
 
 use lib_grid::grids::base::GridVersion;
 use lib_grid::grids::energy_supply::EnergySupplyGrid;
@@ -17,6 +17,7 @@ pub struct EnergySupplyOverlayPlugin;
 impl Plugin for EnergySupplyOverlayPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_plugins(Material2dPlugin::<EnergySupplyHeatmapMaterial>::default())
             .init_state::<EnergySupplyOverlayState>()
             .init_resource::<EnergySupplyOverlayConfig>()
             .add_systems(Startup, (

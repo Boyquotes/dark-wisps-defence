@@ -1,10 +1,24 @@
-use crate::prelude::*;
 use bevy::reflect::TypePath;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
-use bevy::sprite::{AlphaMode2d, Material2d};
+use bevy::sprite::{AlphaMode2d, Material2d, Material2dPlugin};
+
 use lib_grid::grids::base::GridVersion;
 use lib_grid::grids::emissions::{EmissionsGrid, EmissionsType};
+
+use crate::prelude::*;
+
+pub struct EmissionsPlugin;
+impl Plugin for EmissionsPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_plugins(Material2dPlugin::<EmissionHeatmapMaterial>::default())
+            .insert_resource(EmissionsOverlayMode::Energy(u32::MAX)) // u32::MAX to force redraw on first frame
+            .add_systems(Startup, create_emissions_overlay_startup_system)
+            .add_systems(PreUpdate, update_emissions_overlay_system)
+            .add_systems(Update, manage_emissions_overlay_mode_system);
+    }
+}
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
 pub struct EmissionHeatmapMaterial {

@@ -5,13 +5,10 @@ pub struct ExpeditionDronePlugin;
 impl Plugin for ExpeditionDronePlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderExpeditionDrone>()
-            .add_systems(PostUpdate, (
-                BuilderExpeditionDrone::spawn_system,
-            ))
             .add_systems(Update, (
                 move_expedition_drone_system.run_if(in_state(GameState::Running)),
-            ));
+            ))
+            .add_observer(BuilderExpeditionDrone::on_add);
     }
 }
 
@@ -23,48 +20,47 @@ pub struct ExpeditionDrone {
     target_world_position: Vec2,
 }
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderExpeditionDrone {
-    pub entity: Entity,
-    pub world_position: Vec2,
-    pub target_entity: Entity,
+    world_position: Vec2,
+    target_entity: Entity,
 }
 impl BuilderExpeditionDrone {
-    pub fn new(entity: Entity, world_position: Vec2, target_entity: Entity) -> Self {
-        Self { entity, world_position, target_entity }
+    pub fn new(world_position: Vec2, target_entity: Entity) -> Self {
+        Self { world_position, target_entity }
     }
-    pub fn spawn_system(
+
+    fn on_add(
+        trigger: Trigger<OnAdd, BuilderExpeditionDrone>,
         mut commands: Commands,
-        mut events: EventReader<BuilderExpeditionDrone>,
+        builders: Query<&BuilderExpeditionDrone>,
         asset_server: Res<AssetServer>,
         expedition_zones: Query<&Transform, With<ExpeditionZone>>,
     ) {
-        for &BuilderExpeditionDrone{ entity, world_position, target_entity } in events.read() {
-            if let Ok(exploration_zone_transform) = expedition_zones.get(target_entity) {
-                let target_vector = exploration_zone_transform.translation.xy() - world_position;
-                commands.entity(entity).insert((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        if let Ok(exploration_zone_transform) = expedition_zones.get(builder.target_entity) {
+            let target_vector = exploration_zone_transform.translation.xy() - builder.world_position;
+            commands.entity(entity)
+                .remove::<BuilderExpeditionDrone>()
+                .insert((
                     Sprite {
                         image: asset_server.load(EXPEDITION_DRONE_BASE_IMAGE),
                         ..default()
                     },
                     Transform {
-                        translation: world_position.extend(Z_AERIAL_UNIT),
+                        translation: builder.world_position.extend(Z_AERIAL_UNIT),
                         rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
                         ..default()
                     },
-                    ExpeditionDrone { target: target_entity, target_world_position: exploration_zone_transform.translation.xy() },
+                    ExpeditionDrone { target: builder.target_entity, target_world_position: exploration_zone_transform.translation.xy() },
                 ));
-            } else {
-                // Exploration zone was removed; destroy the drone
-                commands.entity(entity).despawn();
-            }
+        } else {
+            // Exploration zone was removed; destroy the drone
+            commands.entity(entity).despawn();
         }
     }
-}
-impl Command for BuilderExpeditionDrone {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
-    }    
 }
 
 pub fn move_expedition_drone_system(

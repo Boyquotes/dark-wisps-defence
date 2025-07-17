@@ -90,8 +90,7 @@ pub fn create_expedition_system(
                 a.1.distance_squared(center_position).total_cmp(&b.1.distance_squared(center_position))
             });
             if let Some((zone_entity, ..)) = closest_zone {
-                let drone_entity = commands.spawn_empty().id();
-                commands.queue(BuilderExpeditionDrone::new(drone_entity, center_position, *zone_entity));
+                commands.spawn(BuilderExpeditionDrone::new(center_position, *zone_entity));
             }
         }
     }

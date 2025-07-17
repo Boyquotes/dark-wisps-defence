@@ -111,7 +111,7 @@ pub fn shooting_system(
         let spawn_position = transform.translation.xy() + offset;
 
         let rocket_angle = Quat::from_rotation_z(top_rotation.current_angle);
-        commands.queue(BuilderRocket::new(spawn_position, rocket_angle, target_wisp));
+        commands.spawn(BuilderRocket::new(spawn_position, rocket_angle, target_wisp));
         timer.0.reset();
     }
 }

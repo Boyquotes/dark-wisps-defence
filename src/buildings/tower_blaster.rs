@@ -111,7 +111,7 @@ pub fn shooting_system(
         );
         let spawn_position = transform.translation.xy() + offset;
 
-        commands.queue(BuilderLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize()));
+        commands.spawn(BuilderLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize()));
         timer.0.reset();
     }
 }

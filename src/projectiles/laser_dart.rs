@@ -1,27 +1,23 @@
 use lib_grid::grids::wisps::WispsGrid;
 
 use crate::prelude::*;
-use crate::projectiles::components::MarkerProjectile;
+use crate::projectiles::components::Projectile;
 use crate::wisps::components::Wisp;
 
 pub struct LaserDartPlugin;
 impl Plugin for LaserDartPlugin {
     fn build(&self, app: &mut App) {
-        app.
-            add_event::<BuilderLaserDart>()
+        app
             .add_systems(Update, (
-                (
-                    laser_dart_move_system,
-                    laser_dart_hit_system,
-                ).run_if(in_state(GameState::Running)),
-            )).add_systems(PostUpdate, (
-                BuilderLaserDart::spawn_system,
-            ));
+                laser_dart_move_system,
+                laser_dart_hit_system,
+            ))
+            .add_observer(BuilderLaserDart::on_add);
     }
 }
 
 #[derive(Component)]
-pub struct MarkerLaserDart;
+pub struct LaserDart;
 
 // LaserDart follows Wisp, and if the wisp no longer exists, follows the target vector
 #[derive(Component, Default)]
@@ -30,53 +26,49 @@ pub struct LaserDartTarget {
     pub target_vector: Vec2,
 }
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderLaserDart {
     world_position: Vec2,
     target_wisp: Entity,
     target_vector: Vec2,
 }
+
 impl BuilderLaserDart {
     pub fn new(world_position: Vec2, target_wisp: Entity, target_vector: Vec2) -> Self {
-        Self {
-            world_position,
-            target_wisp,
-            target_vector,
-        }
+        Self { world_position, target_wisp, target_vector }
     }
-    pub fn spawn_system(
+
+    fn on_add(
+        trigger: Trigger<OnAdd, BuilderLaserDart>,
         mut commands: Commands,
-        mut events: EventReader<BuilderLaserDart>,
+        builders: Query<&BuilderLaserDart>,
     ) {
-        for &BuilderLaserDart{ world_position, target_wisp, target_vector } in events.read() {
-            commands.spawn((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        commands.entity(entity)
+            .remove::<BuilderLaserDart>()
+            .insert((
                 Sprite {
                     color: Color::srgb(1.0, 0.0, 0.0),
                     custom_size: Some(Vec2::new(7.0, 1.0)),
                     ..Default::default()
                 },
                 Transform {
-                    translation: world_position.extend(Z_PROJECTILE),
-                    rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
+                    translation: builder.world_position.extend(Z_PROJECTILE),
+                    rotation: Quat::from_rotation_z(builder.target_vector.y.atan2(builder.target_vector.x)),
                     ..Default::default()
                 },
-                MarkerProjectile,
-                MarkerLaserDart,
-                LaserDartTarget{ target_wisp: Some(target_wisp), target_vector },
+                Projectile,
+                LaserDart,
+                LaserDartTarget{ target_wisp: Some(builder.target_wisp), target_vector: builder.target_vector },
             ));
-        }
-    }
-    
-}
-impl Command for BuilderLaserDart {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 
 pub fn laser_dart_move_system(
-    mut laser_darts: Query<(&mut Transform, &mut LaserDartTarget), With<MarkerLaserDart>>,
-    wisps: Query<&Transform, (With<Wisp>, Without<MarkerLaserDart>)>,
+    mut laser_darts: Query<(&mut Transform, &mut LaserDartTarget), With<LaserDart>>,
+    wisps: Query<&Transform, (With<Wisp>, Without<LaserDart>)>,
     time: Res<Time>,
 ) {
     for (mut transform, mut target) in laser_darts.iter_mut() {
@@ -94,7 +86,7 @@ pub fn laser_dart_move_system(
 
 pub fn laser_dart_hit_system(
     mut commands: Commands,
-    laser_darts: Query<(Entity, &Transform), With<MarkerLaserDart>>,
+    laser_darts: Query<(Entity, &Transform), With<LaserDart>>,
     wisps_grid: Res<WispsGrid>,
     mut wisps: Query<(&mut Health, &Transform), With<Wisp>>,
 ) {

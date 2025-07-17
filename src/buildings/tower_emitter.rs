@@ -87,7 +87,7 @@ pub fn shooting_system(
             continue;
         };
 
-        commands.queue(BuilderRipple::new(transform.translation.xy(), range.0 as f32 * CELL_SIZE));
+        commands.spawn(BuilderRipple::new(transform.translation.xy(), range.0 as f32 * CELL_SIZE));
         timer.0.reset();
     }
 }

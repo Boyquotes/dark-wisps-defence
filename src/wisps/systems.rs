@@ -126,7 +126,7 @@ pub fn wisp_charge_attack(
                 if distance < 1. {
                     // Already close enough, trigger attack
                     *attack = WispChargeAttack::Backoff;
-                    commands.queue(BuilderWispAttackEffect::new(transform.translation.xy()));
+                    commands.spawn(BuilderWispAttackEffect(transform.translation.xy()));
                     // Deal damage to the building
                     let _ = buildings.get_mut(target_entity).map(|mut health| {
                         health.decrease(1);
@@ -190,7 +190,7 @@ pub fn collide_wisps(
         health.decrease(1);
         wisps_grid.wisp_remove(*coords, wisp_entity.into());
         commands.entity(wisp_entity).despawn();
-        commands.queue(BuilderWispAttackEffect::new(transform.translation.xy()))
+        commands.spawn(BuilderWispAttackEffect(transform.translation.xy()));
     }
 }
 

@@ -5,15 +5,12 @@ pub struct WispAttackEffectPlugin;
 impl Plugin for WispAttackEffectPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderWispAttackEffect>()
             .init_resource::<WispAttackEffectAtlas>()
-            .add_systems(PostUpdate, (
-                BuilderWispAttackEffect::spawn_system,
-            ))
             .add_systems(Update, (
                 remove_effects_system,
                 spawn_random_wisps_effect_system,
-            ));
+            ))
+            .add_observer(BuilderWispAttackEffect::on_add);
     }
 }
 
@@ -44,26 +41,26 @@ impl FromWorld for WispAttackEffectAtlas {
 }
 
 #[derive(Component)]
-pub struct MarkerWispAttackEffect;
+pub struct WispAttackEffect;
 
-#[derive(Event)]
-pub struct BuilderWispAttackEffect {
-    pub world_position: Vec2,
-}
+#[derive(Component)]
+pub struct BuilderWispAttackEffect(pub Vec2);
 
 impl BuilderWispAttackEffect {
-    pub fn new(world_position: Vec2) -> Self {
-        Self { world_position }
-    }
-    pub fn spawn_system(
+    fn on_add(
+        trigger: Trigger<OnAdd, BuilderWispAttackEffect>,
         mut commands: Commands,
-        mut events: EventReader<BuilderWispAttackEffect>,
         explosion_atlas: Res<WispAttackEffectAtlas>,
+        builders: Query<&BuilderWispAttackEffect>,
     ) {
-        for &BuilderWispAttackEffect { world_position } in events.read() {
-            commands.spawn((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        commands.entity(entity)
+            .remove::<BuilderWispAttackEffect>()
+            .insert((
                 Sprite {
-                    image:explosion_atlas.texture_handle.clone(),
+                    image: explosion_atlas.texture_handle.clone(),
                     texture_atlas: Some(TextureAtlas {
                         layout: explosion_atlas.atlas_handle.clone(),
                         index: 0,
@@ -72,25 +69,19 @@ impl BuilderWispAttackEffect {
                     ..default()
                 },
                 Transform {
-                    translation: world_position.extend(Z_GROUND_EFFECT),
+                    translation: builder.0.extend(Z_GROUND_EFFECT),
                     scale: Vec3::new(0.25, 0.25, 1.0),
                     ..Default::default()
                 },
                 AnimationController::new(0, 9, 0.025, false),
-                MarkerWispAttackEffect,
+                WispAttackEffect,
             ));
-        }
-    }
-} 
-impl Command for BuilderWispAttackEffect {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 
 fn remove_effects_system(
     mut commands: Commands,
-    explosions: Query<(Entity, &AnimationController), With<MarkerWispAttackEffect>>,
+    explosions: Query<(Entity, &AnimationController), With<WispAttackEffect>>,
 ) {
     for (explosion_entity, animation_controller) in &explosions {
         if animation_controller.has_finished {
@@ -106,6 +97,6 @@ fn spawn_random_wisps_effect_system(
 ) {
     if button_input.just_released(MouseButton::Left){
         println!("Spawning");
-        commands.queue(BuilderWispAttackEffect::new(mouse_info.world_position));
+        commands.spawn(BuilderWispAttackEffect(mouse_info.world_position));
     }
 }

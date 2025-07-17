@@ -13,7 +13,6 @@ pub struct RipplePlugin;
 impl Plugin for RipplePlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderRipple>()
             .add_plugins((
                 Material2dPlugin::<RippleMaterial>::default(),
             ))
@@ -23,46 +22,44 @@ impl Plugin for RipplePlugin {
                     ripple_hit_system,
                 ).run_if(in_state(GameState::Running)),
             ))
-            .add_systems(PostUpdate, (
-                BuilderRipple::spawn_system,
-            ));
+            .add_observer(BuilderRipple::on_add);
     }
 }
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderRipple {
     pub world_position: Vec2,
     pub radius: f32, // in world size
 }
+
 impl BuilderRipple {
     pub fn new(world_position: Vec2, radius: f32) -> Self {
         Self { world_position, radius }
     }
-    pub fn spawn_system(
+    
+    fn on_add(
+        trigger: Trigger<OnAdd, BuilderRipple>,
         mut commands: Commands,
-        mut events: EventReader<BuilderRipple>,
         mut ripple_materials: ResMut<Assets<RippleMaterial>>,
         mut meshes: ResMut<Assets<Mesh>>,
+        builders: Query<&BuilderRipple>,
     ) {
-        for &BuilderRipple { world_position, radius } in events.read() {
-            commands.spawn((
-                Mesh2d(meshes.add(Circle::new(radius))),
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        commands.entity(entity)
+            .remove::<BuilderRipple>()
+            .insert((
+                Mesh2d(meshes.add(Circle::new(builder.radius))),
                 MeshMaterial2d(ripple_materials.add(RippleMaterial {
                     current_radius: 0.0,
                     wave_width: 0.35,
                     wave_exponent: 0.8,
                 })),
-                Transform::from_translation(world_position.extend(Z_GROUND_EFFECT)),
-                Ripple{ max_radius: radius, current_radius: 0. },
+                Transform::from_translation(builder.world_position.extend(Z_GROUND_EFFECT)),
+                Ripple{ max_radius: builder.radius, current_radius: 0. },
                 Speed(70.0),
             ));
-        }
-    }
-
-}
-impl Command for BuilderRipple {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 

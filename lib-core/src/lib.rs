@@ -11,7 +11,13 @@ pub mod utils;
 pub struct LibCorePlugin;
 impl Plugin for LibCorePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((camera::CameraPlugin, mouse::MousePlugin, states::StatesPlugin, common::CommonPlugin));
+        app.add_plugins((
+            camera::CameraPlugin,
+            mouse::MousePlugin,
+            states::StatesPlugin,
+            common::CommonPlugin,
+            grids::GridPlugin,
+        ));
     }
 }
 

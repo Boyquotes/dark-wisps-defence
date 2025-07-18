@@ -10,7 +10,8 @@ impl Plugin for CommonPlugin {
         app
             .add_systems(Update, (
                 ColorPulsation::pulsate_sprites_system,
-            ));
+            ))
+            .add_observer(ZDepth::on_insert);
     }
 }
 
@@ -104,6 +105,21 @@ impl std::fmt::Display for UpgradeType {
 
 #[derive(Component, Default)]
 pub struct Upgrades(pub HashMap<UpgradeType, usize>);
+
+// This component needs to be replaced in full, do not mutate it
+#[derive(Component)]
+#[require(Transform)]
+pub struct ZDepth(pub f32);
+impl ZDepth {
+    fn on_insert(
+        trigger: Trigger<OnInsert, ZDepth>,
+        mut transforms: Query<(&mut Transform, &ZDepth)>,
+    ) {
+        let entity = trigger.target();
+        let Ok((mut transform, z_depth)) = transforms.get_mut(entity) else { return; };
+        transform.translation.z = z_depth.0;
+    }
+}
 
 macro_rules! define_z_indexes {
     // Internal macro to handle incrementing the counter

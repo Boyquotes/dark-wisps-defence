@@ -14,7 +14,6 @@ use crate::wisps::components::Wisp;
 use super::{
     energy_relay::BuilderEnergyRelay,
     exploration_center::BuilderExplorationCenter,
-    main_base::{EventMoveMainBase},
     mining_complex::BuilderMiningComplex,
     tower_blaster::BuilderTowerBlaster,
     tower_emitter::BuilderTowerEmitter,
@@ -99,7 +98,7 @@ pub fn onclick_building_spawn_system(
         },
         BuildingType::MainBase => {
             let Ok((main_base_entity, main_base_coords)) = main_base.single() else { return; };
-            commands.queue(EventMoveMainBase { new_grid_position: mouse_coords });
+            commands.entity(main_base_entity).insert(mouse_coords);
             GridAction::Reprint{entity: main_base_entity, old_coords: *main_base_coords}
         },
         BuildingType::MiningComplex => {

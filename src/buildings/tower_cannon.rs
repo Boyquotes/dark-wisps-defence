@@ -47,7 +47,6 @@ impl BuilderTowerCannon {
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                Transform::from_translation(builder.grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 MarkerTower,
                 TowerCannon,
                 builder.grid_position,

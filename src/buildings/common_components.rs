@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::prelude::*;
 
 #[derive(Component, Clone, Debug, Default)]
+#[require(AutoGridTransformSync, ZDepth = ZDepth(Z_BUILDING))]
 //#[require(Level)]
 pub struct Building;
 

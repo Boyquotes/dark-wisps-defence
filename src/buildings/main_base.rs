@@ -1,6 +1,6 @@
 use lib_grid::grids::emissions::{EmissionsType, EmitterEnergy};
-use lib_grid::grids::energy_supply::{GeneratorEnergy, SupplierChangedEvent, SupplierEnergy};
-use lib_grid::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode, FloodEnergySupplyMode};
+use lib_grid::grids::energy_supply::{GeneratorEnergy, SupplierEnergy};
+use lib_grid::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode};
 
 use crate::prelude::*;
 
@@ -9,10 +9,6 @@ pub struct MainBasePlugin;
 impl Plugin for MainBasePlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<EventMoveMainBase>()
-            .add_systems(Update, (
-                move_main_base_system,
-            ))
             .add_observer(BuilderMainBase::on_add);
     }
 }
@@ -48,7 +44,6 @@ impl BuilderMainBase {
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                Transform::from_translation(builder.grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 MainBase,
                 builder.grid_position,
                 Health::new(10000),
@@ -65,27 +60,5 @@ impl BuilderMainBase {
                 SupplierEnergy { range: 15 },
                 TechnicalState { has_energy_supply: true, ..default() },
             ));
-    }
-}
-
-
-#[derive(Event)]
-pub struct EventMoveMainBase {
-    pub new_grid_position: GridCoords,
-}
-impl Command for EventMoveMainBase {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
-    }
-}
-pub fn move_main_base_system(
-    mut commands: Commands,
-    mut events: EventReader<EventMoveMainBase>,
-    mut main_base: Query<(Entity, &GridImprint, &mut Transform), With<MainBase>>,
-) {
-    for &EventMoveMainBase { new_grid_position } in events.read() {
-        let Ok((entity, grid_imprint, mut transform)) = main_base.single_mut() else { return; };
-        transform.translation = new_grid_position.to_world_position_centered(*grid_imprint).extend(Z_BUILDING);
-        commands.entity(entity).insert(new_grid_position);
     }
 }

@@ -42,7 +42,6 @@ impl BuilderEnergyRelay {
                     color: Color::hsla(0., 0.2, 1.0, 1.0), // 1.6 is a good value if the pulsation is off.
                     ..Default::default()
                 },
-                Transform::from_translation(builder.grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 builder.grid_position,
                 Health::new(100),
                 Building,

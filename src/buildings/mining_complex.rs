@@ -53,7 +53,6 @@ impl BuilderMiningComplex {
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                Transform::from_translation(builder.grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 TechnicalState{ 
                     has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint),
                     has_ore_fields: Some(!ore_entities_in_range.is_empty()),

@@ -6,6 +6,14 @@ pub mod grids_prelude {
     pub use super::*;
 }
 
+pub struct GridPlugin;
+impl Plugin for GridPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_observer(AutoGridTransformSync::on_grid_coords_insert);
+    }
+}
+
 pub const CELL_SIZE: f32 = 16.;
 
 pub type GridVersion = u32;
@@ -16,6 +24,7 @@ impl <T: Default + Clone + Debug> FieldTrait for T {}
 pub trait GridVersionTrait: Default {}
 impl <T: Default> GridVersionTrait for T {}
 
+// This component should be replaced in full. Mutate in place only if you are sure.
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq, Component, Hash)]
 pub struct GridCoords {
     pub x: i32,
@@ -131,5 +140,21 @@ impl GridPath {
     }
     pub fn at_distance(&self, index: usize) -> Option<GridCoords> {
         self.path.get(index - 1).copied()
+    }
+}
+
+// Automatically updates Transform.translation when GridCoords are inserted
+#[derive(Component, Default)]
+pub struct AutoGridTransformSync;
+impl AutoGridTransformSync {
+    pub fn on_grid_coords_insert(
+        trigger: Trigger<OnInsert, GridCoords>,
+        mut transforms: Query<(&mut Transform, &GridCoords, &GridImprint)>,
+    ) {
+        let entity = trigger.target();
+        let Ok((mut transform, grid_coords, grid_imprint)) = transforms.get_mut(entity) else { return; };
+        let world_centered = grid_coords.to_world_position_centered(*grid_imprint);
+        transform.translation.x = world_centered.x;
+        transform.translation.y = world_centered.y;
     }
 }

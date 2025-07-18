@@ -13,7 +13,7 @@ use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_emitter::BuilderTowerEmitter;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
-use crate::objectives::{BuilderObjective, ObjectiveDetails};
+use crate::objectives::ObjectiveDetails;
 use crate::map_objects::dark_ore::{BuilderDarkOre, DARK_ORE_GRID_IMPRINT};
 use crate::map_objects::quantum_field::BuilderQuantumField;
 use crate::map_objects::walls::{BuilderWall, WALL_GRID_IMPRINT};
@@ -122,6 +122,6 @@ pub fn apply_map(
         obstacle_grid.imprint(quantum_field.coords, Field::QuantumField(quantum_field_entity), grid_imprint);
     });
     map.objectives.into_iter().for_each(|objective_details| {
-       commands.spawn(BuilderObjective::new(objective_details));
+       commands.spawn(objective_details);
     });
 }

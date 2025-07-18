@@ -8,7 +8,6 @@ impl Plugin for ObjectivesPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<ObjectivesReassesInactiveFlag>()
-            .add_observer(BuilderObjective::on_add)
             .add_systems(PreUpdate, (
                 reassess_inactive_objectives_system,
             ))
@@ -17,7 +16,9 @@ impl Plugin for ObjectivesPlugin {
                 on_objective_failed_system,
                 update_clear_all_quantum_fields_system,
                 update_kill_wisps_system,
-            ));
+            ))
+            .add_observer(Objective::on_add)
+            .add_observer(ObjectiveDetails::on_add);
     }
 }
 
@@ -34,10 +35,30 @@ pub enum ObjectiveType {
 }
 
 #[derive(Component, Clone, Debug, Serialize, Deserialize)]
+#[require(Objective)]
 pub struct ObjectiveDetails {
     pub id_name: String,
     pub objective_type: ObjectiveType,
     pub prerequisites: ObjectivePrerequisities,
+}
+impl ObjectiveDetails {
+    fn on_add(
+        trigger: Trigger<OnAdd, ObjectiveDetails>,
+        mut commands: Commands,
+        objective_details: Query<&ObjectiveDetails>,
+        stats_wisps_killed: Res<StatsWispsKilled>,
+    ) {
+        let entity = trigger.target();
+        let Ok(objective_details) = objective_details.get(entity) else { return; };
+        match objective_details.objective_type {
+            ObjectiveType::ClearAllQuantumFields => {
+                commands.entity(entity).insert(ObjectiveClearAllQuantumFields::default());
+            }
+            ObjectiveType::KillWisps(target_amount) => {
+                commands.entity(entity).insert(ObjectiveKillWisps{target_amount, started_amount: stats_wisps_killed.0});
+            }
+        }
+    }
 }
 
 // When true, assess prerequisities of inactive objectives to see if they should become active
@@ -50,7 +71,7 @@ impl Command for ObjectivesReassesInactiveFlag {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct ObjectiveMarkerInactive;
 #[derive(Component)]
 pub struct ObjectiveMarkerInProgress;
@@ -66,40 +87,53 @@ pub struct ObjectiveText;
 
 
 #[derive(Component)]
+#[require(ObjectiveMarkerInactive)]
 pub struct Objective {
     pub checkmark: Entity,
     pub text: Entity,
 }
-
-#[derive(Component)]
-pub struct BuilderObjective {
-    objective_details: ObjectiveDetails,
-}
-impl BuilderObjective {
-    pub fn new(objective_details: ObjectiveDetails) -> Self {
-        Self { objective_details }
-    }
-
-    pub fn on_add(
-        trigger: Trigger<OnAdd, BuilderObjective>,
-        mut commands: Commands,
-        builders: Query<&BuilderObjective>,
-        asset_server: Res<AssetServer>,
-        mut objectives_check_inactive_flag: ResMut<ObjectivesReassesInactiveFlag>,
-        stats_wisps_killed: Res<StatsWispsKilled>,
-    ) {
-        let entity = trigger.target();
-        let Ok(builder) = builders.get(entity) else { return; };
-        
-        objectives_check_inactive_flag.0 = true;
-        let mut objective = Objective {
+impl Default for Objective {
+    fn default() -> Self {
+        Self {
             checkmark: Entity::PLACEHOLDER,
             text: Entity::PLACEHOLDER,
-        };
+        }
+    }
+}
+impl Objective {
+    fn on_add(
+        trigger: Trigger<OnAdd, Objective>,
+        mut commands: Commands,
+        mut objectives: Query<(&mut Objective, &ObjectiveDetails)>,
+        asset_server: Res<AssetServer>,
+        mut objectives_check_inactive_flag: ResMut<ObjectivesReassesInactiveFlag>,
+    ) {
+        let entity = trigger.target();
+        let Ok((mut objective, objective_details)) = objectives.get_mut(entity) else { 
+            panic!("Objective is missing ObjectiveDetails!");
+         };
+        
+        // Order re-checking objectives state
+        objectives_check_inactive_flag.0 = true;
+
+        // Create UI children
+        objective.checkmark = commands.spawn((
+            Node {
+                width: Val::Px(16.),
+                height: Val::Px(16.),
+                left: Val::Px(2.),
+                ..default()
+            },
+            ImageNode::new(asset_server.load("ui/objectives_check_active.png")),
+            ObjectiveCheckmark,
+        )).id();
+        objective.text = commands.spawn((
+            Text::new(objective_details.id_name.clone()),
+            TextFont::default().with_font_size(12.),
+            ObjectiveText,
+        )).id();
         commands.entity(entity)
-            .remove::<BuilderObjective>()
             .insert((
-                builder.objective_details.clone(),
                 ObjectiveMarkerInactive,
                 Node {
                     width: Val::Percent(100.),
@@ -112,31 +146,8 @@ impl BuilderObjective {
                 BackgroundColor::from(Color::linear_rgba(0.1, 0.3, 0.8, 0.7)),
                 BorderRadius::all(Val::Px(7.)),
                 BorderColor::from(Color::linear_rgba(0., 0.2, 0.8, 0.9)),
-            )).with_children(|parent| {
-                objective.checkmark = parent.spawn((
-                    Node {
-                        width: Val::Px(16.),
-                        height: Val::Px(16.),
-                        left: Val::Px(2.),
-                        ..default()
-                    },
-                    ImageNode::new(asset_server.load("ui/objectives_check_active.png")),
-                    ObjectiveCheckmark,
-                )).id();
-                objective.text = parent.spawn((
-                    Text::new(builder.objective_details.id_name.clone()),
-                    TextFont::default().with_font_size(12.),
-                    ObjectiveText,
-                )).id();
-            }).insert(objective);
-        match builder.objective_details.objective_type {
-            ObjectiveType::ClearAllQuantumFields => {
-                commands.entity(entity).insert(ObjectiveClearAllQuantumFields::default());
-            }
-            ObjectiveType::KillWisps(target_amount) => {
-                commands.entity(entity).insert(ObjectiveKillWisps{target_amount, started_amount: stats_wisps_killed.0});
-            }
-        }
+            ))
+            .add_children(&[objective.checkmark, objective.text]);
     }
 }
 
@@ -182,6 +193,8 @@ fn on_objective_failed_system(
         *border_color = Color::linear_rgba(0.8, 0., 0.2, 0.9).into();
     }
 }
+
+// ---- SPECIFIC OBJECTIVES ----
 
 #[derive(Component, Default)]
 pub struct ObjectiveClearAllQuantumFields {

@@ -1,8 +1,8 @@
 use lib_grid::grids::energy_supply::EnergySupplyGrid;
+use lib_core::utils::angle_difference;
 
 use crate::prelude::*;
 use crate::projectiles::laser_dart::BuilderLaserDart;
-use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
 
 pub struct TowerBlasterPlugin;

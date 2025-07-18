@@ -10,7 +10,6 @@ mod prelude;
 mod projectiles;
 mod ui;
 mod units;
-mod utils;
 mod wisps;
 
 use crate::prelude::*;

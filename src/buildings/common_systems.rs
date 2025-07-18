@@ -6,12 +6,12 @@ use lib_grid::grids::obstacles::{BelowField, Field, ObstacleGrid};
 use lib_grid::grids::wisps::WispsGrid;
 use lib_grid::search::flooding::FloodEnergySupplyMode;
 use lib_grid::search::targetfinding::target_find_closest_wisp;
+use lib_core::utils::angle_difference;
 
 use crate::effects::explosions::BuilderExplosion;
 use crate::prelude::*;
 use crate::ui::display_info_panel::{DisplayInfoPanel, DisplayPanelMainContentRoot, UiMapObjectFocusedTrigger};
 use crate::ui::grid_object_placer::GridObjectPlacer;
-use crate::utils::math::angle_difference;
 use crate::wisps::components::Wisp;
 use super::{
     energy_relay::BuilderEnergyRelay,

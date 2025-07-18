@@ -79,9 +79,8 @@ pub fn save_map_system(
                 Field::QuantumField(entity) => {
                     if processed_entities.insert(entity) {
                         let (quantum_field_coords, quantum_field_grid_imprint) = quantum_fields_query.get(*entity).unwrap();
-                        if let GridImprint::Rectangle { width, .. } = quantum_field_grid_imprint {
-                            quantum_fields.push(MapQuantumField { coords: *quantum_field_coords, size: *width });
-                        } else { panic!("Quantum field imprint size is not a rectangle"); }
+                        let GridImprint::Rectangle { width, .. } = quantum_field_grid_imprint;
+                        quantum_fields.push(MapQuantumField { coords: *quantum_field_coords, size: *width });
                     }
                 }
                 _ => {}

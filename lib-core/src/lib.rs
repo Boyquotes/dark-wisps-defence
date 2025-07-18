@@ -6,6 +6,7 @@ pub mod grids;
 pub mod mouse;
 pub mod states;
 pub mod common;
+pub mod utils;
 
 pub struct LibCorePlugin;
 impl Plugin for LibCorePlugin {

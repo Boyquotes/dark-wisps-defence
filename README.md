@@ -12,6 +12,44 @@ The game is currently not fully playable, but it already has most of the main co
 
 Development preview: [Youtube video >>>](https://youtu.be/9lJq3Hm-R4I?si=J8USUYoAFk2XkjRv)
 
+# Controls
+
+## Camera Controls
+- **I/J/K/L**: Move camera (up/left/down/right)
+- **Mouse Wheel**: Zoom in/out
+
+## Game Controls
+- **Space**: Pause/resume game
+- **Escape**: Free UI interaction (cancel current action)
+
+## Building Placement (Quick Keys)
+- **W**: Place walls to block wisp paths
+- **O**: Place dark ore deposits for mining
+- **Q**: Place quantum fields 
+- **M**: Place mining complex (extracts resources from dark ore)
+- **E**: Place energy relay (extends power grid)
+- **X**: Place exploration center (to explore quantum fields)
+
+## Tower Placement
+- **1**: Place blaster tower (basic projectile defense)
+- **2**: Place cannon tower (heavy artillery)
+- **3**: Place rocket launcher tower (explosive area damage)
+
+## Visual Overlays
+- **G**: Toggle grid display
+- **Y**: Toggle energy supply overlay (shows power grid coverage)
+- **6**: Hide emissions overlay
+- **7**: Show energy emissions overlay
+
+## Mouse Controls
+- **Left Click**: Place selected building/tower or interact with objects
+- **Right Click**: Context actions (varies by object type)
+- **Left Click + Drag**: Multi-place walls, dark ore, and quantum fields
+- **Right Click + Drag**: Multi-remove walls, dark ore, and quantum fields
+
+## Map Editor (Development)
+- **S**: Save current map to YAML file
+
 # License
 
 I made this repo public as I currently work on other things, and it would be a waste to keep everything to myself when perhaps someone will find it helpful to see how certain things can be achieved.

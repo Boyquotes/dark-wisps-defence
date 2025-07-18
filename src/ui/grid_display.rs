@@ -21,13 +21,13 @@ pub fn draw_grid_system(grid: Res<ObstacleGrid>, ui_config: Res<UiConfig>, mut g
     for y in 0..=grid.height {
         let start = Vec2::new(0.0, y as f32 * CELL_SIZE);
         let end = Vec2::new(total_width, y as f32 * CELL_SIZE);
-        gizmos.line_2d(start, end, GRAY.with_alpha(0.1));
+        gizmos.line_2d(start, end, GRAY.with_alpha(0.05));
     }
 
     // Vertical lines
     for x in 0..=grid.width {
         let start = Vec2::new(x as f32 * CELL_SIZE, 0.0);
         let end = Vec2::new(x as f32 * CELL_SIZE, total_height);
-        gizmos.line_2d(start, end, GRAY.with_alpha(0.1));
+        gizmos.line_2d(start, end, GRAY.with_alpha(0.05));
     }
 }

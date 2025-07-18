@@ -25,3 +25,29 @@ pub enum TowerType {
     RocketLauncher,
     Emitter,
 }
+
+#[derive(Component)]
+pub struct MainBase;
+
+#[derive(Component)]
+pub struct EnergyRelay;
+
+#[derive(Component)]
+pub struct MiningComplex {
+    pub ore_entities_in_range: Vec<Entity>,
+}
+
+#[derive(Component)]
+pub struct ExplorationCenter;
+
+#[derive(Component)]
+pub struct TowerBlaster;
+
+#[derive(Component)]
+pub struct TowerCannon;
+
+#[derive(Component)]
+pub struct TowerRocketLauncher;
+
+#[derive(Component)]
+pub struct TowerEmitter;

@@ -16,7 +16,7 @@ use crate::wisps::components::Wisp;
 use super::{
     energy_relay::BuilderEnergyRelay,
     exploration_center::BuilderExplorationCenter,
-    main_base::{EventMoveMainBase, MainBase},
+    main_base::{EventMoveMainBase},
     mining_complex::BuilderMiningComplex,
     tower_blaster::BuilderTowerBlaster,
     tower_emitter::BuilderTowerEmitter,

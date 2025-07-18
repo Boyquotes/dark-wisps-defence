@@ -1,5 +1,9 @@
 
-use crate::prelude::*;
+use crate::lib_prelude::*;
+
+pub mod resources_prelude {
+    pub use super::*;
+}
 
 pub struct ResourcesPlugin;
 impl Plugin for ResourcesPlugin {

@@ -1,7 +1,6 @@
 use bevy::color::palettes::css::{BLUE, GREEN, RED};
 use bevy::text::LineBreak;
 
-use crate::inventory::almanach::AlmanachUpgradeInfo;
 use crate::prelude::*;
 
 pub struct UiCommonPlugin;

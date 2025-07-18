@@ -18,10 +18,6 @@ pub const MINING_COMPLEX_BASE_IMAGE: &str = "buildings/mining_complex.png";
 
 
 #[derive(Component)]
-pub struct MiningComplex {
-    ore_entities_in_range: Vec<Entity>,
-}
-#[derive(Component)]
 pub struct MiningComplexDeliveryTimer(pub Timer);
 #[derive(Component)]
 pub struct MiningRange(GridImprint);

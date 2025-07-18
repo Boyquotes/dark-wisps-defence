@@ -19,9 +19,6 @@ impl Plugin for TowerRocketLauncherPlugin {
 pub const TOWER_ROCKET_LAUNCHER_BASE_IMAGE: &str = "buildings/tower_rocket_launcher.png";
 
 #[derive(Component)]
-pub struct TowerRocketLauncher;
-
-#[derive(Component)]
 pub struct BuilderTowerRocketLauncher {
     grid_position: GridCoords,
 }

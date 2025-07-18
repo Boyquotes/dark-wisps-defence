@@ -2,9 +2,9 @@ use lib_grid::grids::emissions::EmissionsGrid;
 use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 use lib_grid::grids::wisps::WispsGrid;
 use lib_grid::search::pathfinding::path_find_energy_beckon;
+use lib_inventory::stats::StatsWispsKilled;
 
 use crate::effects::wisp_attack::BuilderWispAttackEffect;
-use crate::inventory::stats::StatsWispsKilled;
 use crate::prelude::*;
 
 use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispState, WispType};

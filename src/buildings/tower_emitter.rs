@@ -19,9 +19,6 @@ impl Plugin for TowerEmitterPlugin {
 pub const TOWER_EMITTER_BASE_IMAGE: &str = "buildings/tower_emitter.png";
 
 #[derive(Component)]
-pub struct TowerEmitter;
-
-#[derive(Component)]
 pub struct BuilderTowerEmitter {
     grid_position: GridCoords,
 }

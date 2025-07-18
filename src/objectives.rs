@@ -1,9 +1,7 @@
-
-
-use crate::prelude::*;
 use crate::map_objects::quantum_field::QuantumField;
+use crate::prelude::*;
 
-use super::stats::StatsWispsKilled;
+use lib_inventory::stats::StatsWispsKilled;
 
 pub struct ObjectivesPlugin;
 impl Plugin for ObjectivesPlugin {

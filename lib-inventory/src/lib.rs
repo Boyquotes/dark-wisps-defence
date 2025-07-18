@@ -1,0 +1,32 @@
+use bevy::app::{App, Plugin};
+
+pub mod resources;
+pub mod almanach;
+pub mod stats;
+
+pub struct LibInventoryPlugin;
+impl Plugin for LibInventoryPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_plugins((
+                almanach::AlmanachPlugin,
+                resources::ResourcesPlugin,
+                stats::StatsPlugin,
+            ));
+    }
+}
+
+pub mod prelude {
+    pub use crate::resources::resources_prelude::*;
+    pub use crate::almanach::almanach_prelude::*;
+}
+
+pub mod lib_prelude {
+    pub use serde::{Deserialize, Serialize};
+    pub use bevy::prelude::*;
+    pub use bevy::platform::collections::HashMap;
+
+    pub use lib_core::prelude::*;
+    
+    pub use super::prelude::*;
+}

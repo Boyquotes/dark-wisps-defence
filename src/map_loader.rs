@@ -13,7 +13,7 @@ use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_emitter::BuilderTowerEmitter;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
-use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails};
+use crate::objectives::{BuilderObjective, ObjectiveDetails};
 use crate::map_objects::dark_ore::{BuilderDarkOre, DARK_ORE_GRID_IMPRINT};
 use crate::map_objects::quantum_field::BuilderQuantumField;
 use crate::map_objects::walls::{BuilderWall, WALL_GRID_IMPRINT};

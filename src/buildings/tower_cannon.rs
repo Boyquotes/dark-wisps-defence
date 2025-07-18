@@ -18,9 +18,6 @@ impl Plugin for TowerCannonPlugin {
 pub const TOWER_CANNON_BASE_IMAGE: &str = "buildings/tower_cannon.png";
 
 #[derive(Component)]
-pub struct TowerCannon;
-
-#[derive(Component)]
 pub struct BuilderTowerCannon {
     grid_position: GridCoords,
 }

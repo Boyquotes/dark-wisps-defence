@@ -19,9 +19,6 @@ impl Plugin for MainBasePlugin {
 
 pub const MAIN_BASE_BASE_IMAGE: &str = "buildings/main_base.png";
 
-#[derive(Component)]
-pub struct MainBase;
-
 
 #[derive(Component)]
 pub struct BuilderMainBase {

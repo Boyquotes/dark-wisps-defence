@@ -1,6 +1,6 @@
 use bevy::ui::widget::NodeImageMode;
 
-use crate::{inventory::objectives::BuilderObjective, prelude::*};
+use crate::{objectives::BuilderObjective, prelude::*};
 
 pub struct ObjectivesPanelPlugin;
 impl Plugin for ObjectivesPanelPlugin {

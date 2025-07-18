@@ -1,4 +1,8 @@
-use crate::prelude::*;
+use crate::lib_prelude::*;
+
+pub mod almanach_prelude {
+    pub use super::{Almanach, AlmanachBuildingInfo, AlmanachUpgradeInfo};
+}
 
 pub struct AlmanachPlugin;
 impl Plugin for AlmanachPlugin {

@@ -1794,6 +1794,7 @@ dependencies = [
  "bevy",
  "lib-core",
  "lib-grid",
+ "lib-inventory",
  "nanorand",
  "serde",
  "serde_yaml",
@@ -2583,6 +2584,15 @@ dependencies = [
 
 [[package]]
 name = "lib-grid"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "lib-core",
+ "serde",
+]
+
+[[package]]
+name = "lib-inventory"
 version = "0.1.0"
 dependencies = [
  "bevy",

@@ -19,9 +19,6 @@ pub const TOWER_BLASTER_BASE_IMAGE: &str = "buildings/tower_blaster.png";
 pub const TOWER_BLASTER_TOP_IMAGE: &str = "buildings/tower_blaster_top.png";
 
 #[derive(Component)]
-pub struct TowerBlaster;
-
-#[derive(Component)]
 pub struct BuilderTowerBlaster {
     grid_position: GridCoords,
 }

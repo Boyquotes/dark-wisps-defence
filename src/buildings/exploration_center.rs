@@ -19,9 +19,6 @@ pub const EXPLORATION_CENTER_BASE_IMAGE: &str = "buildings/exploration_center.pn
 
 
 #[derive(Component)]
-pub struct ExplorationCenter;
-
-#[derive(Component)]
 pub struct ExplorationCenterNewExpeditionTimer(pub Timer);
 
 #[derive(Component)]

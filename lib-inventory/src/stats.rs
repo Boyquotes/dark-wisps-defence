@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::lib_prelude::*;
 
 pub struct StatsPlugin;
 impl Plugin for StatsPlugin {

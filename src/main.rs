@@ -1,11 +1,11 @@
 mod buildings;
 mod data_loader;
 mod effects;
-mod inventory;
 mod map_editor;
 mod map_loader;
 mod map_objects;
 mod overlays;
+mod objectives;
 mod prelude;
 mod projectiles;
 mod ui;
@@ -23,8 +23,8 @@ fn main() {
                 .set(WindowPlugin{ primary_window: Some(Window { present_mode: bevy::window::PresentMode::AutoNoVsync, ..default()}), ..default() }),
             buildings::BuildingsPlugin,
             effects::EffectsPlugin,
-            inventory::InventoryPlugin,
             map_objects::MapObjectsPlugin,
+            objectives::ObjectivesPlugin,
             overlays::OverlaysPlugin,
             projectiles::ProjectilesPlugin,
             ui::UiPlugin,
@@ -34,6 +34,7 @@ fn main() {
         .add_plugins((
             lib_grid::grids::GridsPlugin,
             lib_core::LibCorePlugin,
+            lib_inventory::LibInventoryPlugin,
         ))
         .add_plugins((
             data_loader::DataLoaderPlugin,

@@ -18,12 +18,21 @@ impl Plugin for EmissionsPlugin {
             )
             .add_systems(PostUpdate, (
                 emissions_calculations_system,
-            ));
+            ))
+            .add_observer(EmitterEnergy::on_remove);
     }
 }
 
 #[derive(Component)]
 pub struct EmitterEnergy(pub FloodEmissionsDetails);
+impl EmitterEnergy {
+    fn on_remove(
+        _trigger: Trigger<OnRemove, EmitterEnergy>,
+        mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    ) {
+        emissions_energy_recalculate_all.0 = true;
+    }
+}
 
 #[derive(Event, Debug)]
 pub struct EmitterChangedEvent {

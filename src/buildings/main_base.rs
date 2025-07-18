@@ -79,26 +79,13 @@ impl Command for EventMoveMainBase {
     }
 }
 pub fn move_main_base_system(
+    mut commands: Commands,
     mut events: EventReader<EventMoveMainBase>,
-    mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
-    mut main_base: Query<(Entity, &GridImprint, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MainBase>>,
+    mut main_base: Query<(Entity, &GridImprint, &mut Transform), With<MainBase>>,
 ) {
     for &EventMoveMainBase { new_grid_position } in events.read() {
-        let Ok((entity, grid_imprint, mut main_base_location, supplier_energy, mut transform)) = main_base.single_mut() else { return; };
-        supplier_created_event_writer.write(SupplierChangedEvent {
-            supplier: entity,
-            coords: grid_imprint.covered_coords(*main_base_location),
-            range: supplier_energy.range,
-            mode: FloodEnergySupplyMode::Decrease,
-        });
-        supplier_created_event_writer.write(SupplierChangedEvent {
-            supplier: entity,
-            coords: grid_imprint.covered_coords(new_grid_position),
-            range: supplier_energy.range,
-            mode: FloodEnergySupplyMode::Increase,
-        });
-
-        *main_base_location = new_grid_position;
+        let Ok((entity, grid_imprint, mut transform)) = main_base.single_mut() else { return; };
         transform.translation = new_grid_position.to_world_position_centered(*grid_imprint).extend(Z_BUILDING);
+        commands.entity(entity).insert(new_grid_position);
     }
 }

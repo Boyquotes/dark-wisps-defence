@@ -9,13 +9,12 @@ impl Plugin for EnergySupplyPlugin {
             .insert_resource(EnergySupplyGrid::new_with_size(100, 100))
             .init_resource::<EnergySupplyRecalculatePower>()
             .add_event::<SupplierChangedEvent>()
-            .add_systems(Update, (
-                on_supplier_added_system,
-            ))
             .add_systems(PostUpdate, (
                 on_supplier_changed_system,
                 on_recalculate_power_system.after(on_supplier_changed_system).run_if(resource_changed::<EnergySupplyRecalculatePower>),
-            ));
+            ))
+            .add_observer(SupplierEnergy::refresh_on_insert)
+            .add_observer(SupplierEnergy::refresh_on_replace);
     }
 }
 
@@ -23,6 +22,41 @@ impl Plugin for EnergySupplyPlugin {
 #[derive(Component, Copy, Clone, Debug)]
 pub struct SupplierEnergy {
     pub range: usize,
+}
+impl SupplierEnergy {
+    // Detect insert of GridCoords of SupplierEnergy objects and trigger supply grid update
+    fn refresh_on_insert(
+        trigger: Trigger<OnInsert, GridCoords>,
+        mut supplier_changed_event_writer: EventWriter<SupplierChangedEvent>,
+        suppliers: Query<(&SupplierEnergy, &GridCoords, &GridImprint)>,
+    ) {
+        let entity = trigger.target();
+        let Ok((suplier_energy, grid_coords, grid_imprint)) = suppliers.get(entity) else { return; };
+
+        supplier_changed_event_writer.write(SupplierChangedEvent {
+            supplier: entity,
+            coords: grid_imprint.covered_coords(*grid_coords),
+            range: suplier_energy.range,
+            mode: FloodEnergySupplyMode::Increase,
+        });
+    }
+    // Detect replace of GridCoords of SupplierEnergy objects and trigger supply grid update
+    fn refresh_on_replace(
+        trigger: Trigger<OnReplace, GridCoords>,
+        mut supplier_changed_event_writer: EventWriter<SupplierChangedEvent>,
+        suppliers: Query<(&SupplierEnergy, &GridCoords, &GridImprint)>,
+
+    ) {
+        let entity = trigger.target();
+        let Ok((suplier_energy, grid_coords, grid_imprint)) = suppliers.get(entity) else { return; };
+
+        supplier_changed_event_writer.write(SupplierChangedEvent {
+            supplier: entity,
+            coords: grid_imprint.covered_coords(*grid_coords),
+            range: suplier_energy.range,
+            mode: FloodEnergySupplyMode::Decrease,
+        });
+    }
 }
 
 // Produces energy
@@ -87,20 +121,6 @@ impl EnergySupplyGrid {
     pub fn reset_all_power_indicators(&mut self) {
         self.grid.iter_mut().for_each(|field| field.set_power(false));
         self.version = self.version.wrapping_add(1);
-    }
-}
-
-fn on_supplier_added_system(
-    mut events: EventWriter<SupplierChangedEvent>,
-    suppliers: Query<(Entity, &GridCoords, &GridImprint, &SupplierEnergy), Added<SupplierEnergy>>,
-) {
-    for (entity, grid_coords, grid_imprint, supplier) in suppliers.iter() {
-        events.write(SupplierChangedEvent {
-            supplier: entity,
-            coords: grid_imprint.covered_coords(*grid_coords),
-            range: supplier.range,
-            mode: FloodEnergySupplyMode::Increase,
-        });
     }
 }
 

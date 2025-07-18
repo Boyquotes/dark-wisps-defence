@@ -1,10 +1,8 @@
 use bevy::color::palettes::css::BLUE;
 
-use lib_grid::grids::emissions::{EmissionsEnergyRecalculateAll, EmitterEnergy};
-use lib_grid::grids::energy_supply::{EnergySupplyGrid, SupplierChangedEvent, SupplierEnergy};
+use lib_grid::grids::energy_supply::{EnergySupplyGrid, SupplierEnergy};
 use lib_grid::grids::obstacles::{BelowField, Field, ObstacleGrid};
 use lib_grid::grids::wisps::WispsGrid;
-use lib_grid::search::flooding::FloodEnergySupplyMode;
 use lib_grid::search::targetfinding::target_find_closest_wisp;
 use lib_core::utils::angle_difference;
 
@@ -184,26 +182,13 @@ pub fn check_energy_supply_system(
 
 pub fn damage_control_system(
     mut commands: Commands,
-    mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
     mut obstacle_grid: ResMut<ObstacleGrid>,
-    mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
-    buildings: Query<(Entity, &Health, &GridImprint, &GridCoords, Has<EmitterEnergy>, Option<&SupplierEnergy>), With<Building>>,
+    buildings: Query<(Entity, &Health, &GridImprint, &GridCoords), With<Building>>,
 ) {
-    for (entity, health, grid_imprint, grid_coords, has_emitter_energy, maybe_supplier_energy) in buildings.iter() {
+    for (entity, health, grid_imprint, grid_coords) in buildings.iter() {
         if health.is_dead() {
             commands.entity(entity).despawn();
             obstacle_grid.deprint_main_floor(*grid_coords, *grid_imprint);
-            if has_emitter_energy {
-                emissions_energy_recalculate_all.0 = true;
-            }
-            if let Some(suplier_energy) = maybe_supplier_energy {
-                supplier_created_event_writer.write(SupplierChangedEvent {
-                    supplier: entity,
-                    coords: grid_imprint.covered_coords(*grid_coords),
-                    range: suplier_energy.range,
-                    mode: FloodEnergySupplyMode::Decrease,
-                });
-            }
             grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
                 commands.spawn(BuilderExplosion(coords));
             });

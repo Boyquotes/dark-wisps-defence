@@ -1,7 +1,4 @@
 mod buildings;
-mod common_components;
-mod common_systems;
-mod common;
 mod data_loader;
 mod effects;
 mod inventory;
@@ -40,7 +37,6 @@ fn main() {
             lib_core::LibCorePlugin,
         ))
         .add_plugins((
-            common_systems::CommonSystemsPlugin,
             data_loader::DataLoaderPlugin,
             map_editor::MapEditorPlugin,
         ))

@@ -47,6 +47,17 @@ impl EssenceContainer {
     }
 }
 
+
+#[derive(Component)]
+pub struct EssencesContainer(pub Vec<EssenceContainer>);
+impl From<EssenceContainer> for EssencesContainer {
+    fn from(essence_container: EssenceContainer) -> Self {
+        Self(vec![essence_container])
+    }
+}
+
+
+
 #[derive(Event)]
 pub struct StockChangedEvent {
     pub resource_type: ResourceType,

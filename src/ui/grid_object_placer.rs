@@ -12,7 +12,7 @@ impl Plugin for GridObjectPlacerPlugin {
         app
             .insert_resource(GridObjectPlacerRequest::default())
             .add_systems(Startup, (
-                create_grid_object_placer_system,
+                |mut commands: Commands| { commands.spawn(GridObjectPlacer::default()); },
             ))
             .add_systems(PreUpdate, (
                 keyboard_input_system,
@@ -40,6 +40,7 @@ impl GridObjectPlacerRequest {
 }
 
 #[derive(Component, Default, Clone, Debug, PartialEq)]
+#[require(GridImprint, GridCoords, Sprite)]
 pub enum GridObjectPlacer {
     #[default]
     None,
@@ -59,21 +60,12 @@ impl GridObjectPlacer {
         }
     }
 }
-
 impl From<BuildingType> for GridObjectPlacer {
     fn from(building_type: BuildingType) -> Self {
         GridObjectPlacer::Building(building_type)
     }
 }
 
-pub fn create_grid_object_placer_system(mut commands: Commands) {
-    commands.spawn((
-        GridObjectPlacer::default(),
-        GridImprint::default(),
-        Sprite::default(),
-        GridCoords::default(),
-    ));
-}
 
 fn on_placing_enter_system(
     mut placer: Query<&mut Visibility, With<GridObjectPlacer>>,

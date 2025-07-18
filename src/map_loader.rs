@@ -11,6 +11,7 @@ use crate::buildings::exploration_center::BuilderExplorationCenter;
 use crate::buildings::main_base::BuilderMainBase;
 use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
+use crate::buildings::tower_emitter::BuilderTowerEmitter;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::inventory::objectives::{BuilderObjective, ObjectiveDetails};
 use crate::map_objects::dark_ore::{BuilderDarkOre, DARK_ORE_GRID_IMPRINT};
@@ -94,43 +95,15 @@ pub fn apply_map(
     }).collect::<HashMap<_,_>>();
     map.buildings.iter().for_each(|building| {
         let building_entity = match building.building_type {
-            BuildingType::MainBase => {
-                let entity = commands.spawn_empty().id();
-                commands.queue(BuilderMainBase::new(entity, building.coords));
-                entity
-            }
-            BuildingType::EnergyRelay => {
-                let entity = commands.spawn_empty().id();
-                commands.queue(BuilderEnergyRelay::new(entity, building.coords));
-                entity
-            }
-            BuildingType::ExplorationCenter => {
-                let entity = commands.spawn_empty().id();
-                commands.queue(BuilderExplorationCenter::new(entity, building.coords));
-                entity
-            }
+            BuildingType::MainBase => commands.spawn(BuilderMainBase::new(building.coords)).id(),
+            BuildingType::EnergyRelay => commands.spawn(BuilderEnergyRelay::new(building.coords)).id(),
+            BuildingType::ExplorationCenter => commands.spawn(BuilderExplorationCenter::new(building.coords)).id(),
             BuildingType::Tower(tower_type) => {
                 match tower_type {
-                    TowerType::Blaster => {
-                        let entity = commands.spawn_empty().id();
-                        commands.queue(BuilderTowerBlaster::new(entity, building.coords));
-                        entity
-                    },
-                    TowerType::Cannon => {
-                        let entity = commands.spawn_empty().id();
-                        commands.queue(BuilderTowerCannon::new(entity, building.coords));
-                        entity
-                    },
-                    TowerType::RocketLauncher => {
-                        let entity = commands.spawn_empty().id();
-                        commands.queue(BuilderTowerRocketLauncher::new(entity, building.coords));
-                        entity
-                    },
-                    TowerType::Emitter => {
-                        let entity = commands.spawn_empty().id();
-                        commands.queue(BuilderTowerBlaster::new(entity, building.coords));
-                        entity
-                    },
+                    TowerType::Blaster => commands.spawn(BuilderTowerBlaster::new(building.coords)).id(),
+                    TowerType::Cannon => commands.spawn(BuilderTowerCannon::new(building.coords)).id(),
+                    TowerType::RocketLauncher => commands.spawn(BuilderTowerRocketLauncher::new(building.coords)).id(),
+                    TowerType::Emitter => commands.spawn(BuilderTowerEmitter::new(building.coords)).id(),
                 }
             }
             BuildingType::MiningComplex => {

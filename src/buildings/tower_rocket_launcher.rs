@@ -10,10 +10,7 @@ pub struct TowerRocketLauncherPlugin;
 impl Plugin for TowerRocketLauncherPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderTowerRocketLauncher>()
-            .add_systems(PostUpdate, (
-                BuilderTowerRocketLauncher::spawn_system,
-            )).add_systems(Update, (
+            .add_observer(BuilderTowerRocketLauncher::on_add).add_systems(Update, (
                 shooting_system.run_if(in_state(GameState::Running)),
             ));
     }
@@ -22,34 +19,39 @@ impl Plugin for TowerRocketLauncherPlugin {
 pub const TOWER_ROCKET_LAUNCHER_BASE_IMAGE: &str = "buildings/tower_rocket_launcher.png";
 
 #[derive(Component)]
-pub struct MarkerTowerRocketLauncher;
+pub struct TowerRocketLauncher;
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderTowerRocketLauncher {
-    pub entity: Entity,
-    pub grid_position: GridCoords,
+    grid_position: GridCoords,
 }
 impl BuilderTowerRocketLauncher {
-    pub fn new(entity: Entity, grid_position: GridCoords) -> Self { Self { entity, grid_position } }
-    pub fn spawn_system(
+    pub fn new(grid_position: GridCoords) -> Self { Self { grid_position } }
+
+    pub fn on_add(
+        trigger: Trigger<OnAdd, BuilderTowerRocketLauncher>,
         mut commands: Commands,
-        mut events: EventReader<BuilderTowerRocketLauncher>,
+        builders: Query<&BuilderTowerRocketLauncher>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
-        for &BuilderTowerRocketLauncher{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_info(BuildingType::Tower(TowerType::RocketLauncher)).grid_imprint;
-            let tower_base_entity = commands.entity(entity).insert((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        let grid_imprint = almanach.get_building_info(BuildingType::Tower(TowerType::RocketLauncher)).grid_imprint;
+        let tower_base_entity = commands.entity(entity)
+            .remove::<BuilderTowerRocketLauncher>()
+            .insert((
                 Sprite {
                     image: asset_server.load(TOWER_ROCKET_LAUNCHER_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
+                Transform::from_translation(builder.grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 MarkerTower,
-                MarkerTowerRocketLauncher,
-                grid_position,
+                TowerRocketLauncher,
+                builder.grid_position,
                 Health::new(100),
                 TowerRange(30),
                 Building,
@@ -57,33 +59,27 @@ impl BuilderTowerRocketLauncher {
                 grid_imprint,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
             )).id();
-            let world_size = grid_imprint.world_size();
-            let tower_top = commands.spawn((
-                Sprite {
-                    image: asset_server.load("buildings/tower_rocket_launcher_top.png"),
-                    custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
-                    anchor: Anchor::Custom(Vec2::new(-0.20, 0.0)),
-                    ..Default::default()
-                },
-                Transform::from_translation(Vec3::new(0., 0., Z_TOWER_TOP)),
-                MarkerTowerRotationalTop(tower_base_entity.into()),
-            )).id();
-            commands.entity(entity).add_child(tower_top);
-        }
-    }
-}
-impl Command for BuilderTowerRocketLauncher {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
+        let world_size = grid_imprint.world_size();
+        let tower_top = commands.spawn((
+            Sprite {
+                image: asset_server.load("buildings/tower_rocket_launcher_top.png"),
+                custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
+                anchor: Anchor::Custom(Vec2::new(-0.20, 0.0)),
+                ..Default::default()
+            },
+            Transform::from_translation(Vec3::new(0., 0., Z_TOWER_TOP)),
+            MarkerTowerRotationalTop(tower_base_entity.into()),
+        )).id();
+        commands.entity(entity).add_child(tower_top);
     }
 }
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_rocket_launchers: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), (With<MarkerTowerRocketLauncher>, Without<Wisp>)>,
+    mut tower_rocket_launchers: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), (With<TowerRocketLauncher>, Without<Wisp>)>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
     for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation) in tower_rocket_launchers.iter_mut() {

@@ -10,10 +10,7 @@ pub struct TowerEmitterPlugin;
 impl Plugin for TowerEmitterPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderTowerEmitter>()
-            .add_systems(PostUpdate, (
-                BuilderTowerEmitter::spawn_system,
-            )).add_systems(Update, (
+            .add_observer(BuilderTowerEmitter::on_add).add_systems(Update, (
                 shooting_system.run_if(in_state(GameState::Running)),
             ));
     }
@@ -22,37 +19,42 @@ impl Plugin for TowerEmitterPlugin {
 pub const TOWER_EMITTER_BASE_IMAGE: &str = "buildings/tower_emitter.png";
 
 #[derive(Component)]
-pub struct MarkerTowerEmitter;
+pub struct TowerEmitter;
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderTowerEmitter {
-    pub entity: Entity,
-    pub grid_position: GridCoords,
+    grid_position: GridCoords,
 }
 
 impl BuilderTowerEmitter {
-    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
-        Self { entity, grid_position }
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { grid_position }
     }
-    pub fn spawn_system(
+
+    pub fn on_add(
+        trigger: Trigger<OnAdd, BuilderTowerEmitter>,
         mut commands: Commands,
-        mut events: EventReader<BuilderTowerEmitter>,
+        builders: Query<&BuilderTowerEmitter>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
-        for &BuilderTowerEmitter{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_info(BuildingType::Tower(TowerType::Emitter)).grid_imprint;
-            commands.entity(entity).insert((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        let grid_imprint = almanach.get_building_info(BuildingType::Tower(TowerType::Emitter)).grid_imprint;
+        commands.entity(entity)
+            .remove::<BuilderTowerEmitter>()
+            .insert((
                 Sprite {
                     image: asset_server.load(TOWER_EMITTER_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
+                Transform::from_translation(builder.grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 MarkerTower,
-                MarkerTowerEmitter,
-                grid_position,
+                TowerEmitter,
+                builder.grid_position,
                 Health::new(100),
                 TowerRange(4),
                 Building,
@@ -60,20 +62,14 @@ impl BuilderTowerEmitter {
                 grid_imprint,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
             ));
-        }
-    }
-}
-impl Command for BuilderTowerEmitter {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_emitters: Query<(&Transform, &TechnicalState, &TowerRange, &mut TowerShootingTimer, &mut TowerWispTarget), With<MarkerTowerEmitter>>,
+    mut tower_emitters: Query<(&Transform, &TechnicalState, &TowerRange, &mut TowerShootingTimer, &mut TowerWispTarget), With<TowerEmitter>>,
     wisps: Query<(), With<Wisp>>,
 ) {
     for (transform, technical_state, range, mut timer, mut target) in tower_emitters.iter_mut() {

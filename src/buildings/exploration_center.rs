@@ -8,12 +8,10 @@ pub struct ExplorationCenterPlugin;
 impl Plugin for ExplorationCenterPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderExplorationCenter>()
-            .add_systems(PostUpdate, (
-                BuilderExplorationCenter::spawn_system,
-            )).add_systems(Update, (
+            .add_systems(Update, (
                 create_expedition_system.run_if(in_state(GameState::Running)),
-            ));
+            ))
+            .add_observer(BuilderExplorationCenter::on_add);
     }
 }
 
@@ -21,58 +19,57 @@ pub const EXPLORATION_CENTER_BASE_IMAGE: &str = "buildings/exploration_center.pn
 
 
 #[derive(Component)]
-pub struct MarkerExplorationCenter;
+pub struct ExplorationCenter;
 
 #[derive(Component)]
 pub struct ExplorationCenterNewExpeditionTimer(pub Timer);
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderExplorationCenter {
-    pub entity: Entity,
-    pub grid_position: GridCoords,
+    grid_position: GridCoords,
 }
 impl BuilderExplorationCenter {
-    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
-        Self { entity, grid_position }
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { grid_position }
     }
-    pub fn spawn_system(
+
+    pub fn on_add(
+        trigger: Trigger<OnAdd, BuilderExplorationCenter>,
         mut commands: Commands,
-        mut events: EventReader<BuilderExplorationCenter>,
+        builders: Query<&BuilderExplorationCenter>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
-        for &BuilderExplorationCenter{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_info(BuildingType::ExplorationCenter).grid_imprint;
-            commands.entity(entity).insert((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        let grid_imprint = almanach.get_building_info(BuildingType::ExplorationCenter).grid_imprint;
+        commands.entity(entity)
+            .remove::<BuilderExplorationCenter>()
+            .insert((
                 Sprite {
                     image: asset_server.load(EXPLORATION_CENTER_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
-                MarkerExplorationCenter,
-                grid_position,
+                Transform::from_translation(builder.grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
+                ExplorationCenter,
+                builder.grid_position,
                 Health::new(100),
                 Building,
                 BuildingType::ExplorationCenter,
                 grid_imprint,
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint), ..default() },
+                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
             ));
-        }
-    }
-}
-impl Command for BuilderExplorationCenter {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 
 pub fn create_expedition_system(
     mut commands: Commands,
     //mut dark_ore_stock: ResMut<DarkOreStock>,
-    mut exploration_centres: Query<(&mut ExplorationCenterNewExpeditionTimer, &TechnicalState, &Transform), With<MarkerExplorationCenter>>,
+    mut exploration_centres: Query<(&mut ExplorationCenterNewExpeditionTimer, &TechnicalState, &Transform), With<ExplorationCenter>>,
     expedition_zones: Query<(Entity, &Transform), (With<ExpeditionZone>, With<ExpeditionTargetMarker>)>,
     time: Res<Time>,
 ) {

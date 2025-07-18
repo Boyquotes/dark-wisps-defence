@@ -8,10 +8,7 @@ pub struct MiningComplexPlugin;
 impl Plugin for MiningComplexPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderMiningComplex>()
-            .add_systems(PostUpdate, (
-                BuilderMiningComplex::spawn_system,
-            )).add_systems(Update, (
+            .add_observer(BuilderMiningComplex::on_add).add_systems(Update, (
                 mine_ore_system.run_if(in_state(GameState::Running)),
             ));
     }
@@ -29,39 +26,44 @@ pub struct MiningComplexDeliveryTimer(pub Timer);
 #[derive(Component)]
 pub struct MiningRange(GridImprint);
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderMiningComplex {
-    pub entity: Entity,
-    pub grid_position: GridCoords,
+    grid_position: GridCoords,
 }
 impl BuilderMiningComplex {
-    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
-        Self { entity, grid_position }
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { grid_position }
     }
-    pub fn spawn_system(
+
+    pub fn on_add(
+        trigger: Trigger<OnAdd, BuilderMiningComplex>,
         mut commands: Commands,
+        builders: Query<&BuilderMiningComplex>,
         obstacle_grid: Res<ObstacleGrid>,
-        mut events: EventReader<BuilderMiningComplex>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
         energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
-        for &BuilderMiningComplex{ entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_info(BuildingType::MiningComplex).grid_imprint;
-            let ore_entities_in_range = obstacle_grid.imprint_query_element(grid_position, grid_imprint, query_dark_ore_helper);
-            commands.entity(entity).insert((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        let grid_imprint = almanach.get_building_info(BuildingType::MiningComplex).grid_imprint;
+        let ore_entities_in_range = obstacle_grid.imprint_query_element(builder.grid_position, grid_imprint, query_dark_ore_helper);
+        commands.entity(entity)
+            .remove::<BuilderMiningComplex>()
+            .insert((
                 Sprite {
                     image: asset_server.load(MINING_COMPLEX_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
+                Transform::from_translation(builder.grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
                 TechnicalState{ 
-                    has_energy_supply: energy_supply_grid.is_imprint_suppliable(grid_position, grid_imprint),
+                    has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint),
                     has_ore_fields: Some(!ore_entities_in_range.is_empty()),
                 },
                 MiningComplex { ore_entities_in_range },
-                grid_position,
+                builder.grid_position,
                 Health::new(100),
                 Building,
                 BuildingType::MiningComplex,
@@ -69,12 +71,6 @@ impl BuilderMiningComplex {
                 MiningRange(grid_imprint),
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
             ));
-        }
-    }
-}
-impl Command for BuilderMiningComplex {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 

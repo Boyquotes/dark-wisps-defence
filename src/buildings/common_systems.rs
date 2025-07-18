@@ -16,7 +16,7 @@ use crate::wisps::components::Wisp;
 use super::{
     energy_relay::BuilderEnergyRelay,
     exploration_center::BuilderExplorationCenter,
-    main_base::{EventMoveMainBase, MarkerMainBase},
+    main_base::{EventMoveMainBase, MainBase},
     mining_complex::BuilderMiningComplex,
     tower_blaster::BuilderTowerBlaster,
     tower_emitter::BuilderTowerEmitter,
@@ -54,7 +54,7 @@ pub fn onclick_building_spawn_system(
     almanach: Res<Almanach>,
     mut stock: ResMut<Stock>,
     grid_object_placer: Query<(&GridObjectPlacer, &GridImprint)>,
-    main_base: Query<(Entity, &GridCoords), With<MarkerMainBase>>,
+    main_base: Query<(Entity, &GridCoords), With<MainBase>>,
 ) {
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) { return; }
@@ -76,33 +76,27 @@ pub fn onclick_building_spawn_system(
     // ---
     let grid_action = match building_type {
         BuildingType::EnergyRelay => {
-            let entity = commands.spawn_empty().id();
-            commands.queue(BuilderEnergyRelay::new(entity, mouse_coords));
+            let entity = commands.spawn(BuilderEnergyRelay::new(mouse_coords)).id();
             GridAction::Imprint(entity)
         }
         BuildingType::ExplorationCenter => {
-            let entity = commands.spawn_empty().id();
-            commands.queue(BuilderExplorationCenter::new(entity, mouse_coords));
+            let entity = commands.spawn(BuilderExplorationCenter::new(mouse_coords)).id();
             GridAction::Imprint(entity)
         }
         BuildingType::Tower(TowerType::Blaster) => {
-            let entity = commands.spawn_empty().id();
-            commands.queue(BuilderTowerBlaster::new(entity, mouse_coords));
+            let entity = commands.spawn(BuilderTowerBlaster::new(mouse_coords)).id();
             GridAction::Imprint(entity)
         },
         BuildingType::Tower(TowerType::Cannon) => {
-            let entity = commands.spawn_empty().id();
-            commands.queue(BuilderTowerCannon::new(entity, mouse_coords));
+            let entity = commands.spawn(BuilderTowerCannon::new(mouse_coords)).id();
             GridAction::Imprint(entity)
         },
         BuildingType::Tower(TowerType::RocketLauncher) => {
-            let entity = commands.spawn_empty().id();
-            commands.queue(BuilderTowerRocketLauncher::new(entity, mouse_coords));
+            let entity = commands.spawn(BuilderTowerRocketLauncher::new(mouse_coords)).id();
             GridAction::Imprint(entity)
         },
         BuildingType::Tower(TowerType::Emitter) => {
-            let entity = commands.spawn_empty().id();
-            commands.queue(BuilderTowerEmitter::new(entity, mouse_coords));
+            let entity = commands.spawn(BuilderTowerEmitter::new(mouse_coords)).id();
             GridAction::Imprint(entity)
         },
         BuildingType::MainBase => {
@@ -111,8 +105,7 @@ pub fn onclick_building_spawn_system(
             GridAction::Reprint{entity: main_base_entity, old_coords: *main_base_coords}
         },
         BuildingType::MiningComplex => {
-            let entity = commands.spawn_empty().id();
-            commands.queue(BuilderMiningComplex::new(entity, mouse_coords));
+            let entity = commands.spawn(BuilderMiningComplex::new(mouse_coords)).id();
             GridAction::ImprintMiningComplex(entity)
         },
     };

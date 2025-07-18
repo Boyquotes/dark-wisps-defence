@@ -9,48 +9,51 @@ pub struct MainBasePlugin;
 impl Plugin for MainBasePlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BuilderMainBase>()
             .add_event::<EventMoveMainBase>()
-            .add_systems(PostUpdate, (
-                BuilderMainBase::spawn_system,
-            )).add_systems(Update, (
+            .add_systems(Update, (
                 move_main_base_system,
-            ));
+            ))
+            .add_observer(BuilderMainBase::on_add);
     }
 }
 
 pub const MAIN_BASE_BASE_IMAGE: &str = "buildings/main_base.png";
 
 #[derive(Component)]
-pub struct MarkerMainBase;
+pub struct MainBase;
 
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderMainBase {
-    pub entity: Entity,
-    pub grid_position: GridCoords,
+    grid_position: GridCoords,
 }
 impl BuilderMainBase {
-    pub fn new(entity: Entity, grid_position: GridCoords) -> Self {
-        Self { entity, grid_position }
+    pub fn new(grid_position: GridCoords) -> Self {
+        Self { grid_position }
      }
-    pub fn spawn_system(
+
+    pub fn on_add(
+        trigger: Trigger<OnAdd, BuilderMainBase>,
         mut commands: Commands,
-        mut events: EventReader<BuilderMainBase>,
+        builders: Query<&BuilderMainBase>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
     ) {
-        for &BuilderMainBase { entity, grid_position } in events.read() {
-            let grid_imprint = almanach.get_building_info(BuildingType::MainBase).grid_imprint;
-            commands.entity(entity).insert((
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        let grid_imprint = almanach.get_building_info(BuildingType::MainBase).grid_imprint;
+        commands.entity(entity)
+            .remove::<BuilderMainBase>()
+            .insert((
                 Sprite {
                     image: asset_server.load(MAIN_BASE_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                Transform::from_translation(grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
-                MarkerMainBase,
-                grid_position,
+                Transform::from_translation(builder.grid_position.to_world_position_centered(grid_imprint).extend(Z_BUILDING)),
+                MainBase,
+                builder.grid_position,
                 Health::new(10000),
                 Building,
                 BuildingType::MainBase,
@@ -65,12 +68,6 @@ impl BuilderMainBase {
                 SupplierEnergy { range: 15 },
                 TechnicalState { has_energy_supply: true, ..default() },
             ));
-        }
-    }
-}
-impl Command for BuilderMainBase {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 
@@ -87,7 +84,7 @@ impl Command for EventMoveMainBase {
 pub fn move_main_base_system(
     mut events: EventReader<EventMoveMainBase>,
     mut supplier_created_event_writer: EventWriter<SupplierChangedEvent>,
-    mut main_base: Query<(Entity, &GridImprint, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MarkerMainBase>>,
+    mut main_base: Query<(Entity, &GridImprint, &mut GridCoords, &SupplierEnergy, &mut Transform), With<MainBase>>,
 ) {
     for &EventMoveMainBase { new_grid_position } in events.read() {
         let Ok((entity, grid_imprint, mut main_base_location, supplier_energy, mut transform)) = main_base.single_mut() else { return; };

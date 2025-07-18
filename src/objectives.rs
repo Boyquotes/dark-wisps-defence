@@ -8,10 +8,7 @@ impl Plugin for ObjectivesPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<ObjectivesReassesInactiveFlag>()
-            .add_event::<BuilderObjective>()
-            .add_systems(PostUpdate, (
-                BuilderObjective::spawn_system.run_if(on_event::<BuilderObjective>),
-            ))
+            .add_observer(BuilderObjective::on_add)
             .add_systems(PreUpdate, (
                 reassess_inactive_objectives_system,
             ))
@@ -74,30 +71,35 @@ pub struct Objective {
     pub text: Entity,
 }
 
-#[derive(Event)]
+#[derive(Component)]
 pub struct BuilderObjective {
-    pub entity: Entity,
-    pub objective_details: ObjectiveDetails,
+    objective_details: ObjectiveDetails,
 }
 impl BuilderObjective {
-    pub fn new(entity: Entity, objective_details: ObjectiveDetails) -> Self {
-        Self { entity, objective_details }
+    pub fn new(objective_details: ObjectiveDetails) -> Self {
+        Self { objective_details }
     }
-    pub fn spawn_system(
+
+    pub fn on_add(
+        trigger: Trigger<OnAdd, BuilderObjective>,
         mut commands: Commands,
-        mut events: EventReader<BuilderObjective>,
+        builders: Query<&BuilderObjective>,
         asset_server: Res<AssetServer>,
         mut objectives_check_inactive_flag: ResMut<ObjectivesReassesInactiveFlag>,
         stats_wisps_killed: Res<StatsWispsKilled>,
     ) {
-        for BuilderObjective { entity, objective_details } in events.read() {
-            objectives_check_inactive_flag.0 = true;
-            let mut objective = Objective {
-                checkmark: Entity::PLACEHOLDER,
-                text: Entity::PLACEHOLDER,
-            };
-            commands.entity(*entity).insert((
-                objective_details.clone(),
+        let entity = trigger.target();
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        objectives_check_inactive_flag.0 = true;
+        let mut objective = Objective {
+            checkmark: Entity::PLACEHOLDER,
+            text: Entity::PLACEHOLDER,
+        };
+        commands.entity(entity)
+            .remove::<BuilderObjective>()
+            .insert((
+                builder.objective_details.clone(),
                 ObjectiveMarkerInactive,
                 Node {
                     width: Val::Percent(100.),
@@ -122,25 +124,19 @@ impl BuilderObjective {
                     ObjectiveCheckmark,
                 )).id();
                 objective.text = parent.spawn((
-                    Text::new(objective_details.id_name.clone()),
+                    Text::new(builder.objective_details.id_name.clone()),
                     TextFont::default().with_font_size(12.),
                     ObjectiveText,
                 )).id();
             }).insert(objective);
-            match objective_details.objective_type {
-                ObjectiveType::ClearAllQuantumFields => {
-                    commands.entity(*entity).insert(ObjectiveClearAllQuantumFields::default());
-                }
-                ObjectiveType::KillWisps(target_amount) => {
-                    commands.entity(*entity).insert(ObjectiveKillWisps{target_amount, started_amount: stats_wisps_killed.0});
-                }
+        match builder.objective_details.objective_type {
+            ObjectiveType::ClearAllQuantumFields => {
+                commands.entity(entity).insert(ObjectiveClearAllQuantumFields::default());
+            }
+            ObjectiveType::KillWisps(target_amount) => {
+                commands.entity(entity).insert(ObjectiveKillWisps{target_amount, started_amount: stats_wisps_killed.0});
             }
         }
-    }
-}
-impl Command for BuilderObjective {
-    fn apply(self, world: &mut World) {
-        world.send_event(self);
     }
 }
 

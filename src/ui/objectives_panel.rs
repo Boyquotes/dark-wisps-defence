@@ -1,6 +1,6 @@
 use bevy::ui::widget::NodeImageMode;
 
-use crate::{objectives::BuilderObjective, prelude::*};
+use crate::{objectives::Objective, prelude::*};
 
 pub struct ObjectivesPanelPlugin;
 impl Plugin for ObjectivesPanelPlugin {
@@ -9,11 +9,11 @@ impl Plugin for ObjectivesPanelPlugin {
             .init_state::<ObjectivesPanelState>()
             .add_systems(Startup, initialize_objectives_panel_system)
             .add_systems(Update, (
-                on_objective_created_system.run_if(on_event::<BuilderObjective>),
                 panel_transition_to_hidden_system.run_if(in_state(ObjectivesPanelState::TransitionToHidden)),
                 panel_transition_to_visible_system.run_if(in_state(ObjectivesPanelState::TransitionToVisible)),
                 on_click_show_hide_objectives_system,
-            ));
+            ))
+            .add_observer(on_objective_created_observer);
     }
 }
 
@@ -76,15 +76,14 @@ fn initialize_objectives_panel_system(
     });
 }
 
-fn on_objective_created_system(
+fn on_objective_created_observer(
+    trigger: Trigger<OnAdd, Objective>,
     mut commands: Commands,
-    mut events: EventReader<BuilderObjective>,
     objectives_panel: Query<Entity, With<ObjectivesPanel>>,
 ) {
     let Ok(objectives_panel) = objectives_panel.single() else { return; };
-    for &BuilderObjective { entity, .. } in events.read() {
-        commands.entity(objectives_panel).add_child(entity);
-    }
+    let objective_entity = trigger.target();
+    commands.entity(objectives_panel).add_child(objective_entity);
 }
 
 fn panel_transition_to_visible_system(

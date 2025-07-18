@@ -122,7 +122,6 @@ pub fn apply_map(
         obstacle_grid.imprint(quantum_field.coords, Field::QuantumField(quantum_field_entity), grid_imprint);
     });
     map.objectives.into_iter().for_each(|objective_details| {
-       let objective_entity = commands.spawn_empty().id();
-       commands.queue(BuilderObjective::new(objective_entity, objective_details));
+       commands.spawn(BuilderObjective::new(objective_details));
     });
 }

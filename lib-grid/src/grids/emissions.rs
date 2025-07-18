@@ -11,26 +11,42 @@ impl Plugin for EmissionsPlugin {
             .insert_resource(EmissionsGrid::new_with_size(100, 100))
             .init_resource::<EmissionsEnergyRecalculateAll>()
             .add_event::<EmitterChangedEvent>()
-            .add_systems(Update, (
-                on_emitter_added_system,
-                on_emitter_position_changed_system,
-            )
-            )
             .add_systems(PostUpdate, (
                 emissions_calculations_system,
             ))
-            .add_observer(EmitterEnergy::on_remove);
+            .add_observer(EmitterEnergy::on_coords_replace)
+            .add_observer(EmitterEnergy::on_coords_insert);
     }
 }
 
 #[derive(Component)]
 pub struct EmitterEnergy(pub FloodEmissionsDetails);
 impl EmitterEnergy {
-    fn on_remove(
-        _trigger: Trigger<OnRemove, EmitterEnergy>,
-        mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    fn on_coords_insert(
+        trigger: Trigger<OnInsert, GridCoords>,
+        mut events: EventWriter<EmitterChangedEvent>,
+        suppliers: Query<(&GridCoords, &GridImprint, &EmitterEnergy)>,
     ) {
-        emissions_energy_recalculate_all.0 = true;
+        let entity = trigger.target();
+        let Ok((grid_coords, grid_imprint, emitter)) = suppliers.get(entity) else { return; };
+        events.write(EmitterChangedEvent {
+            emitter_entity: entity,
+            coords: grid_imprint.covered_coords(*grid_coords),
+            emissions_details: vec![emitter.0.clone()],
+        });
+    }
+    fn on_coords_replace(
+        trigger: Trigger<OnReplace, GridCoords>,
+        mut events: EventWriter<EmitterChangedEvent>,
+        suppliers: Query<(&GridCoords, &GridImprint, &EmitterEnergy)>,
+    ) {
+        let entity = trigger.target();
+        let Ok((grid_coords, grid_imprint, emitter)) = suppliers.get(entity) else { return; };
+        events.write(EmitterChangedEvent {
+            emitter_entity: entity,
+            coords: grid_imprint.covered_coords(*grid_coords),
+            emissions_details: vec![emitter.0.cloned_with_reversed_mode()],
+        });
     }
 }
 
@@ -63,7 +79,7 @@ pub type EmissionsGrid = BaseGrid<Emissions, EmissionsGridVersion>;
 impl EmissionsGrid {
     pub fn add_energy(&mut self, coords: GridCoords, energy: f32) {
         self[coords].energy += energy;
-        if self[coords].energy < 0. { self[coords].energy = 0.; }
+        if self[coords].energy.abs() < 0.0001 { self[coords].energy = 0.; }
         self.version.energy = self.version.energy.wrapping_add(1);
     }
     pub fn reset_energy_emissions(&mut self) {
@@ -105,31 +121,6 @@ impl EmissionsGrid {
             }
             idx += 1;
         });
-    }
-}
-
-fn on_emitter_added_system(
-    mut events: EventWriter<EmitterChangedEvent>,
-    suppliers: Query<(Entity, &GridCoords, &GridImprint, &EmitterEnergy), Added<EmitterEnergy>>,
-) {
-    for (entity, grid_coords, grid_imprint, emitter) in suppliers.iter() {
-        events.write(EmitterChangedEvent {
-            emitter_entity: entity,
-            coords: grid_imprint.covered_coords(*grid_coords),
-            emissions_details: vec![emitter.0.clone()],
-        });
-    }
-}
-
-fn on_emitter_position_changed_system(
-    mut recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
-    suppliers: Query<Ref<GridCoords>, (Changed<GridCoords>, With<EmitterEnergy>)>,
-) {
-    for grid_coords in suppliers.iter() {
-        if !grid_coords.is_added() {
-            recalculate_all.0 = true;
-            break;
-        }
     }
 }
 

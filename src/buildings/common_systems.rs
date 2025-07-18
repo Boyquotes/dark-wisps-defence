@@ -211,10 +211,11 @@ pub fn rotate_tower_top_system(
 
 pub fn rotational_aiming_system(
     time: Res<Time>,
-    mut towers: Query<(&mut TowerTopRotation, &TowerWispTarget, &Transform), Without<Wisp>>,
+    mut towers: Query<(&mut TowerTopRotation, &TowerWispTarget, &Transform, &TechnicalState), Without<Wisp>>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
-    for (mut rotation, target, tower_transform) in towers.iter_mut() {
+    for (mut rotation, target, tower_transform, technical_state) in towers.iter_mut() {
+        if !technical_state.has_energy_supply { continue; }
         let TowerWispTarget::Wisp(target_wisp) = target else { continue; };
         let Ok(wisp_position) = wisps.get(*target_wisp).map(|target| target.translation.xy()) else { continue; };
 

@@ -152,6 +152,7 @@ fn emissions_calculations_system(
                 |field| !field.is_wall(),
             );
         }
+        events.clear();
     } else {
         for event in events.read() {
             flood_emissions(

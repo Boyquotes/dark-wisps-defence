@@ -8,9 +8,7 @@ pub struct UiCommonPlugin;
 impl Plugin for UiCommonPlugin {
     fn build(&self, app: &mut App) {
         app
-            .init_state::<UiInteraction>()
             .add_systems(PreUpdate, (
-                keyboard_input_system,
                 mouse_release_system,
             ))
             .add_systems(Update, (
@@ -20,23 +18,6 @@ impl Plugin for UiCommonPlugin {
             ));
         app.world_mut().add_observer(on_healthbar_added_trigger);
         app.world_mut().add_observer(on_cost_indicator_added_trigger);
-    }
-}
-
-#[derive(Default, Clone, Debug, States, PartialEq, Eq, Hash)]
-pub enum UiInteraction {
-    #[default]
-    Free, // No interaction
-    PlaceGridObject,
-    DisplayInfoPanel,
-}
-
-fn keyboard_input_system(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
-) {
-    if keys.just_pressed(KeyCode::Escape) {
-        ui_interaction_state.set(UiInteraction::Free);
     }
 }
 

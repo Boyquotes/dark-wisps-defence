@@ -40,7 +40,6 @@ fn main() {
             lib_core::LibCorePlugin,
         ))
         .add_plugins((
-            common::CommonPlugin,
             common_systems::CommonSystemsPlugin,
             data_loader::DataLoaderPlugin,
             map_editor::MapEditorPlugin,

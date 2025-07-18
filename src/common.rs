@@ -6,21 +6,6 @@ pub mod prelude {
     pub use super::*;
 }
 
-pub struct CommonPlugin;
-impl Plugin for CommonPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .init_state::<GameState>();
-    }
-}
-
-#[derive(Default, Clone, Debug, States, PartialEq, Eq, Hash)]
-pub enum GameState {
-    #[default]
-    Running,
-    Paused,
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UpgradeType {
     AttackSpeed,

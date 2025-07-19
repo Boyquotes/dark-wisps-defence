@@ -11,10 +11,10 @@ impl Plugin for ObjectivesPanelPlugin {
             .add_systems(Update, (
                 panel_transition_to_hidden_system.run_if(in_state(ObjectivesPanelState::TransitionToHidden)),
                 panel_transition_to_visible_system.run_if(in_state(ObjectivesPanelState::TransitionToVisible)),
-                on_click_show_hide_objectives_system,
             ))
-            .add_observer(on_objective_created_observer)
-            .add_observer(ObjectivesPanel::on_add);
+            .add_observer(ObjectivesPanel::on_objective_added)
+            .add_observer(ObjectivesPanel::on_add)
+            .add_observer(ObjectivesShowHideButton::on_add);
     }
 }
 
@@ -22,8 +22,38 @@ const SLIDING_SPEED: f32 = 800.;
 const VISIBLE_TOP_POSITION: f32 = 5.;
 
 #[derive(Component)]
-#[require(Button)]
+#[require(Button, Pickable)]
 pub struct ObjectivesShowHideButton;
+impl ObjectivesShowHideButton {
+    fn on_add(
+        trigger: Trigger<OnAdd, ObjectivesShowHideButton>,
+        mut commands: Commands, 
+        asset_server: Res<AssetServer>,
+    ) {
+        commands.entity(trigger.target()).insert((
+            Node {
+                width: Val::Px(32.0),
+                height: Val::Px(32.0),
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(-34.0),
+                right: Val::Px(5.0),
+                ..default()
+            },
+            ImageNode::new(asset_server.load("ui/objectives_panel.png")),
+        )).observe(Self::on_click);
+    }
+    fn on_click(
+        _trigger: Trigger<Pointer<Click>>,
+        current_state: Res<State<ObjectivesPanelState>>,
+        mut next_state: ResMut<NextState<ObjectivesPanelState>>,
+    ) {
+        match current_state.get() {
+            ObjectivesPanelState::Hidden => next_state.set(ObjectivesPanelState::TransitionToVisible),
+            ObjectivesPanelState::Visible => next_state.set(ObjectivesPanelState::TransitionToHidden),
+            _ => {}
+        }
+    }
+}
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum ObjectivesPanelState {
     Hidden,
@@ -63,30 +93,18 @@ impl ObjectivesPanel {
                 }),
                 ..default()
             },
-            children![(
-                Node {
-                    width: Val::Px(32.0),
-                    height: Val::Px(32.0),
-                    position_type: PositionType::Absolute,
-                    bottom: Val::Px(-34.0),
-                    right: Val::Px(5.0),
-                    ..default()
-                },
-                ImageNode::new(asset_server.load("ui/objectives_panel.png")),
-                ObjectivesShowHideButton,
-            )],
+            children![ObjectivesShowHideButton,],
         ));
     }
-}
-
-fn on_objective_created_observer(
-    trigger: Trigger<OnAdd, Objective>,
-    mut commands: Commands,
-    objectives_panel: Query<Entity, With<ObjectivesPanel>>,
-) {
-    let Ok(objectives_panel) = objectives_panel.single() else { return; };
-    let objective_entity = trigger.target();
-    commands.entity(objectives_panel).add_child(objective_entity);
+    fn on_objective_added(
+        trigger: Trigger<OnAdd, Objective>,
+        mut commands: Commands,
+        objectives_panel: Query<Entity, With<ObjectivesPanel>>,
+    ) {
+        let Ok(objectives_panel) = objectives_panel.single() else { return; };
+        let objective_entity = trigger.target();
+        commands.entity(objectives_panel).add_child(objective_entity);
+    }
 }
 
 fn panel_transition_to_visible_system(
@@ -124,20 +142,5 @@ fn panel_transition_to_hidden_system(
     } else {
         style.top = Val::Px(-node.size().y);
         next_state.set(ObjectivesPanelState::Hidden);
-    }
-}
-
-fn on_click_show_hide_objectives_system(
-    current_state: Res<State<ObjectivesPanelState>>,
-    mut next_state: ResMut<NextState<ObjectivesPanelState>>,
-    objectives_show_hide_button: Query<&Interaction, (With<ObjectivesShowHideButton>, Changed<Interaction>)>,
-) {
-    let Ok(interaction) = objectives_show_hide_button.single() else { return; };
-    if matches!(*interaction, Interaction::Pressed) {
-        match current_state.get() {
-            ObjectivesPanelState::Hidden => next_state.set(ObjectivesPanelState::TransitionToVisible),
-            ObjectivesPanelState::Visible => next_state.set(ObjectivesPanelState::TransitionToHidden),
-            _ => {}
-        }
     }
 }

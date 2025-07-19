@@ -106,8 +106,8 @@ impl std::fmt::Display for UpgradeType {
 #[derive(Component, Default)]
 pub struct Upgrades(pub HashMap<UpgradeType, usize>);
 
-// This component needs to be replaced in full, do not mutate it
 #[derive(Component)]
+#[component(immutable)]
 #[require(Transform)]
 pub struct ZDepth(pub f32);
 impl ZDepth {

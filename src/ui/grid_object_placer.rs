@@ -15,14 +15,15 @@ impl Plugin for GridObjectPlacerPlugin {
                 |mut commands: Commands| { commands.spawn(GridObjectPlacer::default()); },
             ))
             .add_systems(PreUpdate, (
+                GridObjectPlacer::follow_mouse_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 keyboard_input_system,
             ))
             .add_systems(Update, (
-                update_grid_object_placer_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 on_request_grid_object_placer_system.run_if(GridObjectPlacerRequest::there_is_request()),
             ))
             .add_systems(OnEnter(UiInteraction::PlaceGridObject), on_placing_enter_system)
-            .add_systems(OnExit(UiInteraction::PlaceGridObject), on_placing_exit_system);
+            .add_systems(OnExit(UiInteraction::PlaceGridObject), on_placing_exit_system)
+            .add_observer(GridObjectPlacer::on_coords_changed);
     }
 }
 
@@ -40,7 +41,7 @@ impl GridObjectPlacerRequest {
 }
 
 #[derive(Component, Default, Clone, Debug, PartialEq)]
-#[require(GridImprint, GridCoords, Sprite)]
+#[require(GridImprint, GridCoords, Sprite, ZDepth = ZDepth(10.), AutoGridTransformSync)]
 pub enum GridObjectPlacer {
     #[default]
     None,
@@ -58,6 +59,49 @@ impl GridObjectPlacer {
             GridObjectPlacer::QuantumField(imprint_selector) => imprint_selector.get(),
             GridObjectPlacer::None => unreachable!(),
         }
+    }
+
+    fn follow_mouse_system(
+        mut commands: Commands,
+        mouse_info: Res<MouseInfo>,
+        placer: Query<Entity, With<GridObjectPlacer>>,
+    ) {
+        let placer_entity = placer.single().unwrap();
+        commands.entity(placer_entity).insert(mouse_info.grid_coords);
+    }
+
+    fn on_coords_changed(
+        _trigger: Trigger<OnInsert, GridCoords>,
+        obstacle_grid: Res<ObstacleGrid>,
+        energy_supply_grid: Res<EnergySupplyGrid>,
+        mouse_info: Res<MouseInfo>,
+        mut placer: Query<(&mut Sprite, &GridObjectPlacer, &GridImprint, &GridCoords)>,
+    ) {
+        let Ok((mut sprite, grid_object_placer, grid_imprint, grid_coords)) = placer.single_mut() else { return; };
+        let is_imprint_in_bounds = mouse_info.grid_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds());
+        let is_imprint_placable = match &*grid_object_placer {
+            GridObjectPlacer::None => false,
+            GridObjectPlacer::Building(building_type) => obstacle_grid.query_building_placement(*grid_coords, *building_type, *grid_imprint),
+            _ => obstacle_grid.imprint_query_all(*grid_coords, *grid_imprint, |field| field.is_empty()),
+        };
+    
+        let (needs_energy_supply, is_imprint_suppliable) = match &*grid_object_placer {
+            GridObjectPlacer::Building(building_type) => match building_type {
+                BuildingType::MainBase | BuildingType::EnergyRelay => (false, false),
+                _ => (true, energy_supply_grid.is_imprint_suppliable(*grid_coords, *grid_imprint)),
+            },
+            _ => (false, false)
+        };
+    
+        sprite.color = if is_imprint_placable && is_imprint_in_bounds {
+            if needs_energy_supply && !is_imprint_suppliable {
+                Color::srgba(1.0, 1.0, 0.0, 0.2)
+            } else {
+                Color::srgba(0.0, 1.0, 0.0, 0.2)
+            }
+        } else {
+            Color::srgba(1.0, 0.0, 0.0, 0.2)
+        };
     }
 }
 impl From<BuildingType> for GridObjectPlacer {
@@ -79,49 +123,6 @@ fn on_placing_exit_system(
     let Ok((mut visibility, mut placer)) = placer.single_mut() else { return; };
     *visibility = Visibility::Hidden;
     *placer = GridObjectPlacer::None;
-}
-
-fn update_grid_object_placer_system(
-    obstacle_grid: Res<ObstacleGrid>,
-    energy_supply_grid: Res<EnergySupplyGrid>,
-    mouse_info: Res<MouseInfo>,
-    mut placer: Query<(&mut Transform, &mut Sprite, &GridObjectPlacer, &GridImprint, &mut GridCoords)>,
-) {
-    let Ok((mut transform, mut sprite, grid_object_placer, grid_imprint, mut grid_coords)) = placer.single_mut() else { return; };
-    *grid_coords = mouse_info.grid_coords;
-    transform.translation = grid_coords.to_world_position().extend(10.);
-    let is_imprint_in_bounds = mouse_info.grid_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds());
-    let is_imprint_placable = match &*grid_object_placer {
-        GridObjectPlacer::None => false,
-        GridObjectPlacer::Building(building_type) => {
-            transform.translation += grid_imprint.world_center().extend(0.);
-            obstacle_grid.query_building_placement(*grid_coords, *building_type, *grid_imprint)
-        },
-        _ => {
-            transform.translation += grid_imprint.world_center().extend(0.);
-            obstacle_grid.imprint_query_all(*grid_coords, *grid_imprint, |field| field.is_empty())
-        }
-    };
-
-    let (needs_energy_supply, is_imprint_suppliable) = match &*grid_object_placer {
-        GridObjectPlacer::Building(building_type) => match building_type {
-            BuildingType::MainBase | BuildingType::EnergyRelay => (false, false),
-            _ => {
-                (true, energy_supply_grid.is_imprint_suppliable(*grid_coords, *grid_imprint))
-            },
-        },
-        _ => (false, false)
-    };
-
-    sprite.color = if is_imprint_placable && is_imprint_in_bounds {
-        if needs_energy_supply && !is_imprint_suppliable {
-            Color::srgba(1.0, 1.0, 0.0, 0.2)
-        } else {
-            Color::srgba(0.0, 1.0, 0.0, 0.2)
-        }
-    } else {
-        Color::srgba(1.0, 0.0, 0.0, 0.2)
-    };
 }
 
 fn keyboard_input_system(

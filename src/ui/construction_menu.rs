@@ -1,8 +1,6 @@
 use bevy::color::palettes::css::{TURQUOISE, WHITE};
 use bevy::ui::FocusPolicy;
 
-use lib_ui::prelude::AdvancedInteraction;
-
 use crate::buildings::tower_emitter::TOWER_EMITTER_BASE_IMAGE;
 use crate::prelude::*;
 use crate::buildings::energy_relay::ENERGY_RELAY_BASE_IMAGE;
@@ -26,10 +24,6 @@ impl Plugin for ConstructionMenuPlugin {
         app
             .add_systems(Startup, (
                 initialize_construction_menu_system,
-            ))
-            .add_systems(Update, (
-                menu_activation_system,
-                construct_building_on_click_system,
             ))
             .add_observer(ConstructObjectButton::on_add)
             .add_observer(ButtonConstructMenu::on_add)
@@ -57,7 +51,37 @@ impl ButtonConstructMenu {
                 ..default()
             },
             ImageNode::new(asset_server.load(image)).with_color(WHITE.with_alpha(NOT_HOVERED_ALPHA).into()),
-        ));
+        ))
+        .observe(Self::on_mouse_over)
+        .observe(Self::on_mouse_out);
+    }
+
+    fn on_mouse_over(
+        trigger: Trigger<Pointer<Over>>,
+        mut menu_buttons: Query<(&mut ImageNode, &Children), With<ButtonConstructMenu>>,
+        mut list_pickers: Query<&mut Visibility, With<ConstructMenuListPicker>>,
+    ) -> Result<()> {
+        let entity = trigger.target();
+        let (mut ui_image, children) = menu_buttons.get_mut(entity)?;
+        let list_picker_entity = children.get(0).ok_or("List picker not found")?;
+        let mut list_picker_visibility = list_pickers.get_mut(*list_picker_entity)?;
+        ui_image.color.set_alpha(1.);
+        *list_picker_visibility = Visibility::Inherited;
+        Ok(())
+    }
+    
+    fn on_mouse_out(
+        trigger: Trigger<Pointer<Out>>,
+        mut menu_buttons: Query<(&mut ImageNode, &Children), With<ButtonConstructMenu>>,
+        mut list_pickers: Query<&mut Visibility, With<ConstructMenuListPicker>>,
+    ) -> Result<()> {
+        let entity = trigger.target();
+        let (mut ui_image, children) = menu_buttons.get_mut(entity)?;
+        let list_picker_entity = children.get(0).ok_or("List picker not found")?;
+        let mut list_picker_visibility = list_pickers.get_mut(*list_picker_entity)?;
+        ui_image.color.set_alpha(NOT_HOVERED_ALPHA);
+        *list_picker_visibility = Visibility::Hidden;
+        Ok(())
     }
 }
 
@@ -74,7 +98,7 @@ impl ConstructMenuListPicker {
             Node {
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
-                left: Val::Px(65.),
+                left: Val::Px(64.),
                 padding: UiRect {
                     left: Val::Px(2.5),
                     right: Val::Px(2.5),
@@ -83,6 +107,7 @@ impl ConstructMenuListPicker {
                 },
                 ..default()
             },
+            Visibility::Hidden,
             BackgroundColor(Color::BLACK.into()),
             GlobalZIndex(-1),
         ));
@@ -90,7 +115,7 @@ impl ConstructMenuListPicker {
 }
 
 #[derive(Component)]
-#[require(Button, FocusPolicy, AdvancedInteraction)]
+#[require(Button, FocusPolicy)]
 pub struct ConstructObjectButton {
     pub object_type: GridObjectPlacer,
 }
@@ -122,6 +147,7 @@ impl ConstructObjectButton{
                 },
                 BackgroundColor(TURQUOISE.into()),
             ))
+            .observe(Self::on_click)
             .with_children(|parent| {
                 let object_type = &builders.get(entity).unwrap().object_type;
                 let image_handle = match &object_type {
@@ -153,6 +179,18 @@ impl ConstructObjectButton{
                     ));
                 }
             });
+    }
+
+    fn on_click(
+        trigger: Trigger<Pointer<Click>>, 
+        mut grid_object_placer_request: ResMut<GridObjectPlacerRequest>,
+        menu_buttons: Query<&ConstructObjectButton>,
+        mut list_pickers: Query<(&mut Interaction, &mut Visibility), With<ConstructMenuListPicker>>,
+    ) {
+        let entity = trigger.target();
+        let Ok(button) = menu_buttons.get(entity) else { return; };
+        grid_object_placer_request.set(button.object_type.clone());
+        list_pickers.iter_mut().for_each(|(mut interaction, mut visibility)| { *visibility = Visibility::Hidden; *interaction = Interaction::None; });
     }
 }
 
@@ -221,49 +259,4 @@ fn initialize_construction_menu_system(
     mut commands: Commands,
 ) {
     create_construct_menu(&mut commands);
-}
-
-fn menu_activation_system(
-    mouse_info: Res<MouseInfo>,
-    mut menu_buttons: Query<(&Interaction, &mut ImageNode, &Children, &GlobalTransform), With<ButtonConstructMenu>>,
-    mut list_pickers: Query<(&Interaction, &mut Visibility, &ViewVisibility), With<ConstructMenuListPicker>>,
-) {
-    for (menu_interaction, mut ui_image, children, button_transform) in menu_buttons.iter_mut() {
-        let list_picker_entity = children.get(0).unwrap();
-        let (list_picker_interaction, mut list_picker_visibility, list_picker_is_visible) = list_pickers.get_mut(*list_picker_entity).unwrap();
-        if !matches!(menu_interaction, Interaction::None)
-            || !matches!(list_picker_interaction, Interaction::None)
-            // If the list picker is already visible, give it some leeway so it does not disappear when player moves mouse from the button to the list picker
-            || (list_picker_is_visible.get() && get_extended_construct_button_world_rect(button_transform.translation()).contains(mouse_info.screen_position)) 
-        {
-            ui_image.color.set_alpha(1.);
-            *list_picker_visibility = Visibility::Inherited;
-        } else {
-            ui_image.color.set_alpha(NOT_HOVERED_ALPHA);
-            *list_picker_visibility = Visibility::Hidden;
-        }
-    }
-}
-
-fn construct_building_on_click_system(
-    mut grid_object_placer_request: ResMut<GridObjectPlacerRequest>,
-    mut menu_buttons: Query<(&AdvancedInteraction, &ConstructObjectButton), Changed<AdvancedInteraction>>,
-    mut list_pickers: Query<(&mut Interaction, &mut Visibility), With<ConstructMenuListPicker>>,
-) {
-    for (advanced_interaction, button) in menu_buttons.iter_mut() {
-        if advanced_interaction.was_just_released {
-            grid_object_placer_request.set(button.object_type.clone());
-            list_pickers.iter_mut().for_each(|(mut interaction, mut visibility)| { *visibility = Visibility::Hidden; *interaction = Interaction::None; });
-        }
-    }
-}
-
-// Helper function to get the construct button rect that is elongated to the right so when player hovers from it to the list picker it stays visible
-fn get_extended_construct_button_world_rect(translation: Vec3) -> Rect {
-    Rect::new(
-        translation.x - CONSTRUCT_MENU_BUTTON_WIDTH / 2.,
-        translation.y - CONSTRUCT_MENU_BUTTON_HEIGHT / 2.,
-        translation.x + CONSTRUCT_MENU_BUTTON_WIDTH / 2. + 30., 
-        translation.y + CONSTRUCT_MENU_BUTTON_HEIGHT / 2.,
-    )
 }

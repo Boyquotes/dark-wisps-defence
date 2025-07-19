@@ -31,7 +31,7 @@ pub fn move_wisps(
         // Update grid coords
         let new_coords = GridCoords::from_transform(&transform);
         if new_coords != *grid_coords {
-            wisps_grid.wisp_move(*grid_coords, new_coords, entity.into());
+            wisps_grid.wisp_move(*grid_coords, new_coords, entity);
             *grid_coords = new_coords;
         }
     }
@@ -67,7 +67,7 @@ pub fn remove_dead_wisps(
 ) {
     for (wisp_entity, health, coords, essences) in wisps.iter() {
         if health.is_dead() {
-            wisps_grid.wisp_remove(*coords, wisp_entity.into());
+            wisps_grid.wisp_remove(*coords, wisp_entity);
             commands.entity(wisp_entity).despawn();
             // Grant essence
             for container in essences.0.iter() {

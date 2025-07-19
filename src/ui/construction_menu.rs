@@ -157,7 +157,7 @@ impl ConstructObjectButton{
 pub fn create_construct_menu(
     commands: &mut Commands,
 ) -> Entity {
-    let construct_towers_button = commands.spawn((
+    commands.spawn((
         Node { // Main Menu node
             position_type: PositionType::Absolute,
             top: Val::Percent(40.),
@@ -166,53 +166,53 @@ pub fn create_construct_menu(
             align_items: AlignItems::Center,
             ..default()
         },
-    )).with_children(|parent| {
-        // Construct towers button
-        parent.spawn(
-            ButtonConstructMenu("ui/construct_towers.png"),
-        ).with_children(|parent| {
-            // Construct towers list picker
-            parent.spawn(
-                ConstructMenuListPicker,
-            ).with_children(|parent| {
-                // Specific tower to construct
-                parent.spawn(ConstructObjectButton::new(BuildingType::Tower(TowerType::Blaster).into()));
-                parent.spawn(ConstructObjectButton::new(BuildingType::Tower(TowerType::Cannon).into()));
-                parent.spawn(ConstructObjectButton::new(BuildingType::Tower(TowerType::RocketLauncher).into()));
-                parent.spawn(ConstructObjectButton::new(BuildingType::Tower(TowerType::Emitter).into()));
-            });
-        });
-        parent.spawn(
-            ButtonConstructMenu("ui/construct_buildings.png"),
-        ).with_children(|parent| {
-            // Construct buildings list picker
-            parent.spawn(
-                ConstructMenuListPicker,
-            ).with_children(|parent| {
-                // Specific building to construct
-                parent.spawn(ConstructObjectButton::new(BuildingType::EnergyRelay.into()));
-                parent.spawn(ConstructObjectButton::new(BuildingType::MiningComplex.into()));
-                parent.spawn(ConstructObjectButton::new(BuildingType::ExplorationCenter.into()));
-            });
-        });
-    }).with_children(|parent| {
-        // Construct objects(editor)
-        parent.spawn(
-            ButtonConstructMenu("ui/construct_editor.png"),
-        ).with_children(|parent| {
-            // Construct editor list picker
-            parent.spawn(
-                ConstructMenuListPicker,
-            ).with_children(|parent| {
-                // Specific editor buildings to construct
-                parent.spawn(ConstructObjectButton::new(BuildingType::MainBase.into()));
-                parent.spawn(ConstructObjectButton::new(GridObjectPlacer::DarkOre));
-                parent.spawn(ConstructObjectButton::new(GridObjectPlacer::Wall));
-                parent.spawn(ConstructObjectButton::new(GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default())));
-            });
-        });
-    }).id();
-    construct_towers_button
+        children![
+            // Construct towers button
+            (
+                ButtonConstructMenu("ui/construct_towers.png"),
+                // Construct towers list picker
+                children![(
+                    ConstructMenuListPicker,
+                    children![
+                        // Specific tower to construct
+                        ConstructObjectButton::new(BuildingType::Tower(TowerType::Blaster).into()),
+                        ConstructObjectButton::new(BuildingType::Tower(TowerType::Cannon).into()),
+                        ConstructObjectButton::new(BuildingType::Tower(TowerType::RocketLauncher).into()),
+                        ConstructObjectButton::new(BuildingType::Tower(TowerType::Emitter).into()),
+                    ]
+                )]
+            ),
+            // Construct buildings button
+            (
+                ButtonConstructMenu("ui/construct_buildings.png"),
+                // Construct buildings list picker
+                children![(
+                    ConstructMenuListPicker,
+                    children![
+                        // Specific building to construct
+                        ConstructObjectButton::new(BuildingType::EnergyRelay.into()),
+                        ConstructObjectButton::new(BuildingType::MiningComplex.into()),
+                        ConstructObjectButton::new(BuildingType::ExplorationCenter.into()),
+                    ]
+                )]
+            ),
+            // Construct objects(editor) button
+            (
+                ButtonConstructMenu("ui/construct_editor.png"),
+                // Construct objects(editor) list picker
+                children![(
+                    ConstructMenuListPicker,
+                    children![
+                        // Specific editor building to construct
+                        ConstructObjectButton::new(BuildingType::MainBase.into()),
+                        ConstructObjectButton::new(GridObjectPlacer::DarkOre),
+                        ConstructObjectButton::new(GridObjectPlacer::Wall),
+                        ConstructObjectButton::new(GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default())),
+                    ]
+                )]
+            ),
+        ]
+    )).id()
 }
 
 fn initialize_construction_menu_system(

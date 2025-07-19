@@ -5,6 +5,7 @@ use lib_grid::grids::obstacles::{BelowField, Field, ObstacleGrid};
 use lib_grid::grids::wisps::WispsGrid;
 use lib_grid::search::targetfinding::target_find_closest_wisp;
 use lib_core::utils::angle_difference;
+use lib_ui::healthbar::Healthbar;
 
 use crate::effects::explosions::BuilderExplosion;
 use crate::prelude::*;

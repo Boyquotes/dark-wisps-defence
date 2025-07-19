@@ -18,11 +18,15 @@ path = "lib-grid"
 [dependencies.lib-inventory]
 path = "lib-inventory"
 
+[dependencies.lib-ui]
+path = "lib-ui"
+
 [workspace]
 members = [
   "lib-core",
   "lib-grid",
   "lib-inventory",
+  "lib-ui",
 ]
 
 [profile.release]

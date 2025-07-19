@@ -1,0 +1,120 @@
+use bevy::color::palettes::css::GREEN;
+
+use crate::lib_prelude::*;
+
+pub struct HealthbarPlugin;
+impl Plugin for HealthbarPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_systems(Update, (
+                on_healthbar_changed_system,
+            ))
+            .add_observer(Healthbar::on_add);
+
+    }
+}
+
+
+#[derive(Component)]
+#[require(Node)]
+pub struct Healthbar {
+    pub value: f32,
+    pub max_value: f32,
+    pub font_size: f32,
+    pub color: Color,
+}
+impl Default for Healthbar {
+    fn default() -> Self {
+        Self { value: 0., max_value: 0., font_size: 16., color: GREEN.into() }
+    }
+}
+impl Healthbar {
+    pub fn get_percent(&self) -> f32 {
+        if self.max_value == 0. { 100. }
+        else { self.value / self.max_value * 100. }
+    }
+
+    fn on_add(
+        trigger: Trigger<OnAdd, Healthbar>,
+        mut commands: Commands,
+        healthbars: Query<&Healthbar>,
+    ) {
+        let healthbar_entity = trigger.target();
+        let Ok(healthbar) = healthbars.get(healthbar_entity) else { return; };
+        let mut healthbar_children = HealthbarChildren {
+            value_rectangle: Entity::PLACEHOLDER,
+            value_text: Entity::PLACEHOLDER,
+        };
+        commands.entity(healthbar_entity).with_children(|parent| {
+            parent.spawn((
+                // Bottom rectangle(background)
+                Node {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    border: UiRect::all(Val::Px(2.0)),
+                    ..default()
+                },
+                BackgroundColor::from(Color::linear_rgba(0., 0., 0., 0.)),
+                BorderColor::from(Color::linear_rgba(0., 0.2, 1., 1.)),
+            )).with_children(|parent| {
+                // Top rectangle(health)
+                healthbar_children.value_rectangle = parent.spawn((
+                    Node {
+                        width: Val::Percent(healthbar.get_percent()),
+                        height: Val::Percent(100.),
+                        ..default()
+                    },
+                    BackgroundColor::from(healthbar.color),
+                    HealthbarValueRectangle,
+                )).id();
+                // Current hp text
+                parent.spawn((
+                    // This additional container is needed to center the text as no combination of flex_direction, justify_content and align_items work
+                    Node {
+                        position_type: PositionType::Absolute,
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                )).with_children(|parent| {
+                        healthbar_children.value_text = parent.spawn((
+                            Text::new(format!("{:.0} / {:.0}", healthbar.value, healthbar.max_value)),
+                            TextFont::default().with_font_size(healthbar.font_size),
+                            TextColor::BLACK,
+                            TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                            Node {
+                                top: Val::Px(-2.0), // Looks more centered
+                                ..default()
+                            },
+                            HealthbarValueText,
+                        )).id();
+                    });
+                });
+        }).insert(healthbar_children);
+    }
+}
+#[derive(Component)]
+struct HealthbarChildren {
+    value_rectangle: Entity,
+    value_text: Entity,
+}
+#[derive(Component)]
+struct HealthbarValueText;
+#[derive(Component)]
+struct HealthbarValueRectangle;
+
+fn on_healthbar_changed_system(
+    healthbars: Query<(&Healthbar, &HealthbarChildren), Changed<Healthbar>>,
+    mut value_rectangles: Query<(&mut Node, &mut BackgroundColor), With<HealthbarValueRectangle>>,
+    mut texts: Query<&mut Text, With<HealthbarValueText>>,
+) {
+    for (healthbar, children) in healthbars.iter() {
+        let Ok((mut style, mut background_color)) = value_rectangles.get_mut(children.value_rectangle) else { unreachable!() };
+        style.width = Val::Percent(healthbar.get_percent());
+        background_color.0 = healthbar.color;
+        let Ok(mut text) = texts.get_mut(children.value_text) else { unreachable!() };
+        text.0 = format!("{} / {}", healthbar.value, healthbar.max_value);
+    }
+}

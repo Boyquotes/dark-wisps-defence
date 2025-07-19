@@ -8,16 +8,11 @@ pub mod grid_object_placer;
 
 use crate::prelude::*;
 
-pub mod prelude {
-    pub use super::common::{AdvancedInteraction, Healthbar, CostIndicator};
-}
-
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins((
-                common::UiCommonPlugin,
                 badges::BadgesPlugin,
                 display_info_panel::DisplayInfoPanelPlugin,
                 grid_object_placer::GridObjectPlacerPlugin,

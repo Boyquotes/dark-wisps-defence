@@ -1,6 +1,7 @@
-use crate::prelude::*;
+use lib_ui::utils::recolor_background_on;
 
-use super::common::recolor_background_on;
+
+use crate::prelude::*;
 
 pub struct BadgesPlugin;
 impl Plugin for BadgesPlugin {

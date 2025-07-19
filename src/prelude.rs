@@ -8,4 +8,3 @@ pub use lib_core::prelude::*;
 pub use lib_inventory::prelude::*;
 
 pub use crate::buildings::prelude::*;
-pub use crate::ui::prelude::*;

@@ -35,6 +35,7 @@ fn main() {
             lib_grid::grids::GridsPlugin,
             lib_core::LibCorePlugin,
             lib_inventory::LibInventoryPlugin,
+            lib_ui::LibUiPlugin,
         ))
         .add_plugins((
             data_loader::DataLoaderPlugin,

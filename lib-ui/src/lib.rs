@@ -11,7 +11,6 @@ impl Plugin for LibUiPlugin {
             .add_plugins((
                 healthbar::HealthbarPlugin,
                 cost_indicator::CostIndicatorPlugin,
-                utils::UtilsPlugin,
             ));
     }
 }
@@ -19,7 +18,6 @@ impl Plugin for LibUiPlugin {
 pub mod prelude {
     pub use crate::healthbar::Healthbar;
     pub use crate::cost_indicator::CostIndicator;
-    pub use crate::utils::AdvancedInteraction;
 }
 
 pub mod lib_prelude {

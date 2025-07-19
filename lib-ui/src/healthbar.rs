@@ -80,14 +80,10 @@ impl Healthbar {
                     },
                 )).with_children(|parent| {
                         healthbar_children.value_text = parent.spawn((
-                            Text::new(format!("{:.0} / {:.0}", healthbar.value, healthbar.max_value)),
+                            Text::default(),
                             TextFont::default().with_font_size(healthbar.font_size),
                             TextColor::BLACK,
                             TextLayout::new_with_linebreak(LineBreak::NoWrap),
-                            Node {
-                                top: Val::Px(-2.0), // Looks more centered
-                                ..default()
-                            },
                             HealthbarValueText,
                         )).id();
                     });
@@ -109,12 +105,13 @@ fn on_healthbar_changed_system(
     healthbars: Query<(&Healthbar, &HealthbarChildren), Changed<Healthbar>>,
     mut value_rectangles: Query<(&mut Node, &mut BackgroundColor), With<HealthbarValueRectangle>>,
     mut texts: Query<&mut Text, With<HealthbarValueText>>,
-) {
+) -> Result<()> {
     for (healthbar, children) in healthbars.iter() {
-        let Ok((mut style, mut background_color)) = value_rectangles.get_mut(children.value_rectangle) else { unreachable!() };
+        let (mut style, mut background_color) = value_rectangles.get_mut(children.value_rectangle)?;
         style.width = Val::Percent(healthbar.get_percent());
         background_color.0 = healthbar.color;
-        let Ok(mut text) = texts.get_mut(children.value_text) else { unreachable!() };
+        let mut text = texts.get_mut(children.value_text)?;
         text.0 = format!("{} / {}", healthbar.value, healthbar.max_value);
     }
+    Ok(())
 }

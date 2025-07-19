@@ -7,7 +7,6 @@ impl Plugin for CostIndicatorPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Update, (
-                //on_healthbar_changed_system,
                 on_cost_indicator_changed_system,
                 calculate_cost_indicator_has_required_resources_system.run_if(resource_changed::<Stock>),
             ))
@@ -83,7 +82,7 @@ impl CostIndicator {
                 },
             )).with_children(|parent| {
                 cost_indicator_children.value_text = parent.spawn((
-                    Text::new(format!("{}", cost_indicator.cost.amount)),
+                    Text::default(),
                     TextFont::default().with_font_size(cost_indicator.font_size),
                     TextColor::from(cost_indicator.font_color),
                     TextLayout::new_with_linebreak(LineBreak::NoWrap),
@@ -111,14 +110,15 @@ fn on_cost_indicator_changed_system(
     cost_indicators: Query<(&CostIndicator, &CostIndicatorChildren), Changed<CostIndicator>>,
     mut texts: Query<&mut Text, With<CostIndicatorValueText>>,
     mut border_rectangles: Query<&mut BorderColor, With<CostIndicatorBorderRectangle>>,
-) {
+) -> Result<()> {
     for (cost_indicator, children) in cost_indicators.iter() {
-        let Ok(mut text) = texts.get_mut(children.value_text) else { unreachable!() };
+        let mut text = texts.get_mut(children.value_text)?;
         text.0 = format!("{}", cost_indicator.cost.amount);
 
-        let Ok(mut border_color) = border_rectangles.get_mut(children.border_rectangle) else { unreachable!() };
+        let mut border_color = border_rectangles.get_mut(children.border_rectangle)?;
         border_color.0 = if cost_indicator.has_required_resources{ GREEN.into() } else { RED.into() };
     }
+    Ok(())
 }
 
 fn calculate_cost_indicator_has_required_resources_system(

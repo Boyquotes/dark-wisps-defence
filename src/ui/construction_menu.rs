@@ -263,7 +263,7 @@ fn get_extended_construct_button_world_rect(translation: Vec3) -> Rect {
     Rect::new(
         translation.x - CONSTRUCT_MENU_BUTTON_WIDTH / 2.,
         translation.y - CONSTRUCT_MENU_BUTTON_HEIGHT / 2.,
-        translation.x + CONSTRUCT_MENU_BUTTON_WIDTH / 2. + 20., 
+        translation.x + CONSTRUCT_MENU_BUTTON_WIDTH / 2. + 30., 
         translation.y + CONSTRUCT_MENU_BUTTON_HEIGHT / 2.,
     )
 }

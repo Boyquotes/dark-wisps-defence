@@ -20,6 +20,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
+                // VSync is causing a lot of issues with mouse events processing
                 .set(WindowPlugin{ primary_window: Some(Window { present_mode: bevy::window::PresentMode::AutoNoVsync, ..default()}), ..default() }),
             buildings::BuildingsPlugin,
             effects::EffectsPlugin,

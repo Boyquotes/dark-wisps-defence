@@ -27,12 +27,12 @@ impl Plugin for QuantumFieldPlugin {
                 (
                     update_quantum_field_info_panel_system,
                     update_quantum_field_action_button_system.after(update_quantum_field_info_panel_system), // This ordering prevents button flickering
-                    on_quantum_field_action_button_click_system.after(update_quantum_field_action_button_system), // This ordering prevents button flickering
                 ).run_if(in_state(UiInteraction::DisplayInfoPanel)),
             ))
             .add_observer(BuilderQuantumField::on_add)
             .add_observer(GridPlacerUiForQuantumField::on_add)
             .add_observer(ArrowButton::on_add)
+            .add_observer(QuantumFieldActionButton::on_add)
             .add_observer(on_ui_map_object_focus_changed_trigger);
     }
 }
@@ -341,12 +341,65 @@ struct QuantumFieldLayerCostsContainer;
 #[derive(Component)]
 struct QuantumFieldLayerCostPanel;
 #[derive(Component, Default, PartialEq)]
+#[require(Button)]
 enum QuantumFieldActionButton {
     #[default]
     Hidden,
     SendExpeditions,
     StopExpeditions,
     PayCost,
+}
+impl QuantumFieldActionButton {
+    fn on_add(
+        trigger: Trigger<OnAdd, QuantumFieldActionButton>,
+        mut commands: Commands,
+    ) {
+        commands.entity(trigger.target()).insert((
+            Node {
+                width: Val::Percent(50.),
+                height: Val::Px(20.),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            BackgroundColor::from(Color::linear_rgba(0., 0., 0.2, 0.2)),
+            BorderColor::from(Color::linear_rgba(0., 0.2, 1., 1.)),
+            children![(
+                Text::new("Send Expeditions / Stop Expeditions / Pay cost"),
+                TextColor::from(BLUE),
+                TextFont::default().with_font_size(12.0),
+                QuantumFieldActionButtonText,
+            )],
+        )).observe(Self::on_click);
+    }
+    fn on_click(
+        _trigger: Trigger<Pointer<Click>>,
+        mut commands: Commands,
+        mut stock: ResMut<Stock>,
+        display_info_panel: Query<&DisplayInfoPanel>,
+        mut action_button: Query<&mut QuantumFieldActionButton>,
+        mut quantum_fields: Query<&mut QuantumField>,
+    ) {
+        let focused_entity = display_info_panel.single().unwrap().current_focus;
+        let mut action_button = action_button.single_mut().unwrap();
+        match *action_button {
+            QuantumFieldActionButton::SendExpeditions => {
+                commands.entity(focused_entity).insert(ExpeditionTargetMarker);
+            },
+            QuantumFieldActionButton::StopExpeditions => {
+                commands.entity(focused_entity).remove::<ExpeditionTargetMarker>();
+            },
+            QuantumFieldActionButton::PayCost => {
+                let Ok(mut quantum_field) = quantum_fields.get_mut(focused_entity) else { return; };
+                if stock.try_pay_costs(quantum_field.get_current_layer_costs()) {
+                    quantum_field.move_to_next_layer();
+                    commands.trigger_targets(UiMapObjectFocusedTrigger, [focused_entity]);
+                }
+            },
+            QuantumFieldActionButton::Hidden => {},
+        }
+        *action_button = QuantumFieldActionButton::Hidden; // To make sure no multi-trigger occurs
+    }
 }
 #[derive(Component)]
 struct QuantumFieldActionButtonText;
@@ -449,36 +502,6 @@ fn update_quantum_field_action_button_system(
     }
 }
 
-fn on_quantum_field_action_button_click_system(
-    mut commands: Commands,
-    mut stock: ResMut<Stock>,
-    display_info_panel: Query<&DisplayInfoPanel>,
-    mut action_button: Query<(&mut QuantumFieldActionButton, &AdvancedInteraction)>,
-    mut quantum_fields: Query<&mut QuantumField>,
-) {
-    let focused_entity = display_info_panel.single().unwrap().current_focus;
-    let Ok((mut action_button, interaction)) = action_button.single_mut() else { return; };
-    if interaction.was_just_released {
-        match *action_button {
-            QuantumFieldActionButton::SendExpeditions => {
-                commands.entity(focused_entity).insert(ExpeditionTargetMarker);
-            },
-            QuantumFieldActionButton::StopExpeditions => {
-                commands.entity(focused_entity).remove::<ExpeditionTargetMarker>();
-            },
-            QuantumFieldActionButton::PayCost => {
-                let Ok(mut quantum_field) = quantum_fields.get_mut(focused_entity) else { return; };
-                if stock.try_pay_costs(quantum_field.get_current_layer_costs()) {
-                    quantum_field.move_to_next_layer();
-                    commands.trigger_targets(UiMapObjectFocusedTrigger, [focused_entity]);
-                }
-            },
-            QuantumFieldActionButton::Hidden => {},
-        }
-        *action_button = QuantumFieldActionButton::Hidden; // To make sure no multi-trigger occurs
-    }
-}
-
 
 fn initialize_quantum_field_panel_content_system(
     mut commands: Commands,
@@ -498,98 +521,79 @@ fn initialize_quantum_field_panel_content_system(
                 ..default()
             },
             QuantumFieldPanel,
-        )).with_children(|parent| {
-            // Top line of the panel
-            parent.spawn((
-                Node {
-                    width: Val::Percent(100.),
-                    flex_direction: FlexDirection::Row,
-                    justify_content: JustifyContent::Start,
-                    ..default()
-                },
-            )).with_children(|parent| {
-                // Structure name
-                parent.spawn((
-                    Text::new("Quantum Field"),
-                    TextColor::from(BLUE),
-                    TextLayout::new_with_linebreak(LineBreak::NoWrap),
-                    Node {
-                        margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
-                        ..default()
-                    },
-                ));
-            });
-            // Panel Body
-            parent.spawn((
-                Node {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    border: UiRect::all(Val::Px(2.0)),
-                    ..default()
-                },
-                //BackgroundColor::from(Color::linear_rgba(0., 0., 0., 0.)),
-                //BorderColor::from(Color::linear_rgba(0., 0.2, 1., 1.)),
-            )).with_children(|parent| {
-                parent.spawn(Node {
-                    width: Val::Percent(100.),
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                }).with_children(|parent| {
-                    parent.spawn((
-                        Text::new("Quantum Layer #/#"),
-                        TextColor::from(BLUE),
-                        TextFont::default().with_font_size(16.0),
-                        QuantumFieldLayerText,
-                    ));
-                });
-                parent.spawn((
-                    Node {
-                        top: Val::Px(2.0),
-                        width: Val::Percent(60.),
-                        height: Val::Px(20.),
-                        ..default()
-                    },
-                    Healthbar {
-                        color: AQUA.into(),
-                        ..default()
-                    },
-                    QuantumFieldLayerHealthbar,
-                ));
-                // Costs Panel - content is dynamic and managed from a dedicated system
-                parent.spawn((
+            children![
+                // Top line of the panel
+                (
                     Node {
                         width: Val::Percent(100.),
                         flex_direction: FlexDirection::Row,
-                        justify_content: JustifyContent::Center,
+                        justify_content: JustifyContent::Start,
                         ..default()
                     },
-                    QuantumFieldLayerCostsContainer,
-                ));
-                // [Send Expeditions / Stop Expeditions / Pay Cost] Button.
-                parent.spawn((
-                    Button::default(),
-                    Node {
-                        width: Val::Percent(50.),
-                        height: Val::Px(20.),
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    BackgroundColor::from(Color::linear_rgba(0., 0., 0.2, 0.2)),
-                    BorderColor::from(Color::linear_rgba(0., 0.2, 1., 1.)),
-                    AdvancedInteraction::default(),
-                    QuantumFieldActionButton::default(),
-                )).with_children(|parent| {
-                    parent.spawn((
-                        Text::new("Send Expeditions / Stop Expeditions / Pay cost"),
+                    children![(
+                        Text::new("Quantum Field"),
                         TextColor::from(BLUE),
-                        TextFont::default().with_font_size(12.0),
-                        QuantumFieldActionButtonText,
-                    ));
-                });
-            });
-        });
+                        TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                        Node {
+                            margin: UiRect{ left: Val::Px(4.), right: Val::Px(4.), ..default() },
+                            ..default()
+                        },
+                    )],
+                ),
+                // Panel Body
+                (
+                    Node {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(Val::Px(2.0)),
+                        ..default()
+                    },
+                    //BackgroundColor::from(Color::linear_rgba(0., 0., 0., 0.)),
+                    //BorderColor::from(Color::linear_rgba(0., 0.2, 1., 1.)),
+                    children![
+                        (
+                            Node {
+                                width: Val::Percent(100.),
+                                justify_content: JustifyContent::Center,
+                                ..default()
+                            },
+                            children![(
+                                Text::new("Quantum Layer #/#"),
+                                TextColor::from(BLUE),
+                                TextFont::default().with_font_size(16.0),
+                                QuantumFieldLayerText,
+                            )]
+                        ),
+                        (
+                            Node {
+                                top: Val::Px(2.0),
+                                width: Val::Percent(60.),
+                                height: Val::Px(20.),
+                                ..default()
+                            },
+                            Healthbar {
+                                color: AQUA.into(),
+                                ..default()
+                            },
+                            QuantumFieldLayerHealthbar,
+                        ),
+                        // Costs Panel - content is dynamic and managed from a dedicated system
+                        (
+                            Node {
+                                width: Val::Percent(100.),
+                                flex_direction: FlexDirection::Row,
+                                justify_content: JustifyContent::Center,
+                                ..default()
+                            },
+                            QuantumFieldLayerCostsContainer,
+                        ),
+                        // [Send Expeditions / Stop Expeditions / Pay Cost] Button.
+                        QuantumFieldActionButton::default(),
+                    ]
+                ),
+            ],
+        ));
     });
 }

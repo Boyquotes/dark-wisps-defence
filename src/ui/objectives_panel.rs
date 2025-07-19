@@ -7,13 +7,14 @@ impl Plugin for ObjectivesPanelPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_state::<ObjectivesPanelState>()
-            .add_systems(Startup, initialize_objectives_panel_system)
+            .add_systems(Startup, |mut commands: Commands| { commands.spawn(ObjectivesPanel); })
             .add_systems(Update, (
                 panel_transition_to_hidden_system.run_if(in_state(ObjectivesPanelState::TransitionToHidden)),
                 panel_transition_to_visible_system.run_if(in_state(ObjectivesPanelState::TransitionToVisible)),
                 on_click_show_hide_objectives_system,
             ))
-            .add_observer(on_objective_created_observer);
+            .add_observer(on_objective_created_observer)
+            .add_observer(ObjectivesPanel::on_add);
     }
 }
 
@@ -21,8 +22,7 @@ const SLIDING_SPEED: f32 = 800.;
 const VISIBLE_TOP_POSITION: f32 = 5.;
 
 #[derive(Component)]
-pub struct ObjectivesPanel;
-#[derive(Component)]
+#[require(Button)]
 pub struct ObjectivesShowHideButton;
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum ObjectivesPanelState {
@@ -33,47 +33,50 @@ pub enum ObjectivesPanelState {
     TransitionToHidden,
 }
 
-fn initialize_objectives_panel_system(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
-    commands.spawn((
-        Node {
-            width: Val::Px(300.0),
-            position_type: PositionType::Absolute,
-            flex_direction: FlexDirection::Column,
-            top: Val::Px(VISIBLE_TOP_POSITION),
-            right: Val::Px(5.0),
-            padding: UiRect::all(Val::Px(8.0)),
-            row_gap: Val::Px(2.0),
-            ..default()
-        },
-        ImageNode {
-            image: asset_server.load("ui/objectives_panel.png"),
-            image_mode: NodeImageMode::Sliced(TextureSlicer {
-                border: BorderRect::all(20.0),
-                center_scale_mode: SliceScaleMode::Stretch,
-                sides_scale_mode: SliceScaleMode::Stretch,
-                max_corner_scale: 1.0,
-            }),
-            ..default()
-        },
-        ObjectivesPanel,
-    )).with_children(|parent| {
-        parent.spawn((
-            Button::default(),
+#[derive(Component)]
+pub struct ObjectivesPanel;
+impl ObjectivesPanel {
+    fn on_add(
+        trigger: Trigger<OnAdd, ObjectivesPanel>,
+        mut commands: Commands,
+        asset_server: Res<AssetServer>,
+    ) {
+        let entity = trigger.target();
+        commands.entity(entity).insert((
             Node {
-                width: Val::Px(32.0),
-                height: Val::Px(32.0),
+                width: Val::Px(300.0),
                 position_type: PositionType::Absolute,
-                bottom: Val::Px(-34.0),
+                flex_direction: FlexDirection::Column,
+                top: Val::Px(VISIBLE_TOP_POSITION),
                 right: Val::Px(5.0),
+                padding: UiRect::all(Val::Px(8.0)),
+                row_gap: Val::Px(2.0),
                 ..default()
             },
-            ImageNode::new(asset_server.load("ui/objectives_panel.png")),
-            ObjectivesShowHideButton,
+            ImageNode {
+                image: asset_server.load("ui/objectives_panel.png"),
+                image_mode: NodeImageMode::Sliced(TextureSlicer {
+                    border: BorderRect::all(20.0),
+                    center_scale_mode: SliceScaleMode::Stretch,
+                    sides_scale_mode: SliceScaleMode::Stretch,
+                    max_corner_scale: 1.0,
+                }),
+                ..default()
+            },
+            children![(
+                Node {
+                    width: Val::Px(32.0),
+                    height: Val::Px(32.0),
+                    position_type: PositionType::Absolute,
+                    bottom: Val::Px(-34.0),
+                    right: Val::Px(5.0),
+                    ..default()
+                },
+                ImageNode::new(asset_server.load("ui/objectives_panel.png")),
+                ObjectivesShowHideButton,
+            )],
         ));
-    });
+    }
 }
 
 fn on_objective_created_observer(

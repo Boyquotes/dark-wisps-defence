@@ -180,26 +180,27 @@ fn initialize_display_info_panel_system(
         BorderRadius::all(Val::Px(7.)),
         Visibility::Hidden,
         DisplayInfoPanel::default(),
-    )).with_children(|parent| {
-        // Camera image (Left side)
-        parent.spawn((
-            Node {
-                min_width: Val::Px(128.0),
-                min_height: Val::Px(128.0),
-                border: UiRect::all(Val::Px(2.0)),
-                ..default()
-            },
-            BorderColor::from(YELLOW),
-            ImageNode::new(camera_image_handle),
-        ));
-        // Right panels, content is provided by external sub-panels
-        parent.spawn((
-            Node {
-                height: Val::Percent(100.),
-                width: Val::Percent(100.),
-                ..default()
-            },
-            DisplayPanelMainContentRoot,
-        ));
-    });
+        children![
+            // Camera image (Left side)
+            (
+                Node {
+                    min_width: Val::Px(128.0),
+                    min_height: Val::Px(128.0),
+                    border: UiRect::all(Val::Px(2.0)),
+                    ..default()
+                },
+                BorderColor::from(YELLOW),
+                ImageNode::new(camera_image_handle),
+            ),
+            // Right panels, content is provided by external sub-panels
+            (
+                Node {
+                    height: Val::Percent(100.),
+                    width: Val::Percent(100.),
+                    ..default()
+                },
+                DisplayPanelMainContentRoot,
+            ),
+        ]
+    ));
 }

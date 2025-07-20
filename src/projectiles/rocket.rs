@@ -54,20 +54,6 @@ impl BuilderRocket {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
         
-        let exhaust = commands.spawn((
-            Sprite {
-                image: asset_server.load(ROCKET_EXHAUST_IMAGE),
-                custom_size: Some(Vec2::new(10.0, 6.25)),
-                anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
-                ..default()
-            },
-            Transform {
-                translation: Vec2::ZERO.extend(Z_PROJECTILE_UNDER),
-                ..default()
-            },
-            RocketExhaust,
-        )).id();
-        
         commands.entity(entity)
             .remove::<BuilderRocket>()
             .insert((
@@ -84,8 +70,18 @@ impl BuilderRocket {
                 Projectile,
                 Rocket,
                 RocketTarget(builder.target_wisp),
-            ))
-            .add_child(exhaust);
+                // Exhaust
+                children![(
+                    Sprite {
+                        image: asset_server.load(ROCKET_EXHAUST_IMAGE),
+                        custom_size: Some(Vec2::new(10.0, 6.25)),
+                        anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
+                        ..default()
+                    },
+                    ZDepth(Z_PROJECTILE_UNDER),
+                    RocketExhaust,
+                )]
+            ));
     }
 }
 

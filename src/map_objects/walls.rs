@@ -11,7 +11,7 @@ impl Plugin for WallPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Update, (
-                onclick_spawn_system,
+                onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 color_rotation_system,
             ))
             .add_observer(BuilderWall::on_add);

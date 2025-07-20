@@ -66,8 +66,8 @@ impl BuilderTowerRocketLauncher {
                 anchor: Anchor::Custom(Vec2::new(-0.20, 0.0)),
                 ..Default::default()
             },
-            Transform::from_translation(Vec3::new(0., 0., Z_TOWER_TOP)),
-            MarkerTowerRotationalTop(tower_base_entity.into()),
+            ZDepth(Z_TOWER_TOP),
+            MarkerTowerRotationalTop(tower_base_entity),
         )).id();
         commands.entity(entity).add_child(tower_top);
     }

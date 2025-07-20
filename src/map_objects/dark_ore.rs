@@ -10,7 +10,7 @@ impl Plugin for DarkOrePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Update, (
-                onclick_spawn_system,
+                onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 remove_empty_dark_ore_system,
             ))
             .add_observer(BuilderDarkOre::on_add);

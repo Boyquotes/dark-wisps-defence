@@ -60,10 +60,7 @@ impl BuilderCannonball {
                     custom_size: Some(Vec2::new(8.0, 8.0)),
                     ..default()
                 },
-                Transform {
-                    translation: builder.world_position.extend(Z_PROJECTILE),
-                    ..default()
-                },
+                Transform::from_translation(builder.world_position.extend(Z_PROJECTILE)),
                 Projectile,
                 Cannonball,
                 CannonballTarget {

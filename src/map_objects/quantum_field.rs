@@ -21,12 +21,12 @@ impl Plugin for QuantumFieldPlugin {
                 initialize_quantum_field_panel_content_system,
             ))
             .add_systems(Update, (
-                onclick_spawn_system,
+                onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 operate_arrows_for_grid_placer_ui_for_quantum_field_system,
                 process_expeditions_system.run_if(in_state(GameState::Running)),
                 (
                     update_quantum_field_info_panel_system,
-                    update_quantum_field_action_button_system.after(update_quantum_field_info_panel_system), // This ordering prevents button flickering
+                    update_quantum_field_action_button_system,
                 ).run_if(in_state(UiInteraction::DisplayInfoPanel)),
             ))
             .add_observer(BuilderQuantumField::on_add)

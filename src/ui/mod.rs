@@ -18,6 +18,7 @@ impl Plugin for UiPlugin {
                 grid_object_placer::GridObjectPlacerPlugin,
                 objectives_panel::ObjectivesPanelPlugin,
                 construction_menu::ConstructionMenuPlugin,
+                common::CommonPlugin,
             ))
             .insert_resource(UiConfig::default())
             .add_systems(Update, (

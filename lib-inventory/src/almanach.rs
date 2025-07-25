@@ -25,13 +25,13 @@ pub struct AlmanachBuildingInfo {
     pub upgrades: Vec<AlmanachUpgradeInfo>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AlmanachUpgradeInfo {
     pub upgrade_type: UpgradeType,
     pub levels: Vec<AlmanachUpgradeLevelInfo>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AlmanachUpgradeLevelInfo {
     pub cost: Vec<Cost>,
     pub value: f32,

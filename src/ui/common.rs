@@ -1,6 +1,15 @@
-use bevy::text::LineBreak;
+use bevy::{ecs::spawn::SpawnIter, text::LineBreak};
+use lib_ui::prelude::CostIndicator;
 
 use crate::prelude::*;
+
+pub struct CommonPlugin;
+impl Plugin for CommonPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_observer(on_upgrade_button_added_trigger);
+    }
+}
 
 ////////////////////////////////////////////
 ////          Upgrade Button            ////
@@ -15,8 +24,6 @@ pub struct UpgradeButton {
 struct UpgradeButtonChildren {
     // TODO;
 }
-#[derive(Event)]
-pub struct UpgradeButtonRebuildTrigger;
 
 pub fn on_upgrade_button_added_trigger(
     trigger: Trigger<OnAdd, UpgradeButton>,
@@ -25,6 +32,7 @@ pub fn on_upgrade_button_added_trigger(
 ) {
     let upgrade_button_entity = trigger.target();
     let Ok(upgrade_button) = upgrade_buttons.get(upgrade_button_entity) else { return; };
+    let current_upgrade_level = upgrade_button.current_level;
 
     // Spawn the full upgrade button structure
     commands.entity(upgrade_button_entity).with_children(|parent| {
@@ -32,7 +40,7 @@ pub fn on_upgrade_button_added_trigger(
             Node {
                 width: Val::Percent(100.),
                 height: Val::Percent(100.),
-                flex_direction: FlexDirection::Column,
+                flex_direction: FlexDirection::Row,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..default()
@@ -56,15 +64,10 @@ pub fn on_upgrade_button_added_trigger(
                     align_items: AlignItems::Center,
                     ..default()
                 },
+                Children::spawn(
+                    SpawnIter(upgrade_button.upgrades_info.levels[current_upgrade_level].cost.clone().into_iter().map(|cost| CostIndicator { cost, ..default() })),
+                ),
             ));
         });
     });
-}
-
-fn on_upgrade_button_rebuild_trigger(
-    trigger: Trigger<UpgradeButtonRebuildTrigger>,
-    mut commands: Commands,
-    upgrade_buttons: Query<Entity, With<UpgradeButton>>,
-) {
-    let upgrade_button_entity = trigger.target();
 }

@@ -112,6 +112,11 @@ impl std::fmt::Display for UpgradeType {
 
 #[derive(Component, Default)]
 pub struct Upgrades(pub HashMap<UpgradeType, usize>);
+impl Upgrades {
+    pub fn total(&self) -> usize {
+        self.0.values().sum()
+    }
+}
 
 #[derive(Component)]
 #[component(immutable)]

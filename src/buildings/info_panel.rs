@@ -2,6 +2,7 @@ use bevy::color::palettes::css::BLUE;
 use lib_ui::healthbar::Healthbar;
 
 use crate::prelude::*;
+use crate::ui::common::UpgradeButton;
 use crate::ui::display_info_panel::{DisplayInfoPanel, DisplayPanelMainContentRoot, UiMapObjectFocusedTrigger};
 
 
@@ -130,16 +131,45 @@ fn initialize_building_panel_content_system(
 // Tower subpanel section
 fn on_building_info_panel_enabled_for_towers_trigger(
     trigger: Trigger<BuildingInfoPanelEnabledTrigger>,
+    mut commands: Commands,
     mut tower_subpanel_root: Query<&mut Node, With<BuildingInfoPanelTowerRoot>>,
-    towers: Query<(), With<MarkerTower>>,
+    towers: Query<(&BuildingType, &Upgrades), With<MarkerTower>>,
+    upgrades_containers: Query<Entity, With<BuildingInfoPanelTowerUpgradesContainer>>,
+    almanach: Res<Almanach>,
 ){
     let focused_entity = trigger.target();
-    if !towers.contains(focused_entity) {
+    let Ok((building_type, current_upgrades)) = towers.get(focused_entity) else {
         tower_subpanel_root.single_mut().unwrap().display = Display::None;
         return;
-    }
+    };
     tower_subpanel_root.single_mut().unwrap().display = Display::Flex;
+
+    // Rebuild the upgrades container
+    let upgrades_container = upgrades_containers.single().unwrap();
     
+    // Clear all existing children
+    commands.entity(upgrades_container).despawn_related::<Children>();
+
+    // Get building info from almanach
+    let building_info = almanach.get_building_info(*building_type);
+    
+    // Create upgrade buttons for each available upgrade
+    commands.entity(upgrades_container).with_children(|parent| {
+        for upgrade_info in &building_info.upgrades {
+            println!("Upgrade type: {:?}", upgrade_info.upgrade_type);
+            let current_level = *current_upgrades.0.get(&upgrade_info.upgrade_type).unwrap_or(&0);
+            
+            // Only show if not maxed out
+            if current_level < upgrade_info.levels.len() {
+                parent.spawn((
+                    UpgradeButton {
+                        upgrades_info: upgrade_info.clone(),
+                        current_level,
+                    },
+                ));
+            }
+        }
+    });
 }
 
 fn tower_subpanel_content_bundle() -> impl Bundle {

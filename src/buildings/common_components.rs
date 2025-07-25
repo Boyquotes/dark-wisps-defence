@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::prelude::*;
 
 #[derive(Component, Default)]
+#[require(Upgrades)]
 pub struct MarkerTower;
 
 

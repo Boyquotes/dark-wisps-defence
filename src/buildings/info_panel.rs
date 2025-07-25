@@ -69,15 +69,6 @@ fn on_ui_map_object_focus_changed_trigger(
     building_name_text.single_mut().unwrap().0 = almanach.get_building_info(*building_type).name.to_string();
 }
 
-fn on_building_info_panel_enabled_for_towers_trigger(
-    trigger: Trigger<BuildingInfoPanelEnabledTrigger>,
-    mut tower_subpanel_root: Query<&mut Node, With<BuildingInfoPanelTowerRoot>>,
-    towers: Query<(), With<MarkerTower>>,
-){
-    let focused_entity = trigger.target();
-    tower_subpanel_root.single_mut().unwrap().display = if towers.contains(focused_entity) { Display::Flex } else { Display::None };
-}
-
 fn initialize_building_panel_content_system(
     mut commands: Commands,
     display_info_panel_main_content_root: Query<Entity, With<DisplayPanelMainContentRoot>>,
@@ -134,6 +125,21 @@ fn initialize_building_panel_content_system(
             ],
         ));
     });
+}
+
+// Tower subpanel section
+fn on_building_info_panel_enabled_for_towers_trigger(
+    trigger: Trigger<BuildingInfoPanelEnabledTrigger>,
+    mut tower_subpanel_root: Query<&mut Node, With<BuildingInfoPanelTowerRoot>>,
+    towers: Query<(), With<MarkerTower>>,
+){
+    let focused_entity = trigger.target();
+    if !towers.contains(focused_entity) {
+        tower_subpanel_root.single_mut().unwrap().display = Display::None;
+        return;
+    }
+    tower_subpanel_root.single_mut().unwrap().display = Display::Flex;
+    
 }
 
 fn tower_subpanel_content_bundle() -> impl Bundle {

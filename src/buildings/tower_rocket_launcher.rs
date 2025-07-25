@@ -73,7 +73,7 @@ impl BuilderTowerRocketLauncher {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_rocket_launchers: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), (With<TowerRocketLauncher>, Without<Wisp>)>,
+    mut tower_rocket_launchers: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), With<TowerRocketLauncher>>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
     for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation) in tower_rocket_launchers.iter_mut() {

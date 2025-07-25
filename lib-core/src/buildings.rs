@@ -63,3 +63,15 @@ pub struct TowerRocketLauncher;
 #[derive(Component)]
 #[require(Building, BuildingType = BuildingType::Tower(TowerType::Emitter))]
 pub struct TowerEmitter;
+
+
+#[derive(Component, Default)]
+pub struct TechnicalState {
+    pub has_energy_supply: bool,
+    pub has_ore_fields: Option<bool>,
+}
+impl TechnicalState {
+    pub fn is_operational(&self) -> bool {
+        self.has_energy_supply && self.has_ore_fields.unwrap_or(true)
+    }
+}

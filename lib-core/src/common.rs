@@ -42,13 +42,13 @@ impl Health {
     }
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Clone)]
 pub struct Speed(pub f32);
-#[derive(Component, Default)]
+#[derive(Component, Default, Clone)]
 pub struct AttackSpeed(pub f32);
-#[derive(Component, Default)]
+#[derive(Component, Default, Clone)]
 pub struct AttackDamage(pub f32);
-#[derive(Component, Default)]
+#[derive(Component, Default, Clone)]
 pub struct AttackRange(pub usize);
 
 

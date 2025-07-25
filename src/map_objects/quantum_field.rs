@@ -467,10 +467,7 @@ fn on_ui_map_object_focus_changed_trigger(
                     margin: UiRect{ top: Val::Px(4.), bottom: Val::Px(4.), ..default() },
                     ..default()
                 },
-                CostIndicator {
-                    cost: *cost,
-                    ..default()
-                },
+                CostIndicator::from(*cost),
                 QuantumFieldLayerCostPanel,
             ));
         });

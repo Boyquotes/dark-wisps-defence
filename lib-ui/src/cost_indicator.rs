@@ -36,6 +36,14 @@ impl Default for CostIndicator {
         }
     }
 }
+impl From<Cost> for CostIndicator {
+    fn from(cost: Cost) -> Self {
+        Self {
+            cost,
+            ..default()
+        }
+    }
+}
 impl CostIndicator {
     fn on_add(   trigger: Trigger<OnAdd, CostIndicator>,
         mut commands: Commands,

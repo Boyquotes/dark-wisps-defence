@@ -2,11 +2,6 @@ use std::time::Duration;
 
 use crate::prelude::*;
 
-#[derive(Component, Clone, Debug, Default)]
-#[require(AutoGridTransformSync, ZDepth = ZDepth(Z_BUILDING))]
-//#[require(Level)]
-pub struct Building;
-
 #[derive(Component, Default)]
 pub struct TechnicalState {
     pub has_energy_supply: bool,
@@ -19,7 +14,6 @@ impl TechnicalState {
 }
 
 #[derive(Component, Default)]
-#[require(Building)]
 pub struct MarkerTower;
 
 
@@ -45,9 +39,6 @@ pub enum TowerWispTarget {
     Wisp(Entity),
     NoValidTargets(GridVersion),
 }
-
-#[derive(Component)]
-pub struct TowerRange(pub usize);
 
 #[derive(Component)]
 pub struct TowerTopRotation {

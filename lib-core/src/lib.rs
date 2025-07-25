@@ -34,4 +34,6 @@ pub mod lib_prelude {
     pub use serde::{Deserialize, Serialize};
     pub use bevy::prelude::*;
     pub use bevy::platform::collections::HashMap;
+
+    pub use crate::prelude::*;
 }

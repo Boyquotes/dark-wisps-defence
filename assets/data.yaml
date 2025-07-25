@@ -40,7 +40,7 @@ buildings:
     cost:
       - { resource_type: DarkOre, amount: 450 }
     upgrades:
-      - upgrade_type: Range
+      - upgrade_type: AttackRange
         levels:
           - value: 1
             cost: 

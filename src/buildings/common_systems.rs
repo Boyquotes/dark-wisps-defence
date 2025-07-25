@@ -120,7 +120,7 @@ pub fn onclick_building_spawn_system(
 pub fn targeting_system(
     obstacle_grid: Res<ObstacleGrid>,
     wisps_grid: Res<WispsGrid>,
-    mut towers: Query<(&GridCoords, &GridImprint, &TechnicalState, &TowerRange, &mut TowerWispTarget), (With<MarkerTower>, Without<Wisp>)>,
+    mut towers: Query<(&GridCoords, &GridImprint, &TechnicalState, &AttackRange, &mut TowerWispTarget), (With<MarkerTower>, Without<Wisp>)>,
     wisps: Query<&GridCoords, (With<Wisp>, Without<MarkerTower>)>,
 ) {
     for (coords, grid_imprint, technical_state, range, mut target) in towers.iter_mut() {

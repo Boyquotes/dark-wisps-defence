@@ -44,8 +44,6 @@ impl BuilderEnergyRelay {
                 },
                 builder.grid_position,
                 Health::new(100),
-                Building,
-                BuildingType::EnergyRelay,
                 EnergyRelay,
                 grid_imprint,
                 EmitterEnergy(FloodEmissionsDetails {

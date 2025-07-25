@@ -42,8 +42,15 @@ impl Health {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Speed(pub f32);
+#[derive(Component, Default)]
+pub struct AttackSpeed(pub f32);
+#[derive(Component, Default)]
+pub struct AttackDamage(pub f32);
+#[derive(Component, Default)]
+pub struct AttackRange(pub usize);
+
 
 #[derive(Component, Default)]
 pub struct ColorPulsation {
@@ -93,8 +100,8 @@ impl ColorPulsation {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UpgradeType {
     AttackSpeed,
-    Range,
-    Damage,
+    AttackRange,
+    AttackDamage,
     Health
 }
 impl std::fmt::Display for UpgradeType {

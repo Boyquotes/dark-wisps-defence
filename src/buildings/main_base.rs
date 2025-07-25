@@ -47,8 +47,6 @@ impl BuilderMainBase {
                 MainBase,
                 builder.grid_position,
                 Health::new(10000),
-                Building,
-                BuildingType::MainBase,
                 grid_imprint,
                 EmitterEnergy(FloodEmissionsDetails {
                     emissions_type: EmissionsType::Energy,

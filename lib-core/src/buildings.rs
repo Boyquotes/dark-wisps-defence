@@ -26,28 +26,40 @@ pub enum TowerType {
     Emitter,
 }
 
+#[derive(Component, Clone, Debug, Default)]
+#[require(AutoGridTransformSync, ZDepth = ZDepth(Z_BUILDING))]
+pub struct Building;
+
 #[derive(Component)]
+#[require(Building, BuildingType = BuildingType::MainBase)]
 pub struct MainBase;
 
 #[derive(Component)]
+#[require(Building, BuildingType = BuildingType::EnergyRelay)]
 pub struct EnergyRelay;
 
 #[derive(Component)]
+#[require(Building, BuildingType = BuildingType::MiningComplex)]
 pub struct MiningComplex {
     pub ore_entities_in_range: Vec<Entity>,
 }
 
 #[derive(Component)]
+#[require(Building, BuildingType = BuildingType::ExplorationCenter)]
 pub struct ExplorationCenter;
 
 #[derive(Component)]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::Blaster))]
 pub struct TowerBlaster;
 
 #[derive(Component)]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::Cannon))]
 pub struct TowerCannon;
 
 #[derive(Component)]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::RocketLauncher))]
 pub struct TowerRocketLauncher;
 
 #[derive(Component)]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::Emitter))]
 pub struct TowerEmitter;

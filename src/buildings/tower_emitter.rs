@@ -52,9 +52,7 @@ impl BuilderTowerEmitter {
                 TowerEmitter,
                 builder.grid_position,
                 Health::new(100),
-                TowerRange(4),
-                Building,
-                BuildingType::Tower(TowerType::Emitter),
+                AttackRange(4),
                 grid_imprint,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
@@ -65,7 +63,7 @@ impl BuilderTowerEmitter {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_emitters: Query<(&Transform, &TechnicalState, &TowerRange, &mut TowerShootingTimer, &mut TowerWispTarget), With<TowerEmitter>>,
+    mut tower_emitters: Query<(&Transform, &TechnicalState, &AttackRange, &mut TowerShootingTimer, &mut TowerWispTarget), With<TowerEmitter>>,
     wisps: Query<(), With<Wisp>>,
 ) {
     for (transform, technical_state, range, mut timer, mut target) in tower_emitters.iter_mut() {

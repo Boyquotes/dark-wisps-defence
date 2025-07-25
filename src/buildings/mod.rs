@@ -9,6 +9,7 @@ pub mod energy_relay;
 pub mod tower_rocket_launcher;
 pub mod mining_complex;
 pub mod exploration_center;
+pub mod info_panel;
 
 use crate::prelude::*;
 
@@ -24,6 +25,7 @@ impl Plugin for BuildingsPlugin {
             .add_event::<common::BuildingDestroyedEvent>()
             .add_plugins((
                 common_systems::CommonSystemsPlugin,
+                info_panel::InfoPanelPlugin,
                 energy_relay::EnergyRelayPlugin,
                 exploration_center::ExplorationCenterPlugin,
                 main_base::MainBasePlugin,

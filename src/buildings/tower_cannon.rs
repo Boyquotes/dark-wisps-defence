@@ -53,9 +53,14 @@ impl BuilderTowerCannon {
                 Health::new(100),
                 AttackRange(15),
                 grid_imprint,
-                TowerShootingTimer::from_seconds(2.0),
+                TowerShootingTimer::default(),
                 TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
+                related![Modifiers[
+                    (ModifierAttackRange(15), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(2.0), ModifierSourceBaseline),
+                    (ModifierAttackDamage(1.0), ModifierSourceBaseline),
+                ]],
             ));
     }
 }

@@ -5,6 +5,8 @@ use crate::prelude::*;
 pub struct CommonPlugin;
 impl Plugin for CommonPlugin {
     fn build(&self, app: &mut App) {
+        app
+            .add_observer(TowerShootingTimer::on_attack_speed_change);
     }
 }
 
@@ -18,13 +20,20 @@ pub struct MarkerTower;
 pub struct MarkerTowerRotationalTop(pub Entity);
 
 #[derive(Component, Default)]
+#[require(AttackSpeed)]
 pub struct TowerShootingTimer(pub Timer);
 impl TowerShootingTimer {
-    pub fn from_seconds(seconds: f32) -> Self {
-        let mut timer = Timer::from_seconds(seconds, TimerMode::Once);
-        // Set it ready to fire right away
-        timer.set_elapsed(Duration::from_secs_f32(seconds));
-        Self(timer)
+    fn on_attack_speed_change(
+        trigger: Trigger<OnInsert, AttackSpeed>,
+        mut timers: Query<(&mut TowerShootingTimer, &AttackSpeed)>
+    ) {
+        let entity = trigger.target();
+        let Ok((mut timer, attack_speed)) = timers.get_mut(entity) else { return; };
+        timer.0.set_duration(Duration::from_secs_f32(attack_speed.0));
+        // Set to fire right away if it's first shot ever. This is not fault-proof solution as if it happens the AttackSpeed occurs exactly at 0. we can get double-shot.
+        if timer.0.elapsed_secs() == 0. {
+            timer.0.set_elapsed(Duration::from_secs_f32(attack_speed.0));
+        }
     }
 }
 

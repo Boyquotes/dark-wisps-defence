@@ -51,7 +51,7 @@ impl BuilderTowerEmitter {
                 builder.grid_position,
                 Health::new(100),
                 grid_imprint,
-                TowerShootingTimer::from_seconds(2.0),
+                TowerShootingTimer::default(),
                 TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 related![Modifiers[

@@ -51,10 +51,15 @@ impl BuilderTowerRocketLauncher {
                 Health::new(100),
                 AttackRange(30),
                 grid_imprint,
-                TowerShootingTimer::from_seconds(2.0),
+                TowerShootingTimer::default(),
                 TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
+                related![Modifiers[
+                    (ModifierAttackRange(30), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(3.0), ModifierSourceBaseline),
+                    (ModifierAttackDamage(1.0), ModifierSourceBaseline),
+                ]],
             )).id();
         let world_size = grid_imprint.world_size();
         let tower_top = commands.spawn((

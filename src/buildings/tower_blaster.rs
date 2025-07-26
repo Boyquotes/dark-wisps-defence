@@ -51,10 +51,7 @@ impl BuilderTowerBlaster {
                 TowerBlaster,
                 builder.grid_position,
                 Health::new(100),
-                AttackRange(15),
                 grid_imprint,
-                TowerShootingTimer::default(),
-                TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
                 related![Modifiers[

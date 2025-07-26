@@ -4,8 +4,6 @@ use crate::effects::ripple::BuilderRipple;
 use crate::prelude::*;
 use crate::wisps::components::Wisp;
 
-use super::common_components::TowerWispTarget;
-
 pub struct TowerEmitterPlugin;
 impl Plugin for TowerEmitterPlugin {
     fn build(&self, app: &mut App) {
@@ -52,11 +50,15 @@ impl BuilderTowerEmitter {
                 TowerEmitter,
                 builder.grid_position,
                 Health::new(100),
-                AttackRange(4),
                 grid_imprint,
                 TowerShootingTimer::from_seconds(2.0),
                 TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
+                related![Modifiers[
+                    (ModifierAttackRange(4), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(2.0), ModifierSourceBaseline),
+                    (ModifierAttackDamage(1.0), ModifierSourceBaseline),
+                ]],
             ));
     }
 }

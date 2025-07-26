@@ -2,7 +2,7 @@ use bevy::color::palettes::css::BLUE;
 use lib_ui::healthbar::Healthbar;
 
 use crate::prelude::*;
-use crate::ui::common::UpgradeButton;
+use crate::ui::common::UpgradeLine;
 use crate::ui::display_info_panel::{DisplayInfoPanel, DisplayPanelMainContentRoot, UiMapObjectFocusedTrigger};
 
 
@@ -169,7 +169,8 @@ fn on_building_info_panel_enabled_for_towers_trigger(
             // Only show if not maxed out
             if current_level < upgrade_info.levels.len() {
                 parent.spawn((
-                    UpgradeButton {
+                    UpgradeLine {
+                        upgrade_entity: focused_entity,
                         upgrades_type: upgrade_info.upgrade_type,
                         costs: upgrade_info.levels[current_level].cost.clone(),
                         current_value,

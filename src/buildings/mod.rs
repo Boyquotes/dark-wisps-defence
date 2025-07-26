@@ -1,4 +1,3 @@
-pub mod common_components;
 pub mod main_base;
 pub mod common;
 pub mod tower_blaster;
@@ -14,7 +13,6 @@ pub mod info_panel;
 use crate::prelude::*;
 
 pub mod prelude {
-    pub use super::common_components::*;
     pub use super::common::*;
 }
 

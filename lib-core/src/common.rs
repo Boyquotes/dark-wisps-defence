@@ -43,12 +43,15 @@ impl Health {
 }
 
 #[derive(Component, Default, Clone)]
+#[component(immutable)]
 pub struct Speed(pub f32);
 #[derive(Component, Default, Clone)]
 pub struct AttackSpeed(pub f32);
 #[derive(Component, Default, Clone)]
+#[component(immutable)]
 pub struct AttackDamage(pub f32);
 #[derive(Component, Default, Clone)]
+#[component(immutable)]
 pub struct AttackRange(pub usize);
 
 
@@ -116,7 +119,40 @@ impl Upgrades {
     pub fn total(&self) -> usize {
         self.0.values().sum()
     }
+    // fn on_upgrade_level_up(
+    //     trigger: Trigger<UpgradeLevelUp>,
+    //     mut commands: Commands,
+    //     almanach: Res<Almanach>,
+    //     mut upgrades: Query<(&mut Upgrades, &BuildingType, AnyOf<(&AttackSpeed, &AttackRange, &AttackDamage, &Health)>)>,
+    // ) {
+    //     let entity = trigger.target();
+    //     let Ok((mut upgrades, building_type, (maybe_attack_speed, maybe_attack_range, maybe_attack_damage, maybe_health))) = upgrades.get_mut(entity) else { return; };
+    //     let upgrade_type = trigger.0;
+    //     let current_upgrade_level = *upgrades.0.get(&upgrade_type).unwrap_or(&0);
+    //     let next_upgrade_level = current_upgrade_level + 1;
+    //     upgrades.0.insert(upgrade_type, next_upgrade_level);
+    //     commands.entity(entity).insert(
+    //         match upgrade_type {
+    //             UpgradeType::AttackRange => {
+    //                 AttackRange(maybe_attack_range + almanach)
+    //             }
+    //             UpgradeType::AttackDamage => {
+    //                 if let Some(attack_damage) = maybe_attack_damage {
+    //                     attack_damage.0 += 1.;
+    //                 }
+    //             }
+    //             UpgradeType::Health => {
+    //                 if let Some(health) = maybe_health {
+    //                     health.0 += 1;
+    //                 }
+    //             }
+    //         }
+    //     );
+    // }
 }
+
+#[derive(Event)]
+pub struct UpgradeLevelUp(pub UpgradeType);
 
 #[derive(Component)]
 #[component(immutable)]

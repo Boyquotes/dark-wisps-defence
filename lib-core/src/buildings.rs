@@ -49,19 +49,19 @@ pub struct MiningComplex {
 pub struct ExplorationCenter;
 
 #[derive(Component)]
-#[require(Building, BuildingType = BuildingType::Tower(TowerType::Blaster))]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::Blaster), AttackRange, AttackSpeed, AttackDamage)]
 pub struct TowerBlaster;
 
 #[derive(Component)]
-#[require(Building, BuildingType = BuildingType::Tower(TowerType::Cannon))]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::Cannon), AttackRange, AttackSpeed, AttackDamage)]
 pub struct TowerCannon;
 
 #[derive(Component)]
-#[require(Building, BuildingType = BuildingType::Tower(TowerType::RocketLauncher))]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::RocketLauncher), AttackRange, AttackSpeed, AttackDamage)]
 pub struct TowerRocketLauncher;
 
 #[derive(Component)]
-#[require(Building, BuildingType = BuildingType::Tower(TowerType::Emitter))]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::Emitter), AttackRange, AttackSpeed, AttackDamage)]
 pub struct TowerEmitter;
 
 

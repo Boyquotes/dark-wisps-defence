@@ -162,7 +162,7 @@ fn on_building_info_panel_enabled_for_towers_trigger(
             let current_value = match upgrade_info.upgrade_type {
                 UpgradeType::AttackRange => maybe_attack_range.unwrap().0 as f32,
                 UpgradeType::AttackSpeed => maybe_attack_speed.unwrap().0,
-                UpgradeType::AttackDamage => maybe_attack_damage.unwrap().0,
+                UpgradeType::AttackDamage => maybe_attack_damage.unwrap().0 as f32,
                 UpgradeType::Health => maybe_health.unwrap().get_max() as f32,
             };
             

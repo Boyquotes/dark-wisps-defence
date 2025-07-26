@@ -23,6 +23,7 @@ impl Plugin for CannonballPlugin {
 pub const CANNONBALL_BASE_IMAGE: &str = "projectiles/cannonball.png";
 
 #[derive(Component)]
+#[require(AttackDamage, Projectile)]
 pub struct Cannonball;
 
 // Cannonball follows Wisp, and if the wisp no longer exists, follows to the target position
@@ -36,11 +37,12 @@ pub struct CannonballTarget{
 pub struct BuilderCannonball {
     world_position: Vec2,
     target_position: Vec2,
+    damage: AttackDamage,
 }
 
 impl BuilderCannonball {
-    pub fn new(world_position: Vec2, target_position: Vec2) -> Self {
-        Self { world_position, target_position }
+    pub fn new(world_position: Vec2, target_position: Vec2, damage: AttackDamage) -> Self {
+        Self { world_position, target_position, damage }
     }
 
     fn on_add(
@@ -61,12 +63,12 @@ impl BuilderCannonball {
                     ..default()
                 },
                 Transform::from_translation(builder.world_position.extend(Z_PROJECTILE)),
-                Projectile,
                 Cannonball,
                 CannonballTarget {
                     initial_distance: builder.world_position.distance(builder.target_position),
                     target_position: builder.target_position,
                 },
+                builder.damage.clone(),
             ));
     }
 }
@@ -99,11 +101,11 @@ pub fn cannonball_move_system(
 
 pub fn cannonball_hit_system(
     mut commands: Commands,
-    cannonballs: Query<(Entity, &Transform, &CannonballTarget), With<Cannonball>>,
+    cannonballs: Query<(Entity, &Transform, &CannonballTarget, &AttackDamage), With<Cannonball>>,
     wisps_grid: Res<WispsGrid>,
     mut wisps: Query<&mut Health, With<Wisp>>,
 ) {
-    for (entity, cannonball_transform, target) in cannonballs.iter() {
+    for (entity, cannonball_transform, target, attack_damage) in cannonballs.iter() {
         if cannonball_transform.translation.xy().distance(target.target_position) > 4. { continue; } // TODO: 1. and 2. are causing cannonballs jitters at landing. Investigate.
 
         let coords = GridCoords::from_transform(&cannonball_transform);
@@ -116,7 +118,7 @@ pub fn cannonball_hit_system(
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {
                 let Ok(mut health) = wisps.get_mut(*wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
-                health.decrease(100);
+                health.decrease(attack_damage.0);
             }
         }
         commands.entity(entity).despawn();

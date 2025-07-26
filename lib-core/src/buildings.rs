@@ -37,7 +37,7 @@ pub enum TowerType {
 }
 
 #[derive(Component, Clone, Debug, Default)]
-#[require(AutoGridTransformSync, ZDepth = ZDepth(Z_BUILDING))]
+#[require(AutoGridTransformSync, ZDepth = Z_BUILDING)]
 pub struct Building;
 
 #[derive(Component)]

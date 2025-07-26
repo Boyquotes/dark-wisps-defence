@@ -55,7 +55,7 @@ impl BuilderTowerRocketLauncher {
                 related![Modifiers[
                     (ModifierAttackRange(30), ModifierSourceBaseline),
                     (ModifierAttackSpeed(3.0), ModifierSourceBaseline),
-                    (ModifierAttackDamage(1.0), ModifierSourceBaseline),
+                    (ModifierAttackDamage(50), ModifierSourceBaseline),
                 ]],
             )).id();
         let world_size = grid_imprint.world_size();
@@ -75,10 +75,10 @@ impl BuilderTowerRocketLauncher {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_rocket_launchers: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), With<TowerRocketLauncher>>,
+    mut tower_rocket_launchers: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation, &AttackDamage), With<TowerRocketLauncher>>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
-    for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation) in tower_rocket_launchers.iter_mut() {
+    for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation, attack_damage) in tower_rocket_launchers.iter_mut() {
         if !technical_state.is_operational() { continue; }
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
@@ -103,7 +103,7 @@ pub fn shooting_system(
         let spawn_position = transform.translation.xy() + offset;
 
         let rocket_angle = Quat::from_rotation_z(top_rotation.current_angle);
-        commands.spawn(BuilderRocket::new(spawn_position, rocket_angle, target_wisp));
+        commands.spawn(BuilderRocket::new(spawn_position, rocket_angle, target_wisp, attack_damage.clone()));
         timer.0.reset();
     }
 }

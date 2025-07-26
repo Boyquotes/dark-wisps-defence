@@ -55,7 +55,7 @@ impl BuilderTowerEmitter {
                 related![Modifiers[
                     (ModifierAttackRange(4), ModifierSourceBaseline),
                     (ModifierAttackSpeed(2.0), ModifierSourceBaseline),
-                    (ModifierAttackDamage(1.0), ModifierSourceBaseline),
+                    (ModifierAttackDamage(1), ModifierSourceBaseline),
                 ]],
             ));
     }

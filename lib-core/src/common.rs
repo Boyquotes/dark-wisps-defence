@@ -49,7 +49,7 @@ pub struct Speed(pub f32);
 pub struct AttackSpeed(pub f32);
 #[derive(Component, Default, Clone)]
 #[component(immutable)]
-pub struct AttackDamage(pub f32);
+pub struct AttackDamage(pub i32);
 #[derive(Component, Default, Clone)]
 #[component(immutable)]
 pub struct AttackRange(pub usize);
@@ -166,6 +166,11 @@ impl ZDepth {
         let entity = trigger.target();
         let Ok((mut transform, z_depth)) = transforms.get_mut(entity) else { return; };
         transform.translation.z = z_depth.0;
+    }
+}
+impl From<f32> for ZDepth {
+    fn from(value: f32) -> Self {
+        Self(value)
     }
 }
 

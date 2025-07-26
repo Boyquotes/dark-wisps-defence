@@ -56,7 +56,7 @@ impl BuilderTowerCannon {
                 related![Modifiers[
                     (ModifierAttackRange(15), ModifierSourceBaseline),
                     (ModifierAttackSpeed(2.0), ModifierSourceBaseline),
-                    (ModifierAttackDamage(1.0), ModifierSourceBaseline),
+                    (ModifierAttackDamage(1), ModifierSourceBaseline),
                 ]],
             ));
     }
@@ -64,10 +64,10 @@ impl BuilderTowerCannon {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_cannons: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget), With<TowerCannon>>,
+    mut tower_cannons: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &AttackDamage), With<TowerCannon>>,
     wisps: Query<(&GridPath, &GridCoords), With<Wisp>>,
 ) {
-    for (transform, technical_state, mut timer, mut target) in tower_cannons.iter_mut() {
+    for (transform, technical_state, mut timer, mut target, attack_damage) in tower_cannons.iter_mut() {
         if !technical_state.has_energy_supply { continue; }
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
@@ -84,7 +84,7 @@ pub fn shooting_system(
             |coords| coords.to_world_position_centered(WISP_GRID_IMPRINT)
         );
 
-        commands.spawn(BuilderCannonball::new(transform.translation.xy(), target_world_position));
+        commands.spawn(BuilderCannonball::new(transform.translation.xy(), target_world_position, attack_damage.clone()));
         timer.0.reset();
     }
 }

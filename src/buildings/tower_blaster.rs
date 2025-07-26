@@ -57,7 +57,7 @@ impl BuilderTowerBlaster {
                 related![Modifiers[
                     (ModifierAttackRange(15), ModifierSourceBaseline),
                     (ModifierAttackSpeed(0.2), ModifierSourceBaseline),
-                    (ModifierAttackDamage(1.0), ModifierSourceBaseline),
+                    (ModifierAttackDamage(50), ModifierSourceBaseline),
                 ]],
             )).id();
         let world_size = grid_imprint.world_size();
@@ -76,10 +76,10 @@ impl BuilderTowerBlaster {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_blasters: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), With<TowerBlaster>>,
+    mut tower_blasters: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation, &AttackDamage), With<TowerBlaster>>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
-    for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation) in tower_blasters.iter_mut() {
+    for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation, attack_damage) in tower_blasters.iter_mut() {
         if !technical_state.is_operational() { continue; }
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
@@ -103,7 +103,7 @@ pub fn shooting_system(
         );
         let spawn_position = transform.translation.xy() + offset;
 
-        commands.spawn(BuilderLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize()));
+        commands.spawn(BuilderLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize(), attack_damage.clone()));
         timer.0.reset();
     }
 }

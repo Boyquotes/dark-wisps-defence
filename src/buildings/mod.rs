@@ -23,7 +23,6 @@ impl Plugin for BuildingsPlugin {
             .add_event::<common::BuildingDestroyedEvent>()
             .add_plugins((
                 common_systems::CommonSystemsPlugin,
-                common::CommonPlugin,
                 info_panel::InfoPanelPlugin,
                 energy_relay::EnergyRelayPlugin,
                 exploration_center::ExplorationCenterPlugin,

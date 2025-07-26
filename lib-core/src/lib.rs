@@ -19,6 +19,7 @@ impl Plugin for LibCorePlugin {
             common::CommonPlugin,
             grids::GridPlugin,
             modifiers::ModifiersPlugin,
+            buildings::BuildingsPlugin,
         ));
     }
 }

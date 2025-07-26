@@ -12,7 +12,8 @@ impl Plugin for ModifiersPlugin {
         app
             .add_observer(on_attack_range_modifier_inserted)
             .add_observer(on_attack_speed_modifier_inserted)
-            .add_observer(on_attack_damage_modifier_inserted);
+            .add_observer(on_attack_damage_modifier_inserted)
+            .add_observer(GrantUpgradeModifier::on_trigger);
     }
 }
 
@@ -24,8 +25,6 @@ pub struct ModifierOf(Entity);
 #[derive(Component)]
 #[relationship_target(relationship = ModifierOf, linked_spawn)]
 pub struct Modifiers(Vec<Entity>);
-
-
 
 #[derive(Component, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModifierType {
@@ -46,7 +45,7 @@ pub enum ModifierSource {
     Upgrade,
 }
 #[derive(Component)]#[require(ModifierSource = ModifierSource::Baseline)] pub struct ModifierSourceBaseline;
-#[derive(Component)]#[require(ModifierSource = ModifierSource::Upgrade)] pub struct ModifierSourceUpgrade;
+#[derive(Component)]#[require(ModifierSource = ModifierSource::Upgrade)] pub struct ModifierSourceUpgrade{ pub level: usize }
 
 
 /// On Modifier inserted:
@@ -118,3 +117,27 @@ fn on_attack_damage_modifier_inserted(
 //     commands.entity(modifier_of.0).insert(MaxHealth(new_value));
 //     Ok(())
 // }
+
+
+#[derive(Event)]
+pub struct GrantUpgradeModifier {
+    pub modifier_type: ModifierType,
+    pub upgrade_level: usize,
+    pub value: f32,
+}
+impl GrantUpgradeModifier {
+    fn on_trigger(
+        trigger: Trigger<GrantUpgradeModifier>,
+        mut commands: Commands,
+    ) {
+        let entity = trigger.target();
+        let mut entity_commands = commands.entity(entity);
+        let trigger = trigger.event();
+        match trigger.modifier_type {
+            ModifierType::AttackSpeed => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackSpeed(trigger.value))),
+            ModifierType::AttackRange => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackRange(trigger.value as usize))),
+            ModifierType::AttackDamage => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackDamage(trigger.value as i32))),
+            ModifierType::MaxHealth => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierMaxHealth(trigger.value as i32))),
+        };
+    }
+}

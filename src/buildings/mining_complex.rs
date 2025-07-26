@@ -60,8 +60,6 @@ impl BuilderMiningComplex {
                 MiningComplex { ore_entities_in_range },
                 builder.grid_position,
                 Health::new(100),
-                Building,
-                BuildingType::MiningComplex,
                 grid_imprint,
                 MiningRange(grid_imprint),
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),

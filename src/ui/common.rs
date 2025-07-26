@@ -18,8 +18,9 @@ impl Plugin for CommonPlugin {
 #[require(Node)]
 pub struct UpgradeLine {
     pub upgrade_entity: Entity,
-    pub upgrades_type: UpgradeType,
+    pub upgrades_type: ModifierType,
     pub costs: Vec<Cost>,
+    pub upgrade_level: usize,
     pub current_value: f32,
     pub next_value: f32
 }
@@ -72,50 +73,58 @@ impl UpgradeLine {
                 ))
                     .observe(Self::on_click)
                     .with_children(|parent| {
-                    parent.spawn((
-                        Text::new(format!("-> {:.0}", upgrade_line.next_value)),
-                        TextColor::from(Color::WHITE),
-                        TextLayout::new_with_linebreak(LineBreak::NoWrap),
-                        Node {
-                            margin: UiRect::right(Val::Px(8.)),
-                            ..default()
-                        },
-                    ));
+                        parent.spawn((
+                            Text::new(format!("-> {:.0}", upgrade_line.next_value)),
+                            TextColor::from(Color::WHITE),
+                            TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                            Node {
+                                margin: UiRect::right(Val::Px(8.)),
+                                ..default()
+                            },
+                        ));
                     
-                    // Cost indicators
-                    parent.spawn((
-                        Node {
-                            flex_direction: FlexDirection::Row,
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            margin: UiRect::right(Val::Px(4.)),
-                            ..default()
-                        },
-                        Children::spawn(
-                            SpawnIter(upgrade_line.costs.clone().into_iter().map(|cost| CostIndicator::from(cost))),
-                        ),
-                    ));
-                    
-                    // Upgrade text
-                    parent.spawn((
-                        Text::new("Upgrade"),
-                        TextColor::from(Color::WHITE),
-                        TextLayout::new_with_linebreak(LineBreak::NoWrap),
-                    ));
-                });
+                        // Cost indicators
+                        parent.spawn((
+                            Node {
+                                flex_direction: FlexDirection::Row,
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                margin: UiRect::right(Val::Px(4.)),
+                                ..default()
+                            },
+                            Children::spawn(
+                                SpawnIter(upgrade_line.costs.clone().into_iter().map(|cost| CostIndicator::from(cost))),
+                            ),
+                        ));
+                        
+                        // Upgrade text
+                        parent.spawn((
+                            Text::new("Upgrade"),
+                            TextColor::from(Color::WHITE),
+                            TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                        ));
+                    });
             });
         });
     }
 
     fn on_click(
         trigger: Trigger<Pointer<Click>>,
+        commands: Commands,
         upgrade_buttons: Query<&UpgradeButton>,
         upgrade_lines: Query<&UpgradeLine>,
     ) {
         let entity = trigger.target();
         let Ok(upgrade_button) = upgrade_buttons.get(entity) else { return; };
         let Ok(upgrade_line) = upgrade_lines.get(upgrade_button.0) else { return; };
-        println!("Upgrade button clicked: {}", upgrade_line.upgrades_type);
+        println!("Upgrade button clicked: {:?}", upgrade_line.upgrades_type);
+        commands.trigger_targets(GrantUpgradeModifier {
+            modifier_type: upgrade_line.upgrades_type,
+            upgrade_level: upgrade_line.upgrade_level,
+            value: upgrade_line.next_value,
+        }, vec![upgrade_line.upgrade_entity]);
+
+
     }
 }
 

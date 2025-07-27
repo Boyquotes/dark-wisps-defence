@@ -39,7 +39,7 @@ impl UpgradeLineBuilder {
             .insert(UpgradeLine {
                 potential_upgrade_entity: upgrade_line.potential_upgrade_entity,
                 upgrades_type: *modifier_type,
-                costs: modifier_source.cost.clone(),
+                costs: modifier_source.current_cost().clone(),
                 current_value: current_attack_speed.0,
                 next_value: modifier.0 + current_attack_speed.0,
             });
@@ -61,7 +61,7 @@ impl UpgradeLineBuilder {
             .insert(UpgradeLine {
                 potential_upgrade_entity: upgrade_line.potential_upgrade_entity,
                 upgrades_type: *modifier_type,
-                costs: modifier_source.cost.clone(),
+                costs: modifier_source.current_cost().clone(),
                 current_value: current_attack_damage.0 as f32,
                 next_value: (modifier.0 + current_attack_damage.0) as f32,
             });
@@ -83,7 +83,7 @@ impl UpgradeLineBuilder {
             .insert(UpgradeLine {
                 potential_upgrade_entity: upgrade_line.potential_upgrade_entity,
                 upgrades_type: *modifier_type,
-                costs: modifier_source.cost.clone(),
+                costs: modifier_source.current_cost().clone(),
                 current_value: current_attack_range.0 as f32,
                 next_value: (modifier.0 + current_attack_range.0) as f32,
             });
@@ -193,13 +193,7 @@ impl UpgradeLine {
         let Ok(upgrade_button) = upgrade_buttons.get(entity) else { return; };
         let Ok(upgrade_line) = upgrade_lines.get(upgrade_button.0) else { return; };
         println!("Upgrade button clicked: {:?}", upgrade_line.upgrades_type);
-        // commands.trigger_targets(GrantUpgradeModifier {
-        //     modifier_type: upgrade_line.upgrades_type,
-        //     upgrade_level: upgrade_line.upgrade_level,
-        //     value: upgrade_line.next_value,
-        // }, vec![upgrade_line.upgrade_entity]);
-
-
+        commands.trigger_targets(ApplyPotentialUpgrade, [upgrade_line.potential_upgrade_entity]);
     }
 }
 

@@ -13,7 +13,7 @@ impl Plugin for ModifiersPlugin {
             .add_observer(on_attack_range_modifier_inserted)
             .add_observer(on_attack_speed_modifier_inserted)
             .add_observer(on_attack_damage_modifier_inserted)
-            .add_observer(GrantUpgradeModifier::on_trigger);
+            .add_observer(ApplyPotentialUpgrade::on_trigger);
     }
 }
 
@@ -33,10 +33,10 @@ pub enum ModifierType {
     AttackDamage,
     MaxHealth
 }
-#[derive(Component)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackSpeed)] pub struct ModifierAttackSpeed(pub f32);
-#[derive(Component)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackRange)] pub struct ModifierAttackRange(pub usize);
-#[derive(Component)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackDamage)] pub struct ModifierAttackDamage(pub i32);
-#[derive(Component)]#[component(immutable)]#[require(ModifierType = ModifierType::MaxHealth)] pub struct ModifierMaxHealth(pub i32);
+#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackSpeed)] pub struct ModifierAttackSpeed(pub f32);
+#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackRange)] pub struct ModifierAttackRange(pub usize);
+#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackDamage)] pub struct ModifierAttackDamage(pub i32);
+#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::MaxHealth)] pub struct ModifierMaxHealth(pub i32);
 
 
 #[derive(Component, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -44,8 +44,16 @@ pub enum ModifierSource {
     Baseline,
     Upgrade,
 }
-#[derive(Component)]#[require(ModifierSource = ModifierSource::Baseline)] pub struct ModifierSourceBaseline;
-#[derive(Component)]#[require(ModifierSource = ModifierSource::Upgrade)] pub struct ModifierSourceUpgrade{ pub level: usize, pub cost: Vec<Cost> }
+#[derive(Component, Clone)]#[require(ModifierSource = ModifierSource::Baseline)] pub struct ModifierSourceBaseline;
+#[derive(Component, Clone)]#[require(ModifierSource = ModifierSource::Upgrade)] pub struct ModifierSourceUpgrade{ pub current_level: usize, pub upgrade_info: AlmanachUpgradeInfo }
+impl ModifierSourceUpgrade {
+    pub fn current_cost(&self) -> &Vec<Cost> {
+        &self.upgrade_info.levels[self.current_level].cost
+    }
+    pub fn current_value(&self) -> f32 {
+        self.upgrade_info.levels[self.current_level].value
+    }
+}
 
 
 /// On Modifier inserted:
@@ -115,39 +123,50 @@ fn on_attack_damage_modifier_inserted(
 // }
 
 
-#[derive(Event)]
-pub struct GrantUpgradeModifier {
-    pub modifier_type: ModifierType,
-    pub upgrade_level: usize,
-    pub value: f32,
-}
-impl GrantUpgradeModifier {
-    fn on_trigger(
-        trigger: Trigger<GrantUpgradeModifier>,
-        mut commands: Commands,
-    ) {
-        // let entity = trigger.target();
-        // let mut entity_commands = commands.entity(entity);
-        // let trigger = trigger.event();
-        // match trigger.modifier_type {
-        //     ModifierType::AttackSpeed => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackSpeed(trigger.value))),
-        //     ModifierType::AttackRange => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackRange(trigger.value as usize))),
-        //     ModifierType::AttackDamage => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackDamage(trigger.value as i32))),
-        //     ModifierType::MaxHealth => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierMaxHealth(trigger.value as i32))),
-        // };
-    }
-}
-
-
 ////////////////////
 ////  UPGRADES  ////
 ////////////////////
 
 
 #[derive(Component)]
+//#[require(ApplyPotentialUpgradeObserver)]
 #[relationship(relationship_target = PotentialUpgrades)]
 pub struct PotentialUpgradeOf(pub Entity);
 
 #[derive(Component)]
 #[relationship_target(relationship = PotentialUpgradeOf, linked_spawn)]
 pub struct PotentialUpgrades(Vec<Entity>);
+
+#[derive(Event)]
+pub struct ApplyPotentialUpgrade;
+impl ApplyPotentialUpgrade {
+    fn on_trigger(
+        trigger: Trigger<ApplyPotentialUpgrade>,
+        mut commands: Commands,
+        mut potential_upgrades: Query<(&ModifierType, &mut ModifierSourceUpgrade, &PotentialUpgradeOf)>,
+        // Modifier value components
+    ) {
+        let entity = trigger.target();
+        let Ok((modifier_type, mut modifier_source_upgrade, parent)) = potential_upgrades.get_mut(entity) else { return; };
+
+        let mut commands_entity = commands.entity(entity);
+        // First turn the potential upgrade into full fledged modifier.
+        commands_entity.clone_and_spawn().insert(ModifierOf(parent.0));
+        
+        // Then level up the potential upgrade
+        if modifier_source_upgrade.current_level + 1 >= modifier_source_upgrade.upgrade_info.levels.len() { 
+            commands_entity.despawn();
+            return;
+         }
+        modifier_source_upgrade.current_level += 1;
+
+        // And add matching value component
+        let new_value = modifier_source_upgrade.current_value();
+        match modifier_type {
+            ModifierType::AttackDamage => { commands_entity.insert(ModifierAttackDamage(new_value as i32)); }
+            ModifierType::AttackRange => { commands_entity.insert(ModifierAttackRange(new_value as usize)); }
+            ModifierType::AttackSpeed => { commands_entity.insert(ModifierAttackSpeed(new_value)); }
+            ModifierType::MaxHealth => { commands_entity.insert(ModifierMaxHealth(new_value as i32)); }
+        }
+    }
+}

@@ -24,7 +24,7 @@ pub struct AlmanachBuildingInfo {
     pub name: String,
     pub cost: Vec<Cost>,
     pub grid_imprint: GridImprint,
-    pub upgrades: Vec<AlmanachUpgradeInfo>,
+    pub upgrades: HashMap<ModifierType, AlmanachUpgradeInfo>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -62,19 +62,19 @@ impl AlmanachRequestPotentialUpgradesInsertion {
         let Ok(building_type) = buildings.get(entity) else { return; };
 
         commands.entity(entity).with_related_entities::<PotentialUpgradeOf>(|parent|
-            almanach.get_building_info(*building_type).upgrades.iter().for_each(|upgrade| {
+            almanach.get_building_info(*building_type).upgrades.values().for_each(|upgrade| {
                 match upgrade.upgrade_type {
                     ModifierType::AttackSpeed => {
-                        parent.spawn((ModifierAttackSpeed(upgrade.levels[0].value), ModifierSourceUpgrade{ level: 0, cost: upgrade.levels[0].cost.clone() }));
+                        parent.spawn((ModifierAttackSpeed(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::AttackRange => {
-                        parent.spawn((ModifierAttackRange(upgrade.levels[0].value as usize), ModifierSourceUpgrade{ level: 0, cost: upgrade.levels[0].cost.clone() }));
+                        parent.spawn((ModifierAttackRange(upgrade.levels[0].value as usize), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::AttackDamage => {
-                        parent.spawn((ModifierAttackDamage(upgrade.levels[0].value as i32), ModifierSourceUpgrade{ level: 0, cost: upgrade.levels[0].cost.clone() }));
+                        parent.spawn((ModifierAttackDamage(upgrade.levels[0].value as i32), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::MaxHealth => {
-                        parent.spawn((ModifierMaxHealth(upgrade.levels[0].value as i32), ModifierSourceUpgrade{ level: 0, cost: upgrade.levels[0].cost.clone() }));
+                        parent.spawn((ModifierMaxHealth(upgrade.levels[0].value as i32), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                 }
             })

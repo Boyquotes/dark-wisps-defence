@@ -4,43 +4,44 @@ buildings:
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 300 }
-    upgrades: []
+    upgrades: {}
   - building_type: ExplorationCenter
     name: Exploration Center
     grid_imprint: !Rectangle { width: 4, height: 4 }
     cost:
       - { resource_type: DarkOre, amount: 500 }
-    upgrades: []
+    upgrades: {}
   - building_type: MainBase
     name: Main Base
     grid_imprint: !Rectangle { width: 6, height: 6 }
     cost: []
-    upgrades: []
+    upgrades: {}
   - building_type: MiningComplex
     name: Mining Complex
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 100 }
-    upgrades: []
+    upgrades: {}
   - building_type: !Tower Blaster
     name: Blaster Tower
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 150 }
-    upgrades: []
+    upgrades: {}
   - building_type: !Tower Cannon
     name: Cannon Tower
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 250 }
-    upgrades: []
+    upgrades: {}
   - building_type: !Tower Emitter
     name: Emitter Tower
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 450 }
     upgrades:
-      - upgrade_type: AttackRange
+      AttackRange:
+        upgrade_type: AttackRange
         levels:
           - value: 1
             cost: 
@@ -56,4 +57,4 @@ buildings:
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 350 }
-    upgrades: []
+    upgrades: {}

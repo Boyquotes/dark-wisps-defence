@@ -26,8 +26,10 @@ pub const ROCKET_BASE_IMAGE: &str = "projectiles/rocket.png";
 pub const ROCKET_EXHAUST_IMAGE: &str = "projectiles/rocket_exhaust.png";
 
 #[derive(Component)]
+#[require(AttackDamage, Projectile)]
 pub struct Rocket;
 #[derive(Component)]
+#[require(ZDepth = Z_PROJECTILE_UNDER)]
 pub struct RocketExhaust;
 
 // Rocket follows Wisp, and if the wisp no longer exists, looks for another target
@@ -39,10 +41,11 @@ pub struct BuilderRocket {
     world_position: Vec2,
     rotation: Quat,
     target_wisp: Entity,
+    damage: AttackDamage,
 }
 impl BuilderRocket {
-    pub fn new(world_position: Vec2, rotation: Quat, target_wisp: Entity) -> Self {
-        Self { world_position, rotation, target_wisp }
+    pub fn new(world_position: Vec2, rotation: Quat, target_wisp: Entity, damage: AttackDamage) -> Self {
+        Self { world_position, rotation, target_wisp, damage }
     }
 
     fn on_add(
@@ -67,9 +70,9 @@ impl BuilderRocket {
                     rotation: builder.rotation,
                     ..default()
                 },
-                Projectile,
                 Rocket,
                 RocketTarget(builder.target_wisp),
+                builder.damage.clone(),
                 // Exhaust
                 children![(
                     Sprite {
@@ -78,7 +81,6 @@ impl BuilderRocket {
                         anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
                         ..default()
                     },
-                    ZDepth(Z_PROJECTILE_UNDER),
                     RocketExhaust,
                 )]
             ));
@@ -134,12 +136,12 @@ pub fn rocket_move_system(
 
 pub fn rocket_hit_system(
     mut commands: Commands,
-    rockets: Query<(Entity, &Transform, &RocketTarget), (With<Rocket>, Without<Wisp>)>,
+    rockets: Query<(Entity, &Transform, &RocketTarget, &AttackDamage), (With<Rocket>, Without<Wisp>)>,
     wisps_grid: Res<WispsGrid>,
     wisps_transforms: Query<&Transform, (With<Wisp>, Without<Rocket>)>,
     mut wisps_health: Query<&mut Health, With<Wisp>>,
 ) {
-    for (entity, rocket_transform, target) in rockets.iter() {
+    for (entity, rocket_transform, target, attack_damage) in rockets.iter() {
         let rocket_coords = GridCoords::from_transform(&rocket_transform);
         if !rocket_coords.is_in_bounds(wisps_grid.bounds()) {
             commands.entity(entity).despawn();
@@ -159,7 +161,7 @@ pub fn rocket_hit_system(
             let wisps_in_coords = &wisps_grid[blast_zone_coords];
             for wisp in wisps_in_coords {
                 let Ok(mut health) = wisps_health.get_mut(*wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
-                health.decrease(50);
+                health.decrease(attack_damage.0);
             }
         }
         commands.entity(entity).despawn();

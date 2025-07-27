@@ -2,7 +2,7 @@ use bevy::color::palettes::css::BLUE;
 use lib_ui::healthbar::Healthbar;
 
 use crate::prelude::*;
-use crate::ui::common::UpgradeButton;
+use crate::ui::common::UpgradeLineBuilder;
 use crate::ui::display_info_panel::{DisplayInfoPanel, DisplayPanelMainContentRoot, UiMapObjectFocusedTrigger};
 
 
@@ -133,12 +133,11 @@ fn on_building_info_panel_enabled_for_towers_trigger(
     trigger: Trigger<BuildingInfoPanelEnabledTrigger>,
     mut commands: Commands,
     mut tower_subpanel_root: Query<&mut Node, With<BuildingInfoPanelTowerRoot>>,
-    towers: Query<(&BuildingType, &Upgrades, Option<&AttackRange>, Option<&AttackSpeed>, Option<&AttackDamage>, Option<&Health>), With<MarkerTower>>,
+    towers: Query<&PotentialUpgrades, With<MarkerTower>>,
     upgrades_containers: Query<Entity, With<BuildingInfoPanelTowerUpgradesContainer>>,
-    almanach: Res<Almanach>,
 ){
     let focused_entity = trigger.target();
-    let Ok((building_type, current_upgrades, maybe_attack_range, maybe_attack_speed, maybe_attack_damage, maybe_health)) = towers.get(focused_entity) else {
+    let Ok(potential_upgrades) = towers.get(focused_entity) else {
         tower_subpanel_root.single_mut().unwrap().display = Display::None;
         return;
     };
@@ -150,34 +149,11 @@ fn on_building_info_panel_enabled_for_towers_trigger(
     // Clear all existing children
     commands.entity(upgrades_container).despawn_related::<Children>();
 
-    // Get building info from almanach
-    let building_info = almanach.get_building_info(*building_type);
-    
     // Create upgrade buttons for each available upgrade
     commands.entity(upgrades_container).with_children(|parent| {
-        for upgrade_info in &building_info.upgrades {
-            println!("Upgrade type: {:?}", upgrade_info.upgrade_type);
-            let current_level = *current_upgrades.0.get(&upgrade_info.upgrade_type).unwrap_or(&0);
-
-            let current_value = match upgrade_info.upgrade_type {
-                UpgradeType::AttackRange => maybe_attack_range.unwrap().0 as f32,
-                UpgradeType::AttackSpeed => maybe_attack_speed.unwrap().0,
-                UpgradeType::AttackDamage => maybe_attack_damage.unwrap().0,
-                UpgradeType::Health => maybe_health.unwrap().get_max() as f32,
-            };
-            
-            // Only show if not maxed out
-            if current_level < upgrade_info.levels.len() {
-                parent.spawn((
-                    UpgradeButton {
-                        upgrades_type: upgrade_info.upgrade_type,
-                        costs: upgrade_info.levels[current_level].cost.clone(),
-                        current_value,
-                        next_value: current_value + upgrade_info.levels[current_level].value,
-                    },
-                ));
-            }
-        }
+        potential_upgrades.iter().for_each(|potential_upgrade_entity| {
+            parent.spawn(UpgradeLineBuilder { potential_upgrade_entity });
+        });
     });
 }
 

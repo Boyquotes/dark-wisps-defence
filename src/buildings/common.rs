@@ -1,5 +1,20 @@
 use crate::prelude::*;
 
+#[derive(Component, Default)]
+pub struct MarkerTower;
+
+
+// Building sub-parts markers
+#[derive(Component)]
+pub struct MarkerTowerRotationalTop(pub Entity);
+
+
+#[derive(Component)]
+pub struct TowerTopRotation {
+    pub speed: f32, // in radians per second
+    pub current_angle: f32,
+}
+
 #[derive(Event)]
 pub struct BuildingDestroyedEvent(pub Entity);
 impl Command for BuildingDestroyedEvent {

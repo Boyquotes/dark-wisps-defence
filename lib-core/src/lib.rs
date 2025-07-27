@@ -17,6 +17,7 @@ impl Plugin for LibCorePlugin {
             states::StatesPlugin,
             common::CommonPlugin,
             grids::GridPlugin,
+            buildings::BuildingsPlugin,
         ));
     }
 }

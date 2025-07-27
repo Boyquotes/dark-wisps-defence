@@ -7,7 +7,9 @@ pub mod almanach_prelude {
 pub struct AlmanachPlugin;
 impl Plugin for AlmanachPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Almanach>();
+        app
+            .init_resource::<Almanach>()
+            .add_observer(AlmanachRequestPotentialUpgradesInsertion::on_trigger);
     }
 }
 
@@ -22,12 +24,12 @@ pub struct AlmanachBuildingInfo {
     pub name: String,
     pub cost: Vec<Cost>,
     pub grid_imprint: GridImprint,
-    pub upgrades: Vec<AlmanachUpgradeInfo>,
+    pub upgrades: HashMap<ModifierType, AlmanachUpgradeInfo>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AlmanachUpgradeInfo {
-    pub upgrade_type: UpgradeType,
+    pub upgrade_type: ModifierType,
     pub levels: Vec<AlmanachUpgradeLevelInfo>,
 }
 
@@ -44,5 +46,38 @@ impl Almanach {
     }
     pub fn add_building_info(&mut self, building_info: AlmanachBuildingInfo) {
         self.buildings.insert(building_info.building_type, building_info);
+    }
+}
+
+#[derive(Event)]
+pub struct AlmanachRequestPotentialUpgradesInsertion;
+impl AlmanachRequestPotentialUpgradesInsertion {
+    fn on_trigger(
+        trigger: Trigger<Self>,
+        mut commands: Commands,
+        almanach: Res<Almanach>,
+        buildings: Query<&BuildingType>,
+    ) {
+        let entity = trigger.target();
+        let Ok(building_type) = buildings.get(entity) else { return; };
+
+        commands.entity(entity).with_related_entities::<PotentialUpgradeOf>(|parent|
+            almanach.get_building_info(*building_type).upgrades.values().for_each(|upgrade| {
+                match upgrade.upgrade_type {
+                    ModifierType::AttackSpeed => {
+                        parent.spawn((ModifierAttackSpeed(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                    }
+                    ModifierType::AttackRange => {
+                        parent.spawn((ModifierAttackRange(upgrade.levels[0].value as usize), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                    }
+                    ModifierType::AttackDamage => {
+                        parent.spawn((ModifierAttackDamage(upgrade.levels[0].value as i32), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                    }
+                    ModifierType::MaxHealth => {
+                        parent.spawn((ModifierMaxHealth(upgrade.levels[0].value as i32), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                    }
+                }
+            })
+        );
     }
 }

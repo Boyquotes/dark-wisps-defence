@@ -50,13 +50,15 @@ impl BuilderTowerBlaster {
                 MarkerTower,
                 TowerBlaster,
                 builder.grid_position,
-                Health::new(100),
-                AttackRange(15),
                 grid_imprint,
-                TowerShootingTimer::from_seconds(0.2),
-                TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
+                related![Modifiers[
+                    (ModifierAttackRange(15), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(5.), ModifierSourceBaseline),
+                    (ModifierAttackDamage(1), ModifierSourceBaseline),
+                    (ModifierMaxHealth(100), ModifierSourceBaseline),
+                ]],
             )).id();
         let world_size = grid_imprint.world_size();
         let tower_top = commands.spawn((
@@ -74,10 +76,10 @@ impl BuilderTowerBlaster {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_blasters: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation), With<TowerBlaster>>,
+    mut tower_blasters: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation, &AttackDamage), With<TowerBlaster>>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
-    for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation) in tower_blasters.iter_mut() {
+    for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation, attack_damage) in tower_blasters.iter_mut() {
         if !technical_state.is_operational() { continue; }
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
@@ -101,7 +103,7 @@ pub fn shooting_system(
         );
         let spawn_position = transform.translation.xy() + offset;
 
-        commands.spawn(BuilderLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize()));
+        commands.spawn(BuilderLaserDart::new(spawn_position, target_wisp, (wisp_position - spawn_position).normalize(), attack_damage.clone()));
         timer.0.reset();
     }
 }

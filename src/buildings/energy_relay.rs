@@ -43,7 +43,6 @@ impl BuilderEnergyRelay {
                     ..Default::default()
                 },
                 builder.grid_position,
-                Health::new(100),
                 EnergyRelay,
                 grid_imprint,
                 EmitterEnergy(FloodEmissionsDetails {
@@ -55,6 +54,9 @@ impl BuilderEnergyRelay {
                 SupplierEnergy{ range: 15 },
                 TechnicalState{ has_energy_supply: true, ..default() },
                 ColorPulsation::new(1.0, 1.8, 3.0),
+                related![Modifiers[
+                    (ModifierMaxHealth(100), ModifierSourceBaseline),
+                ]],
             ));
     }
 }

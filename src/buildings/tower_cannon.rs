@@ -50,22 +50,24 @@ impl BuilderTowerCannon {
                 MarkerTower,
                 TowerCannon,
                 builder.grid_position,
-                Health::new(100),
-                AttackRange(15),
                 grid_imprint,
-                TowerShootingTimer::from_seconds(2.0),
-                TowerWispTarget::default(),
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
+                related![Modifiers[
+                    (ModifierAttackRange(15), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(0.5), ModifierSourceBaseline),
+                    (ModifierAttackDamage(50), ModifierSourceBaseline),
+                    (ModifierMaxHealth(100), ModifierSourceBaseline),
+                ]],
             ));
     }
 }
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_cannons: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget), With<TowerCannon>>,
+    mut tower_cannons: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &AttackDamage), With<TowerCannon>>,
     wisps: Query<(&GridPath, &GridCoords), With<Wisp>>,
 ) {
-    for (transform, technical_state, mut timer, mut target) in tower_cannons.iter_mut() {
+    for (transform, technical_state, mut timer, mut target, attack_damage) in tower_cannons.iter_mut() {
         if !technical_state.has_energy_supply { continue; }
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
@@ -82,7 +84,7 @@ pub fn shooting_system(
             |coords| coords.to_world_position_centered(WISP_GRID_IMPRINT)
         );
 
-        commands.spawn(BuilderCannonball::new(transform.translation.xy(), target_world_position));
+        commands.spawn(BuilderCannonball::new(transform.translation.xy(), target_world_position, attack_damage.clone()));
         timer.0.reset();
     }
 }

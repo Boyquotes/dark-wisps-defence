@@ -11,7 +11,8 @@ impl Plugin for CommonPlugin {
             .add_systems(Update, (
                 ColorPulsation::pulsate_sprites_system,
             ))
-            .add_observer(ZDepth::on_insert);
+            .add_observer(ZDepth::on_insert)
+            .add_observer(MaxHealth::on_insert);
     }
 }
 
@@ -19,7 +20,7 @@ impl Plugin for CommonPlugin {
 #[derive(Component, Default)]
 pub struct Health {
     current: i32,
-    max: i32,
+    max: i32, // A helper, source of truth is in MaxHealth component
 }
 impl Health {
     pub fn new(max: i32) -> Self {
@@ -43,12 +44,31 @@ impl Health {
 }
 
 #[derive(Component, Default, Clone)]
+#[component(immutable)]
+#[require(Health)]
+pub struct MaxHealth(pub i32);
+impl MaxHealth {
+    fn on_insert(
+        trigger: Trigger<OnInsert, MaxHealth>,
+        mut healths: Query<(&mut Health, &MaxHealth)>,
+    ) {
+        let Ok((mut health, max_health)) = healths.get_mut(trigger.target()) else { return; };
+        if health.current == 0 {
+            health.current = max_health.0;
+        }
+        health.max = max_health.0;
+    }
+}
+#[derive(Component, Default, Clone)]
+#[component(immutable)]
 pub struct Speed(pub f32);
 #[derive(Component, Default, Clone)]
 pub struct AttackSpeed(pub f32);
 #[derive(Component, Default, Clone)]
-pub struct AttackDamage(pub f32);
+#[component(immutable)]
+pub struct AttackDamage(pub i32);
 #[derive(Component, Default, Clone)]
+#[component(immutable)]
 pub struct AttackRange(pub usize);
 
 
@@ -95,29 +115,6 @@ impl ColorPulsation {
     }
 }
 
-
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum UpgradeType {
-    AttackSpeed,
-    AttackRange,
-    AttackDamage,
-    Health
-}
-impl std::fmt::Display for UpgradeType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[derive(Component, Default)]
-pub struct Upgrades(pub HashMap<UpgradeType, usize>);
-impl Upgrades {
-    pub fn total(&self) -> usize {
-        self.0.values().sum()
-    }
-}
-
 #[derive(Component)]
 #[component(immutable)]
 #[require(Transform)]
@@ -130,6 +127,11 @@ impl ZDepth {
         let entity = trigger.target();
         let Ok((mut transform, z_depth)) = transforms.get_mut(entity) else { return; };
         transform.translation.z = z_depth.0;
+    }
+}
+impl From<f32> for ZDepth {
+    fn from(value: f32) -> Self {
+        Self(value)
     }
 }
 

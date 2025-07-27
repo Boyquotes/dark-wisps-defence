@@ -21,6 +21,7 @@ pub struct LaserDart;
 
 // LaserDart follows Wisp, and if the wisp no longer exists, follows the target vector
 #[derive(Component, Default)]
+#[require(AttackDamage, Projectile)]
 pub struct LaserDartTarget {
     pub target_wisp: Option<Entity>,
     pub target_vector: Vec2,
@@ -31,11 +32,12 @@ pub struct BuilderLaserDart {
     world_position: Vec2,
     target_wisp: Entity,
     target_vector: Vec2,
+    damage: AttackDamage,
 }
 
 impl BuilderLaserDart {
-    pub fn new(world_position: Vec2, target_wisp: Entity, target_vector: Vec2) -> Self {
-        Self { world_position, target_wisp, target_vector }
+    pub fn new(world_position: Vec2, target_wisp: Entity, target_vector: Vec2, damage: AttackDamage) -> Self {
+        Self { world_position, target_wisp, target_vector, damage }
     }
 
     fn on_add(
@@ -59,9 +61,9 @@ impl BuilderLaserDart {
                     rotation: Quat::from_rotation_z(builder.target_vector.y.atan2(builder.target_vector.x)),
                     ..Default::default()
                 },
-                Projectile,
                 LaserDart,
                 LaserDartTarget{ target_wisp: Some(builder.target_wisp), target_vector: builder.target_vector },
+                builder.damage.clone(),
             ));
     }
 }
@@ -86,11 +88,11 @@ pub fn laser_dart_move_system(
 
 pub fn laser_dart_hit_system(
     mut commands: Commands,
-    laser_darts: Query<(Entity, &Transform), With<LaserDart>>,
+    laser_darts: Query<(Entity, &Transform, &AttackDamage), With<LaserDart>>,
     wisps_grid: Res<WispsGrid>,
     mut wisps: Query<(&mut Health, &Transform), With<Wisp>>,
 ) {
-    for (entity, laser_dart_transform) in laser_darts.iter() {
+    for (entity, laser_dart_transform, damage) in laser_darts.iter() {
         let coords = GridCoords::from_transform(&laser_dart_transform);
         if !coords.is_in_bounds(wisps_grid.bounds()) {
             commands.entity(entity).despawn();
@@ -100,7 +102,7 @@ pub fn laser_dart_hit_system(
         for wisp in wisps_in_coords {
             let Ok((mut health, wisp_transform)) = wisps.get_mut(*wisp) else { continue }; // May not find wisp if the wisp spawned at the same frame.
             if laser_dart_transform.translation.xy().distance(wisp_transform.translation.xy()) < 8. {
-                health.decrease(1);
+                health.decrease(damage.0);
                 commands.entity(entity).despawn();
                 break;
             }

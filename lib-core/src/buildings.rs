@@ -1,7 +1,17 @@
+use std::time::Duration;
+
 use crate::lib_prelude::*;
 
 pub mod buildings_prelude {
     pub use super::*;
+}
+
+pub struct BuildingsPlugin;
+impl Plugin for BuildingsPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_observer(TowerShootingTimer::on_attack_speed_change);
+    }
 }
 
 #[derive(Component, Copy, Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash)]
@@ -27,7 +37,7 @@ pub enum TowerType {
 }
 
 #[derive(Component, Clone, Debug, Default)]
-#[require(AutoGridTransformSync, ZDepth = ZDepth(Z_BUILDING))]
+#[require(AutoGridTransformSync, ZDepth = Z_BUILDING, MaxHealth)]
 pub struct Building;
 
 #[derive(Component)]
@@ -49,19 +59,19 @@ pub struct MiningComplex {
 pub struct ExplorationCenter;
 
 #[derive(Component)]
-#[require(Building, BuildingType = BuildingType::Tower(TowerType::Blaster))]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::Blaster), AttackRange, AttackSpeed, AttackDamage, TowerShootingTimer, TowerWispTarget)]
 pub struct TowerBlaster;
 
 #[derive(Component)]
-#[require(Building, BuildingType = BuildingType::Tower(TowerType::Cannon))]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::Cannon), AttackRange, AttackSpeed, AttackDamage, TowerShootingTimer, TowerWispTarget)]
 pub struct TowerCannon;
 
 #[derive(Component)]
-#[require(Building, BuildingType = BuildingType::Tower(TowerType::RocketLauncher))]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::RocketLauncher), AttackRange, AttackSpeed, AttackDamage, TowerShootingTimer, TowerWispTarget)]
 pub struct TowerRocketLauncher;
 
 #[derive(Component)]
-#[require(Building, BuildingType = BuildingType::Tower(TowerType::Emitter))]
+#[require(Building, BuildingType = BuildingType::Tower(TowerType::Emitter), AttackRange, AttackSpeed, AttackDamage, TowerShootingTimer, TowerWispTarget)]
 pub struct TowerEmitter;
 
 
@@ -74,4 +84,31 @@ impl TechnicalState {
     pub fn is_operational(&self) -> bool {
         self.has_energy_supply && self.has_ore_fields.unwrap_or(true)
     }
+}
+
+#[derive(Component, Default)]
+#[require(AttackSpeed)]
+pub struct TowerShootingTimer(pub Timer);
+impl TowerShootingTimer {
+    fn on_attack_speed_change(
+        trigger: Trigger<OnInsert, AttackSpeed>,
+        mut timers: Query<(&mut TowerShootingTimer, &AttackSpeed)>
+    ) {
+        let entity = trigger.target();
+        let Ok((mut timer, attack_speed)) = timers.get_mut(entity) else { return; };
+        if attack_speed.0 == 0. { return; }
+        timer.0.set_duration(Duration::from_secs_f32(1. / attack_speed.0));
+        // Set to fire right away if it's first shot ever. This is not fault-proof solution as if it happens the AttackSpeed occurs exactly at 0. we can get double-shot.
+        if timer.0.elapsed_secs() == 0. {
+            timer.0.set_elapsed(Duration::from_secs_f32(1. / attack_speed.0));
+        }
+    }
+}
+
+#[derive(Component, Default)]
+pub enum TowerWispTarget {
+    #[default]
+    SearchForNewTarget,
+    Wisp(Entity),
+    NoValidTargets(GridVersion),
 }

@@ -53,7 +53,7 @@ impl BuilderTowerRocketLauncher {
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
                 related![Modifiers[
                     (ModifierAttackRange(30), ModifierSourceBaseline),
-                    (ModifierAttackSpeed(3.0), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(0.33), ModifierSourceBaseline),
                     (ModifierAttackDamage(50), ModifierSourceBaseline),
                     (ModifierMaxHealth(100), ModifierSourceBaseline),
                 ]],

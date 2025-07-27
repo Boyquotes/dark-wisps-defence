@@ -55,7 +55,7 @@ impl BuilderTowerBlaster {
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
                 related![Modifiers[
                     (ModifierAttackRange(15), ModifierSourceBaseline),
-                    (ModifierAttackSpeed(0.2), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(5.), ModifierSourceBaseline),
                     (ModifierAttackDamage(1), ModifierSourceBaseline),
                     (ModifierMaxHealth(100), ModifierSourceBaseline),
                 ]],

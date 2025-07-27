@@ -54,8 +54,8 @@ impl BuilderTowerCannon {
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 related![Modifiers[
                     (ModifierAttackRange(15), ModifierSourceBaseline),
-                    (ModifierAttackSpeed(2.0), ModifierSourceBaseline),
-                    (ModifierAttackDamage(1), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(0.5), ModifierSourceBaseline),
+                    (ModifierAttackDamage(50), ModifierSourceBaseline),
                     (ModifierMaxHealth(100), ModifierSourceBaseline),
                 ]],
             ));

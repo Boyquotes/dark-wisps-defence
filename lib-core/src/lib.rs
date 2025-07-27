@@ -7,7 +7,6 @@ pub mod mouse;
 pub mod states;
 pub mod common;
 pub mod utils;
-pub mod modifiers;
 
 pub struct LibCorePlugin;
 impl Plugin for LibCorePlugin {
@@ -18,7 +17,6 @@ impl Plugin for LibCorePlugin {
             states::StatesPlugin,
             common::CommonPlugin,
             grids::GridPlugin,
-            modifiers::ModifiersPlugin,
             buildings::BuildingsPlugin,
         ));
     }
@@ -31,7 +29,6 @@ pub mod prelude {
     pub use crate::mouse::mouse_prelude::*;
     pub use crate::states::states_prelude::*;
     pub use crate::common::common_prelude::*;
-    pub use crate::modifiers::modifiers_prelude::*;
 }
 
 pub mod lib_prelude {

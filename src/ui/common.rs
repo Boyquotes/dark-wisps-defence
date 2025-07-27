@@ -7,20 +7,95 @@ pub struct CommonPlugin;
 impl Plugin for CommonPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_observer(UpgradeLineBuilder::on_add_attack_speed_builder)
+            .add_observer(UpgradeLineBuilder::on_add_attack_range_builder)
+            .add_observer(UpgradeLineBuilder::on_add_attack_damage_builder)
             .add_observer(UpgradeLine::on_add);
     }
 }
 
 ////////////////////////////////////////////
-////          Upgrade Button            ////
+////           Upgrade Line             ////
 ////////////////////////////////////////////
+#[derive(Component)]
+pub struct UpgradeLineBuilder {
+    pub potential_upgrade_entity: Entity,
+}
+impl UpgradeLineBuilder {
+    fn on_add_attack_speed_builder(
+        trigger: Trigger<OnAdd, UpgradeLineBuilder>,
+        mut commands: Commands,
+        upgrade_lines: Query<&UpgradeLineBuilder>,
+        potential_upgrades: Query<(&ModifierType, &ModifierAttackSpeed, &ModifierSourceUpgrade, &PotentialUpgradeOf)>,
+        attack_speeds: Query<&AttackSpeed>,
+    ) {
+        let upgrade_line_entity = trigger.target();
+        let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
+        let Ok((modifier_type, modifier, modifier_source, parent)) = potential_upgrades.get(upgrade_line.potential_upgrade_entity) else { return; };
+        let Ok(current_attack_speed) = attack_speeds.get(parent.0) else { return; };
+
+        commands.entity(upgrade_line_entity)
+            .remove::<UpgradeLineBuilder>()
+            .insert(UpgradeLine {
+                potential_upgrade_entity: upgrade_line.potential_upgrade_entity,
+                upgrades_type: *modifier_type,
+                costs: modifier_source.cost.clone(),
+                current_value: current_attack_speed.0,
+                next_value: modifier.0 + current_attack_speed.0,
+            });
+    }
+    fn on_add_attack_damage_builder(
+        trigger: Trigger<OnAdd, UpgradeLineBuilder>,
+        mut commands: Commands,
+        upgrade_lines: Query<&UpgradeLineBuilder>,
+        potential_upgrades: Query<(&ModifierType, &ModifierAttackDamage, &ModifierSourceUpgrade, &PotentialUpgradeOf)>,
+        attack_damages: Query<&AttackDamage>,
+    ) {
+        let upgrade_line_entity = trigger.target();
+        let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
+        let Ok((modifier_type, modifier, modifier_source, parent)) = potential_upgrades.get(upgrade_line.potential_upgrade_entity) else { return; };
+        let Ok(current_attack_damage) = attack_damages.get(parent.0) else { return; };
+
+        commands.entity(upgrade_line_entity)
+            .remove::<UpgradeLineBuilder>()
+            .insert(UpgradeLine {
+                potential_upgrade_entity: upgrade_line.potential_upgrade_entity,
+                upgrades_type: *modifier_type,
+                costs: modifier_source.cost.clone(),
+                current_value: current_attack_damage.0 as f32,
+                next_value: (modifier.0 + current_attack_damage.0) as f32,
+            });
+    }
+    fn on_add_attack_range_builder(
+        trigger: Trigger<OnAdd, UpgradeLineBuilder>,
+        mut commands: Commands,
+        upgrade_lines: Query<&UpgradeLineBuilder>,
+        potential_upgrades: Query<(&ModifierType, &ModifierAttackRange, &ModifierSourceUpgrade, &PotentialUpgradeOf)>,
+        attack_ranges: Query<&AttackRange>,
+    ) {
+        let upgrade_line_entity = trigger.target();
+        let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
+        let Ok((modifier_type, modifier, modifier_source, parent)) = potential_upgrades.get(upgrade_line.potential_upgrade_entity) else { return; };
+        let Ok(current_attack_range) = attack_ranges.get(parent.0) else { return; };
+
+        commands.entity(upgrade_line_entity)
+            .remove::<UpgradeLineBuilder>()
+            .insert(UpgradeLine {
+                potential_upgrade_entity: upgrade_line.potential_upgrade_entity,
+                upgrades_type: *modifier_type,
+                costs: modifier_source.cost.clone(),
+                current_value: current_attack_range.0 as f32,
+                next_value: (modifier.0 + current_attack_range.0) as f32,
+            });
+    }
+    
+}
 #[derive(Component)]
 #[require(Node)]
 pub struct UpgradeLine {
-    pub upgrade_entity: Entity,
+    pub potential_upgrade_entity: Entity,
     pub upgrades_type: ModifierType,
     pub costs: Vec<Cost>,
-    pub upgrade_level: usize,
     pub current_value: f32,
     pub next_value: f32
 }
@@ -49,7 +124,7 @@ impl UpgradeLine {
             )).with_children(|parent| {
                 // Left: Upgrade name + current level
                 parent.spawn((
-                    Text::new(format!("{} {}", upgrade_line.upgrades_type, upgrade_line.current_value)),
+                    Text::new(format!("{:?} {}", upgrade_line.upgrades_type, upgrade_line.current_value)),
                     TextColor::from(Color::WHITE),
                     TextLayout::new_with_linebreak(LineBreak::NoWrap),
                     Node {
@@ -110,7 +185,7 @@ impl UpgradeLine {
 
     fn on_click(
         trigger: Trigger<Pointer<Click>>,
-        commands: Commands,
+        mut commands: Commands,
         upgrade_buttons: Query<&UpgradeButton>,
         upgrade_lines: Query<&UpgradeLine>,
     ) {
@@ -118,11 +193,11 @@ impl UpgradeLine {
         let Ok(upgrade_button) = upgrade_buttons.get(entity) else { return; };
         let Ok(upgrade_line) = upgrade_lines.get(upgrade_button.0) else { return; };
         println!("Upgrade button clicked: {:?}", upgrade_line.upgrades_type);
-        commands.trigger_targets(GrantUpgradeModifier {
-            modifier_type: upgrade_line.upgrades_type,
-            upgrade_level: upgrade_line.upgrade_level,
-            value: upgrade_line.next_value,
-        }, vec![upgrade_line.upgrade_entity]);
+        // commands.trigger_targets(GrantUpgradeModifier {
+        //     modifier_type: upgrade_line.upgrades_type,
+        //     upgrade_level: upgrade_line.upgrade_level,
+        //     value: upgrade_line.next_value,
+        // }, vec![upgrade_line.upgrade_entity]);
 
 
     }

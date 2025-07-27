@@ -3,6 +3,7 @@ use bevy::app::{App, Plugin};
 pub mod resources;
 pub mod almanach;
 pub mod stats;
+pub mod modifiers;
 
 pub struct LibInventoryPlugin;
 impl Plugin for LibInventoryPlugin {
@@ -12,6 +13,7 @@ impl Plugin for LibInventoryPlugin {
                 almanach::AlmanachPlugin,
                 resources::ResourcesPlugin,
                 stats::StatsPlugin,
+                modifiers::ModifiersPlugin,
             ));
     }
 }
@@ -19,6 +21,7 @@ impl Plugin for LibInventoryPlugin {
 pub mod prelude {
     pub use crate::resources::resources_prelude::*;
     pub use crate::almanach::almanach_prelude::*;
+    pub use crate::modifiers::modifiers_prelude::*;
 }
 
 pub mod lib_prelude {

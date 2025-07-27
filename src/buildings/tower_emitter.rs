@@ -58,6 +58,7 @@ impl BuilderTowerEmitter {
                     (ModifierAttackDamage(1), ModifierSourceBaseline),
                 ]],
             ));
+        commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);
     }
 }
 

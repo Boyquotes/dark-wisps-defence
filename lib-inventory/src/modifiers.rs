@@ -20,7 +20,7 @@ impl Plugin for ModifiersPlugin {
 
 #[derive(Component)]
 #[relationship(relationship_target = Modifiers)]
-pub struct ModifierOf(Entity);
+pub struct ModifierOf(pub Entity);
 
 #[derive(Component)]
 #[relationship_target(relationship = ModifierOf, linked_spawn)]
@@ -45,7 +45,7 @@ pub enum ModifierSource {
     Upgrade,
 }
 #[derive(Component)]#[require(ModifierSource = ModifierSource::Baseline)] pub struct ModifierSourceBaseline;
-#[derive(Component)]#[require(ModifierSource = ModifierSource::Upgrade)] pub struct ModifierSourceUpgrade{ pub level: usize }
+#[derive(Component)]#[require(ModifierSource = ModifierSource::Upgrade)] pub struct ModifierSourceUpgrade{ pub level: usize, pub cost: Vec<Cost> }
 
 
 /// On Modifier inserted:
@@ -58,64 +58,60 @@ fn on_attack_range_modifier_inserted(
     mut commands: Commands,
     modifiers: Query<(&ModifierAttackRange, &ModifierOf)>,
     modification_targets: Query<&Modifiers>,
-) -> Result<()> {
+) {
     let modifier_entity = trigger.target();
-    let (_, modifier_of) = modifiers.get(modifier_entity)?;
-    let all_modifiers_list = modification_targets.get(modifier_of.0)?;
+    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
+    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
     let new_value = all_modifiers_list.iter()
         .filter_map(|entity| modifiers.get(entity).ok())
         .map(|(attack_range, _)| attack_range.0)
         .sum();
     commands.entity(modifier_of.0).insert(AttackRange(new_value));
-    Ok(())
 }
 fn on_attack_speed_modifier_inserted(
     trigger: Trigger<OnInsert, ModifierAttackSpeed>,
     mut commands: Commands,
     modifiers: Query<(&ModifierAttackSpeed, &ModifierOf)>,
     modification_targets: Query<&Modifiers>,
-) -> Result<()> {
+) {
     let modifier_entity = trigger.target();
-    let (_, modifier_of) = modifiers.get(modifier_entity)?;
-    let all_modifiers_list = modification_targets.get(modifier_of.0)?;
+    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
+    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
     let new_value = all_modifiers_list.iter()
         .filter_map(|entity| modifiers.get(entity).ok())
         .map(|(attack_speed, _)| attack_speed.0)
         .sum();
     commands.entity(modifier_of.0).insert(AttackSpeed(new_value));
-    Ok(())
 }
 fn on_attack_damage_modifier_inserted(
     trigger: Trigger<OnInsert, ModifierAttackDamage>,
     mut commands: Commands,
     modifiers: Query<(&ModifierAttackDamage, &ModifierOf)>,
     modification_targets: Query<&Modifiers>,
-) -> Result<()> {
+) {
     let modifier_entity = trigger.target();
-    let (_, modifier_of) = modifiers.get(modifier_entity)?;
-    let all_modifiers_list = modification_targets.get(modifier_of.0)?;
+    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
+    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
     let new_value = all_modifiers_list.iter()
         .filter_map(|entity| modifiers.get(entity).ok())
         .map(|(attack_damage, _)| attack_damage.0)
         .sum();
     commands.entity(modifier_of.0).insert(AttackDamage(new_value));
-    Ok(())
 }
 // fn on_max_health_modifier_inserted(
 //     trigger: Trigger<OnInsert, ModifierMaxHealth>,
 //     mut commands: Commands,
 //     modifiers: Query<(&ModifierMaxHealth, &ModifierOf)>,
 //     modification_targets: Query<&Modifiers>,
-// ) -> Result<()> {
+// ) {
 //     let modifier_entity = trigger.target();
-//     let (_, modifier_of) = modifiers.get(modifier_entity)?;
-//     let all_modifiers_list = modification_targets.get(modifier_of.0)?;
+//     let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
+//     let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
 //     let new_value = all_modifiers_list.iter()
 //         .filter_map(|entity| modifiers.get(entity).ok())
 //         .map(|(max_health, _)| max_health.0)
 //         .sum();
 //     commands.entity(modifier_of.0).insert(MaxHealth(new_value));
-//     Ok(())
 // }
 
 
@@ -130,14 +126,28 @@ impl GrantUpgradeModifier {
         trigger: Trigger<GrantUpgradeModifier>,
         mut commands: Commands,
     ) {
-        let entity = trigger.target();
-        let mut entity_commands = commands.entity(entity);
-        let trigger = trigger.event();
-        match trigger.modifier_type {
-            ModifierType::AttackSpeed => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackSpeed(trigger.value))),
-            ModifierType::AttackRange => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackRange(trigger.value as usize))),
-            ModifierType::AttackDamage => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackDamage(trigger.value as i32))),
-            ModifierType::MaxHealth => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierMaxHealth(trigger.value as i32))),
-        };
+        // let entity = trigger.target();
+        // let mut entity_commands = commands.entity(entity);
+        // let trigger = trigger.event();
+        // match trigger.modifier_type {
+        //     ModifierType::AttackSpeed => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackSpeed(trigger.value))),
+        //     ModifierType::AttackRange => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackRange(trigger.value as usize))),
+        //     ModifierType::AttackDamage => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierAttackDamage(trigger.value as i32))),
+        //     ModifierType::MaxHealth => entity_commands.with_related::<ModifierOf>((ModifierOf(entity), ModifierSourceUpgrade{ level: trigger.upgrade_level }, ModifierMaxHealth(trigger.value as i32))),
+        // };
     }
 }
+
+
+////////////////////
+////  UPGRADES  ////
+////////////////////
+
+
+#[derive(Component)]
+#[relationship(relationship_target = PotentialUpgrades)]
+pub struct PotentialUpgradeOf(pub Entity);
+
+#[derive(Component)]
+#[relationship_target(relationship = PotentialUpgradeOf, linked_spawn)]
+pub struct PotentialUpgrades(Vec<Entity>);

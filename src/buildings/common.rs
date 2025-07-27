@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 #[derive(Component, Default)]
-#[require(Upgrades)]
 pub struct MarkerTower;
 
 

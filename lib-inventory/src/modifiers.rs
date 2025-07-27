@@ -13,6 +13,7 @@ impl Plugin for ModifiersPlugin {
             .add_observer(on_attack_range_modifier_inserted)
             .add_observer(on_attack_speed_modifier_inserted)
             .add_observer(on_attack_damage_modifier_inserted)
+            .add_observer(on_max_health_modifier_inserted)
             .add_observer(ApplyPotentialUpgrade::on_trigger);
     }
 }
@@ -106,21 +107,21 @@ fn on_attack_damage_modifier_inserted(
         .sum();
     commands.entity(modifier_of.0).insert(AttackDamage(new_value));
 }
-// fn on_max_health_modifier_inserted(
-//     trigger: Trigger<OnInsert, ModifierMaxHealth>,
-//     mut commands: Commands,
-//     modifiers: Query<(&ModifierMaxHealth, &ModifierOf)>,
-//     modification_targets: Query<&Modifiers>,
-// ) {
-//     let modifier_entity = trigger.target();
-//     let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
-//     let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
-//     let new_value = all_modifiers_list.iter()
-//         .filter_map(|entity| modifiers.get(entity).ok())
-//         .map(|(max_health, _)| max_health.0)
-//         .sum();
-//     commands.entity(modifier_of.0).insert(MaxHealth(new_value));
-// }
+fn on_max_health_modifier_inserted(
+    trigger: Trigger<OnInsert, ModifierMaxHealth>,
+    mut commands: Commands,
+    modifiers: Query<(&ModifierMaxHealth, &ModifierOf)>,
+    modification_targets: Query<&Modifiers>,
+) {
+    let modifier_entity = trigger.target();
+    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
+    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
+    let new_value = all_modifiers_list.iter()
+        .filter_map(|entity| modifiers.get(entity).ok())
+        .map(|(max_health, _)| max_health.0)
+        .sum();
+    commands.entity(modifier_of.0).insert(MaxHealth(new_value));
+}
 
 
 ////////////////////

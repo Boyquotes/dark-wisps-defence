@@ -11,7 +11,8 @@ impl Plugin for CommonPlugin {
             .add_systems(Update, (
                 ColorPulsation::pulsate_sprites_system,
             ))
-            .add_observer(ZDepth::on_insert);
+            .add_observer(ZDepth::on_insert)
+            .add_observer(MaxHealth::on_insert);
     }
 }
 
@@ -19,7 +20,7 @@ impl Plugin for CommonPlugin {
 #[derive(Component, Default)]
 pub struct Health {
     current: i32,
-    max: i32,
+    max: i32, // A helper, source of truth is in MaxHealth component
 }
 impl Health {
     pub fn new(max: i32) -> Self {
@@ -42,6 +43,22 @@ impl Health {
     }
 }
 
+#[derive(Component, Default, Clone)]
+#[component(immutable)]
+#[require(Health)]
+pub struct MaxHealth(pub i32);
+impl MaxHealth {
+    fn on_insert(
+        trigger: Trigger<OnInsert, MaxHealth>,
+        mut healths: Query<(&mut Health, &MaxHealth)>,
+    ) {
+        let Ok((mut health, max_health)) = healths.get_mut(trigger.target()) else { return; };
+        if health.current == 0 {
+            health.current = max_health.0;
+        }
+        health.max = max_health.0;
+    }
+}
 #[derive(Component, Default, Clone)]
 #[component(immutable)]
 pub struct Speed(pub f32);

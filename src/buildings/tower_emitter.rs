@@ -49,13 +49,13 @@ impl BuilderTowerEmitter {
                 MarkerTower,
                 TowerEmitter,
                 builder.grid_position,
-                Health::new(100),
                 grid_imprint,
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 related![Modifiers[
                     (ModifierAttackRange(4), ModifierSourceBaseline),
                     (ModifierAttackSpeed(2.0), ModifierSourceBaseline),
                     (ModifierAttackDamage(1), ModifierSourceBaseline),
+                    (ModifierMaxHealth(100), ModifierSourceBaseline),
                 ]],
             ));
         commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);

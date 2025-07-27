@@ -52,10 +52,12 @@ impl BuilderExplorationCenter {
                 },
                 ExplorationCenter,
                 builder.grid_position,
-                Health::new(100),
                 grid_imprint,
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
+                related![Modifiers[
+                    (ModifierMaxHealth(100), ModifierSourceBaseline),
+                ]],
             ));
     }
 }

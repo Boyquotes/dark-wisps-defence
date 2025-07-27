@@ -30,7 +30,6 @@ impl BuilderWisp {
             .remove::<BuilderWisp>()
             .insert((
                 builder.grid_coords,
-                Health::new(10),
                 Speed(30.),
                 Transform {
                     translation: builder.grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP),
@@ -43,6 +42,9 @@ impl BuilderWisp {
                 WispChargeAttack::default(),
                 WispAttackRange(1),
                 GridPath::default(),
+                related![Modifiers[
+                    (ModifierMaxHealth(10), ModifierSourceBaseline),
+                ]],
             ));
         match builder.wisp_type {
             WispType::Fire => entity_commands.insert((WispFireType, EssencesContainer::from(EssenceContainer::new(EssenceType::Fire, 1)))),

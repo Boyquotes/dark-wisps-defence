@@ -46,7 +46,6 @@ impl BuilderMainBase {
                 },
                 MainBase,
                 builder.grid_position,
-                Health::new(10000),
                 grid_imprint,
                 EmitterEnergy(FloodEmissionsDetails {
                     emissions_type: EmissionsType::Energy,
@@ -57,6 +56,9 @@ impl BuilderMainBase {
                 GeneratorEnergy,
                 SupplierEnergy { range: 15 },
                 TechnicalState { has_energy_supply: true, ..default() },
+                related![Modifiers[
+                    (ModifierMaxHealth(10000), ModifierSourceBaseline),
+                ]],
             ));
     }
 }

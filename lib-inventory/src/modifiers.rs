@@ -149,9 +149,10 @@ impl ApplyPotentialUpgrade {
         let entity = trigger.target();
         let Ok((modifier_type, mut modifier_source_upgrade, parent)) = potential_upgrades.get_mut(entity) else { return; };
 
+        // First turn the potential upgrade into full fledged modifier. We first need to insert ModifierOf and then clone as otherwise on_add observers won't trigger properly(they expect ModifierOf to be present)
+        let modifier_entity = commands.spawn(ModifierOf(parent.0)).id();
         let mut commands_entity = commands.entity(entity);
-        // First turn the potential upgrade into full fledged modifier.
-        commands_entity.clone_and_spawn().insert(ModifierOf(parent.0));
+        commands_entity.clone_with(modifier_entity, |_| {});
         
         // Then level up the potential upgrade
         if modifier_source_upgrade.current_level + 1 >= modifier_source_upgrade.upgrade_info.levels.len() { 

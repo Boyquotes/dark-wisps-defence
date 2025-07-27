@@ -10,6 +10,7 @@ impl Plugin for CommonPlugin {
             .add_observer(UpgradeLineBuilder::on_add_attack_speed_builder)
             .add_observer(UpgradeLineBuilder::on_add_attack_range_builder)
             .add_observer(UpgradeLineBuilder::on_add_attack_damage_builder)
+            .add_observer(UpgradeLineBuilder::on_add_sanity_check)
             .add_observer(UpgradeLine::on_add);
     }
 }
@@ -22,6 +23,20 @@ pub struct UpgradeLineBuilder {
     pub potential_upgrade_entity: Entity,
 }
 impl UpgradeLineBuilder {
+    fn on_add_sanity_check(
+        trigger: Trigger<OnAdd, UpgradeLineBuilder>,
+        mut commands: Commands,
+        upgrade_lines: Query<&UpgradeLineBuilder>,
+        all_potential_upgrades: Query<(), With<PotentialUpgradeOf>>,
+    ) {
+        let upgrade_line_entity = trigger.target();
+        let upgrade_line = upgrade_lines.get(upgrade_line_entity).unwrap();
+        if !all_potential_upgrades.contains(upgrade_line.potential_upgrade_entity) {
+            // Upgrade was removed, remove the line as well
+            commands.entity(upgrade_line_entity).despawn();
+            return;
+        }
+    }
     fn on_add_attack_speed_builder(
         trigger: Trigger<OnAdd, UpgradeLineBuilder>,
         mut commands: Commands,
@@ -101,12 +116,15 @@ pub struct UpgradeLine {
 }
 impl UpgradeLine {
     fn on_add(
-        trigger: Trigger<OnAdd, UpgradeLine>,
+        trigger: Trigger<OnInsert, UpgradeLine>,
         mut commands: Commands,
         upgrade_lines: Query<&UpgradeLine>,
     ) {
         let upgrade_line_entity = trigger.target();
         let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
+
+        // Clear everything in case this is rebuild operation
+        commands.entity(upgrade_line_entity).despawn_related::<Children>();
 
         // Spawn the full upgrade line structure
         commands.entity(upgrade_line_entity).with_children(|parent| {
@@ -187,13 +205,16 @@ impl UpgradeLine {
         trigger: Trigger<Pointer<Click>>,
         mut commands: Commands,
         upgrade_buttons: Query<&UpgradeButton>,
-        upgrade_lines: Query<&UpgradeLine>,
+        upgrade_lines: Query<(Entity, &UpgradeLine)>,
     ) {
         let entity = trigger.target();
         let Ok(upgrade_button) = upgrade_buttons.get(entity) else { return; };
-        let Ok(upgrade_line) = upgrade_lines.get(upgrade_button.0) else { return; };
+        let Ok((upgrade_line_entity, upgrade_line)) = upgrade_lines.get(upgrade_button.0) else { return; };
         println!("Upgrade button clicked: {:?}", upgrade_line.upgrades_type);
         commands.trigger_targets(ApplyPotentialUpgrade, [upgrade_line.potential_upgrade_entity]);
+
+        // Rebuild the button
+        commands.entity(upgrade_line_entity).insert(UpgradeLineBuilder { potential_upgrade_entity: upgrade_line.potential_upgrade_entity });
     }
 }
 

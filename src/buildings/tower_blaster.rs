@@ -71,6 +71,7 @@ impl BuilderTowerBlaster {
             MarkerTowerRotationalTop(tower_base_entity),
         )).id();
         commands.entity(entity).add_child(tower_top);
+        commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);
     }
 }
 

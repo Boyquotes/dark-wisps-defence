@@ -183,6 +183,7 @@ fn tower_subpanel_content_bundle() -> impl Bundle {
                 Node {
                     width: Val::Percent(100.),
                     justify_items: JustifyItems::Center,
+                    flex_direction: FlexDirection::Column,
                     ..default()
                 },
                 BuildingInfoPanelTowerUpgradesContainer,

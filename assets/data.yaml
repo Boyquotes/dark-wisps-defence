@@ -27,13 +27,61 @@ buildings:
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 150 }
-    upgrades: {}
+    upgrades:
+      AttackSpeed:
+        upgrade_type: AttackSpeed
+        levels:
+          - value: 0.1
+            cost: 
+              - { resource_type: DarkOre, amount: 100 }
+          - value: 0.1
+            cost: 
+              - { resource_type: DarkOre, amount: 200 }
+          - value: 0.1
+            cost: 
+              - { resource_type: DarkOre, amount: 300 }
+      AttackDamage:
+        upgrade_type: AttackDamage
+        levels:
+          - value: 1
+            cost: 
+              - { resource_type: DarkOre, amount: 100 }
+          - value: 1
+            cost: 
+              - { resource_type: DarkOre, amount: 200 }
+          - value: 1
+            cost: 
+              - { resource_type: DarkOre, amount: 300 }
   - building_type: !Tower Cannon
     name: Cannon Tower
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 250 }
-    upgrades: {}
+    upgrades:
+      AttackRange:
+        upgrade_type: AttackRange
+        levels:
+          - value: 1
+            cost: 
+              - { resource_type: DarkOre, amount: 100 }
+          - value: 2
+            cost: 
+              - { resource_type: DarkOre, amount: 200 }
+          - value: 3
+            cost: 
+              - { resource_type: DarkOre, amount: 300 }
+      AttackDamage:
+        upgrade_type: AttackDamage
+        levels:
+          - value: 5
+            cost: 
+              - { resource_type: DarkOre, amount: 100 }
+          - value: 10
+            cost: 
+              - { resource_type: DarkOre, amount: 200 }
+          - value: 15
+            cost: 
+              - { resource_type: DarkOre, amount: 300 }
   - building_type: !Tower Emitter
     name: Emitter Tower
     grid_imprint: !Rectangle { width: 2, height: 2 }
@@ -52,9 +100,45 @@ buildings:
           - value: 3
             cost: 
               - { resource_type: DarkOre, amount: 300 }
+      AttackSpeed:
+        upgrade_type: AttackSpeed
+        levels:
+          - value: 0.1
+            cost: 
+              - { resource_type: DarkOre, amount: 100 }
+          - value: 0.1
+            cost: 
+              - { resource_type: DarkOre, amount: 200 }
+          - value: 0.1
+            cost: 
+              - { resource_type: DarkOre, amount: 300 }
   - building_type: !Tower RocketLauncher
     name: Rocket Launcher Tower
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 350 }
-    upgrades: {}
+    upgrades:
+      AttackRange:
+        upgrade_type: AttackRange
+        levels:
+          - value: 2
+            cost: 
+              - { resource_type: DarkOre, amount: 100 }
+          - value: 2
+            cost: 
+              - { resource_type: DarkOre, amount: 200 }
+          - value: 5
+            cost: 
+              - { resource_type: DarkOre, amount: 300 }
+      AttackSpeed:
+        upgrade_type: AttackSpeed
+        levels:
+          - value: 0.1
+            cost: 
+              - { resource_type: DarkOre, amount: 100 }
+          - value: 0.1
+            cost: 
+              - { resource_type: DarkOre, amount: 200 }
+          - value: 0.3
+            cost: 
+              - { resource_type: DarkOre, amount: 300 }

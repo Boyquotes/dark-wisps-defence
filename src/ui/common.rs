@@ -210,7 +210,6 @@ impl UpgradeLine {
         let entity = trigger.target();
         let Ok(upgrade_button) = upgrade_buttons.get(entity) else { return; };
         let Ok((upgrade_line_entity, upgrade_line)) = upgrade_lines.get(upgrade_button.0) else { return; };
-        println!("Upgrade button clicked: {:?}", upgrade_line.upgrades_type);
         commands.trigger_targets(ApplyPotentialUpgrade, [upgrade_line.potential_upgrade_entity]);
 
         // Rebuild the button

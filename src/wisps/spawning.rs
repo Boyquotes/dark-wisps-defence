@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispElectricType, WispFireType, WispLightType, WispState, WispType, WispWaterType};
+use super::components::{Wisp, WispElectricType, WispFireType, WispLightType, WispType, WispWaterType};
 use super::materials::WispMaterial;
 
 pub const WISP_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
@@ -30,7 +30,6 @@ impl BuilderWisp {
             .remove::<BuilderWisp>()
             .insert((
                 builder.grid_coords,
-                Speed(30.),
                 Transform {
                     translation: builder.grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP),
                     rotation: Quat::from_rotation_z(rng.generate::<f32>() * 2. * std::f32::consts::PI),
@@ -38,12 +37,10 @@ impl BuilderWisp {
                 },
                 Wisp,
                 builder.wisp_type,
-                WispState::default(),
-                WispChargeAttack::default(),
-                WispAttackRange(1),
-                GridPath::default(),
                 related![Modifiers[
                     (ModifierMaxHealth(10), ModifierSourceBaseline),
+                    (ModifierAttackRange(1), ModifierSourceBaseline),
+                    (ModifierMovementSpeed(30.), ModifierSourceBaseline),
                 ]],
             ));
         match builder.wisp_type {
@@ -65,7 +62,6 @@ pub fn on_wisp_spawn_attach_material<WispT: Component, MaterialT: Asset + WispMa
 ) {
     let entity = trigger.target();
     if !wisps.contains(entity) { return; }
-    // TODO: Do we need to remove the meash and material if the wisp is removed?
     let wisp_world_size = WISP_GRID_IMPRINT.world_size();
     let mesh = meshes.add(Rectangle::new(wisp_world_size.x, wisp_world_size.y));
     let material = materials.add(MaterialT::make(&asset_server));

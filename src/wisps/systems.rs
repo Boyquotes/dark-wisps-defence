@@ -7,13 +7,13 @@ use lib_inventory::stats::StatsWispsKilled;
 use crate::effects::wisp_attack::BuilderWispAttackEffect;
 use crate::prelude::*;
 
-use super::components::{Wisp, WispAttackRange, WispChargeAttack, WispState, WispType};
+use super::components::{Wisp, WispChargeAttack, WispState, WispType};
 use super::spawning::BuilderWisp;
 
 pub fn move_wisps(
     time: Res<Time>,
     mut wisps_grid: ResMut<WispsGrid>,
-    mut wisps: Query<(Entity, &WispState, &Health, &Speed, &mut Transform, &mut GridPath, &mut GridCoords), With<Wisp>>,
+    mut wisps: Query<(Entity, &WispState, &Health, &MovementSpeed, &mut Transform, &mut GridPath, &mut GridCoords), With<Wisp>>,
 ) {
     for (entity, wisp_state, health, speed, mut transform, mut grid_path, mut grid_coords) in wisps.iter_mut() {
         if !matches!(*wisp_state, WispState::MovingToTarget) || health.is_dead() { continue; }
@@ -83,7 +83,7 @@ pub fn wisp_charge_attack(
     mut commands: Commands,
     time: Res<Time>,
     obstacle_grid: Res<ObstacleGrid>,
-    mut wisps: Query<(&mut WispState, &Health, &Speed, &WispAttackRange, &GridPath, &mut Transform, &mut WispChargeAttack, &GridCoords), (With<Wisp>, Without<Building>)>,
+    mut wisps: Query<(&mut WispState, &Health, &MovementSpeed, &AttackRange, &GridPath, &mut Transform, &mut WispChargeAttack, &GridCoords), (With<Wisp>, Without<Building>)>,
     mut buildings: Query<&mut Health, (With<Building>, Without<Wisp>)>,
 ) {
     for (mut wisp_state, health, speed, attack_range, grid_path, mut transform, mut attack, grid_coords) in wisps.iter_mut() {

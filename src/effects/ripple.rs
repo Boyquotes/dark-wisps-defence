@@ -58,7 +58,7 @@ impl BuilderRipple {
                 })),
                 Transform::from_translation(builder.world_position.extend(Z_GROUND_EFFECT)),
                 Ripple{ max_radius: builder.radius, current_radius: 0. },
-                Speed(70.0),
+                MovementSpeed(70.0),
             ));
     }
 }
@@ -93,7 +93,7 @@ fn ripple_propagate_system(
     mut commands: Commands,
     time: Res<Time>,
     mut wave_materials: ResMut<Assets<RippleMaterial>>,
-    mut ripples: Query<(Entity, &mut Ripple, &Speed, &MeshMaterial2d<RippleMaterial>)>,
+    mut ripples: Query<(Entity, &mut Ripple, &MovementSpeed, &MeshMaterial2d<RippleMaterial>)>,
 ) {
     for (entity, mut ripple, speed, material_handle) in ripples.iter_mut() {
         let Some(material) = wave_materials.get_mut(material_handle) else { continue; };

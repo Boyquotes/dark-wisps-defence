@@ -61,7 +61,7 @@ impl MaxHealth {
 }
 #[derive(Component, Default, Clone)]
 #[component(immutable)]
-pub struct Speed(pub f32);
+pub struct MovementSpeed(pub f32);
 #[derive(Component, Default, Clone)]
 pub struct AttackSpeed(pub f32);
 #[derive(Component, Default, Clone)]

@@ -30,6 +30,7 @@ pub struct WispElectricType;
 
 
 #[derive(Component, Debug, Default, PartialEq)]
+#[require(WispState, WispChargeAttack, GridPath, MovementSpeed, AttackRange, MaxHealth)]
 pub struct Wisp;
 #[derive(Component, Default)]
 pub enum WispState {
@@ -47,6 +48,3 @@ pub enum WispChargeAttack {
     Charge,
     Backoff,
 }
-
-#[derive(Component)]
-pub struct WispAttackRange(pub usize);

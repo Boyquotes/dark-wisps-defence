@@ -26,11 +26,6 @@ pub struct MapInfo {
     pub world_height: f32,
     pub name: String,
 }
-impl MapInfo {
-    pub fn bounds(&self) -> (i32, i32) {
-        (self.grid_width, self.grid_height)
-    }
-}
 
 // Save current map to yaml file after 'S' is pressed
 pub fn save_map_system(

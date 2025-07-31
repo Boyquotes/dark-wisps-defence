@@ -204,12 +204,15 @@ impl UpgradeLine {
     fn on_click(
         trigger: Trigger<Pointer<Click>>,
         mut commands: Commands,
+        mut stock: ResMut<Stock>,
         upgrade_buttons: Query<&UpgradeButton>,
         upgrade_lines: Query<(Entity, &UpgradeLine)>,
     ) {
         let entity = trigger.target();
         let Ok(upgrade_button) = upgrade_buttons.get(entity) else { return; };
         let Ok((upgrade_line_entity, upgrade_line)) = upgrade_lines.get(upgrade_button.0) else { return; };
+        if !stock.try_pay_costs(&upgrade_line.costs) { return; }
+
         commands.trigger_targets(ApplyPotentialUpgrade, [upgrade_line.potential_upgrade_entity]);
 
         // Rebuild the button

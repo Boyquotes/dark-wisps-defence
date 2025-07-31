@@ -12,7 +12,10 @@ impl Plugin for InfoPanelPlugin {
             .add_systems(PostStartup, initialize_building_panel_content_system)
             .add_systems(Update, update_building_info_panel_system.run_if(in_state(UiInteraction::DisplayInfoPanel)))
             .add_observer(on_ui_map_object_focus_changed_trigger)
-            .add_observer(on_building_info_panel_enabled_for_towers_trigger);
+            .add_observer(on_building_info_panel_enabled_for_towers_trigger)
+            .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<OnInsert, ModifierSourceUpgrade>) // Refresh upgrade text on new upgrade
+            .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<BuildingInfoPanelEnabledTrigger, ()>) // Refresh upgrade text on panel enabled
+            ;
     }
 }
 
@@ -31,6 +34,21 @@ pub struct BuildingInfoPanelEnabledTrigger;
 struct BuildingInfoPanelTowerRoot;
 #[derive(Component)]
 struct BuildingInfoPanelTowerUpgradeCountText;
+impl BuildingInfoPanelTowerUpgradeCountText {
+    fn refresh_upgrade_count_on<T: Event, B: Bundle> (
+        _trigger: Trigger<T, B>,
+        display_info_panel: Query<&DisplayInfoPanel>,
+        modifiers: Query<&Modifiers>,
+        upgrades: Query<(), With<ModifierSourceUpgrade>>,
+        mut upgrade_count_text: Query<&mut Text, With<BuildingInfoPanelTowerUpgradeCountText>>,
+    ) {
+        let focused_entity = display_info_panel.single().unwrap().current_focus;
+        let Ok(modifiers) = modifiers.get(focused_entity) else { return; };
+        let upgrade_count = modifiers.iter().filter(|upgrade_entity| upgrades.contains(*upgrade_entity)).count();
+
+        upgrade_count_text.single_mut().unwrap().0 = format!("--- Upgrades {} / 3 ---", upgrade_count);
+    }
+}
 #[derive(Component)]
 struct BuildingInfoPanelTowerUpgradesContainer;
 

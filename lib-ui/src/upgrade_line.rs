@@ -1,7 +1,6 @@
 use bevy::{ecs::spawn::SpawnIter, text::LineBreak};
-use lib_ui::prelude::CostIndicator;
 
-use crate::prelude::*;
+use crate::{lib_prelude::*, prelude::CostIndicator};
 
 pub struct CommonPlugin;
 impl Plugin for CommonPlugin {
@@ -15,9 +14,6 @@ impl Plugin for CommonPlugin {
     }
 }
 
-////////////////////////////////////////////
-////           Upgrade Line             ////
-////////////////////////////////////////////
 #[derive(Component)]
 pub struct UpgradeLineBuilder {
     pub potential_upgrade_entity: Entity,

@@ -3,6 +3,7 @@ use bevy::app::{App, Plugin};
 pub mod healthbar;
 pub mod cost_indicator;
 pub mod utils;
+pub mod upgrade_line;
 
 pub struct LibUiPlugin;
 impl Plugin for LibUiPlugin {
@@ -11,6 +12,7 @@ impl Plugin for LibUiPlugin {
             .add_plugins((
                 healthbar::HealthbarPlugin,
                 cost_indicator::CostIndicatorPlugin,
+                upgrade_line::CommonPlugin,
             ));
     }
 }
@@ -18,6 +20,7 @@ impl Plugin for LibUiPlugin {
 pub mod prelude {
     pub use crate::healthbar::Healthbar;
     pub use crate::cost_indicator::CostIndicator;
+    pub use crate::upgrade_line::UpgradeLineBuilder;
 }
 
 pub mod lib_prelude {

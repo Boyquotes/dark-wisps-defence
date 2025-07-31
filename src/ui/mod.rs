@@ -1,7 +1,7 @@
 mod construction_menu;
 mod objectives_panel;
 mod badges;
-pub mod common;
+
 pub mod display_info_panel;
 pub mod grid_display;
 pub mod grid_object_placer;
@@ -18,7 +18,6 @@ impl Plugin for UiPlugin {
                 grid_object_placer::GridObjectPlacerPlugin,
                 objectives_panel::ObjectivesPanelPlugin,
                 construction_menu::ConstructionMenuPlugin,
-                common::CommonPlugin,
             ))
             .insert_resource(UiConfig::default())
             .add_systems(Update, (

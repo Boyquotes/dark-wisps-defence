@@ -1,8 +1,7 @@
 use bevy::color::palettes::css::BLUE;
-use lib_ui::healthbar::Healthbar;
+use lib_ui::prelude::{Healthbar, UpgradeLineBuilder};
 
 use crate::prelude::*;
-use crate::ui::common::UpgradeLineBuilder;
 use crate::ui::display_info_panel::{DisplayInfoPanel, DisplayPanelMainContentRoot, UiMapObjectFocusedTrigger};
 
 

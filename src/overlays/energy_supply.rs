@@ -1,9 +1,7 @@
 use bevy::{
-    asset::Assets,
     reflect::TypePath,
     render::{
-        render_asset::RenderAssetUsages,
-        render_resource::{AsBindGroup, ShaderRef, ShaderType, Extent3d, TextureDimension, TextureFormat},
+        render_resource::{AsBindGroup, ShaderRef, ShaderType},
         storage::ShaderStorageBuffer,
     },
     sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d},
@@ -70,7 +68,7 @@ impl EnergySupplyOverlaySecondaryMode {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, ShaderType)]
-struct UniformData {
+pub(crate) struct UniformData {
     grid_width: u32,
     grid_height: u32,
 }
@@ -229,23 +227,8 @@ fn on_grid_placer_exited_system(
 fn create_energy_supply_overlay_startup_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
 ) {
-    let image = images.add(
-        Image::new_fill(
-            Extent3d{
-                width: 100,
-                height: 100,
-                depth_or_array_layers: 1,
-            },
-            TextureDimension::D2,
-            &[0, 0, 0, 0],
-            TextureFormat::Rgba8Unorm,
-            RenderAssetUsages::default(),
-        )
-    );
-
     let full_world_size = 100. * CELL_SIZE;
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),

@@ -246,42 +246,102 @@ fn create_energy_supply_overlay_startup_system(
     ));
 }
 
+/// Energy supply pixel encoding for overlay texture
+#[derive(Debug, Clone, PartialEq)]
+struct EnergySupplyPixel {
+    has_supply: bool,
+    has_power: bool,
+    highlight_level: HighlightLevel,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum HighlightLevel {
+    /// No supply - completely transparent
+    None,
+    /// Has supply but another building is highlighted - dimmed display
+    Dimmed,
+    /// This building's energy supply is highlighted
+    Highlighted,
+}
+
+impl EnergySupplyPixel {
+    /// Create a pixel representing no energy supply
+    fn none() -> Self {
+        Self {
+            has_supply: false,
+            has_power: false,
+            highlight_level: HighlightLevel::None,
+        }
+    }
+
+    /// Create a pixel with supply and power status
+    fn with_supply(has_power: bool, highlight_level: HighlightLevel) -> Self {
+        Self {
+            has_supply: true,
+            has_power,
+            highlight_level,
+        }
+    }
+
+    /// Convert to RGBA bytes for texture storage
+    /// 
+    /// Encoding scheme:
+    /// - R: 255 if has_supply && !has_power (disconnected from the main power line), 0 otherwise
+    /// - G: Unused (0)
+    /// - B: Unused (0)  
+    /// - A: Alpha value based on highlight level
+    fn to_rgba(&self) -> [u8; 4] {
+        let alpha = self.highlight_level.alpha_value();
+        let red = if self.has_supply && !self.has_power { 255 } else { 0 };
+        [red, 0, 0, alpha]
+    }
+}
+
+impl HighlightLevel {
+    /// Get the alpha value for this highlight level
+    fn alpha_value(&self) -> u8 {
+        match self {
+            HighlightLevel::None => 0,
+            HighlightLevel::Dimmed => 5,
+            HighlightLevel::Highlighted => 15,
+        }
+    }
+}
 pub struct OverlayHeatmapCreator<'a> {
     energy_supply_grid: &'a EnergySupplyGrid,
     heatmap_data: &'a mut Vec<u8>
 }
 impl OverlayHeatmapCreator<'_> {
-    const ALPHA_VALUE: u8 = 15;
-    const RED_VALUE: u8 = 255;
-
     /// Imprint the current state of the energy supply grid into the heatmap
-    /// Rules as as follows:
-    /// - Alpha value(chunk[3]) above 0 means it has energy supply
-    /// - Red value(chunk[0]) == 255 means it has supply but no power(ie, the supplier(s) are not connected to the main power grid)
     fn imprint_current_state(&mut self, highlight_supplier: Option<Entity>) {
-        let mut idx = 0;
-        let alpha_value = if highlight_supplier.is_some() { 5 } else { Self::ALPHA_VALUE };
-        self.heatmap_data.chunks_mut(4).for_each(|chunk| {
-            chunk[0] = 0;
-            let grid_field =  &self.energy_supply_grid.grid[idx];
-            if grid_field.has_supply() {
-                // Mark as has supply
-                chunk[3] = alpha_value;
-                if let Some(highlighted_supplier) = highlight_supplier {
-                    if grid_field.has_supplier(highlighted_supplier) {
-                        chunk[3] = Self::ALPHA_VALUE;
-                    }
-                }
-                // Additional mark if it has no power
-                if !grid_field.has_power() {
-                    chunk[0] = Self::RED_VALUE;
-                }
-            } else {
-                chunk[3] = 0;
-            }
-            idx += 1;
-        });
+        // Generate pixels for the entire map. 1 pixel per grid cell
+        let pixels: Vec<[u8; 4]> = (0..self.energy_supply_grid.grid.len())
+            .map(|idx| self.create_pixel_for_grid_field(idx, highlight_supplier).to_rgba())
+            .collect();
+        
+        // Then update the heatmap data. Transform each Pixel into [u8, 4]
+        for (chunk, rgba) in self.heatmap_data.chunks_mut(4).zip(pixels.iter()) {
+            chunk.copy_from_slice(rgba);
+        }
     }
+    
+    /// If `highlight_supplier` is provider, only its range will be shown at full color, other ranges will be dimmed
+    fn create_pixel_for_grid_field(&self, idx: usize, highlight_supplier: Option<Entity>) -> EnergySupplyPixel {
+        let grid_field = &self.energy_supply_grid.grid[idx];
+        
+        if !grid_field.has_supply() {
+            return EnergySupplyPixel::none();
+        }
+        
+        let highlight_level = match highlight_supplier {
+            Some(supplier) if grid_field.has_supplier(supplier) => HighlightLevel::Highlighted,
+            Some(_) => HighlightLevel::Dimmed, // There is supplier, but it's not our supplier.
+            None => HighlightLevel::Highlighted, // Every supplier is highlighted
+        };
+        
+        EnergySupplyPixel::with_supply(grid_field.has_power(), highlight_level)
+    }
+    
     fn coords_to_index(&self, coords: &GridCoords) -> usize {
         (coords.x * 4 + coords.y * self.energy_supply_grid.height * 4) as usize
     }
@@ -297,8 +357,10 @@ impl OverlayHeatmapCreator<'_> {
             visited_grid.resize_and_reset(self.energy_supply_grid.bounds());
             let mut queue = VecDeque::new();
             start_coords.into_iter().for_each(|coords| {
+                let pixel = EnergySupplyPixel::with_supply(false, HighlightLevel::Highlighted);
                 let heatmap_index = self.coords_to_index(coords);
-                self.heatmap_data[heatmap_index + 3] = Self::ALPHA_VALUE;
+                let rgba = pixel.to_rgba();
+                self.heatmap_data[heatmap_index..heatmap_index + 4].copy_from_slice(&rgba);
                 queue.push_back((0, *coords));
                 visited_grid.set_visited(*coords);
             });
@@ -324,9 +386,11 @@ impl OverlayHeatmapCreator<'_> {
 
                     let heatmap_index = self.coords_to_index(&new_coords);
                     // By default we assume supply but no power
-                    if self.heatmap_data[heatmap_index + 3] != Self::ALPHA_VALUE {
-                        self.heatmap_data[heatmap_index + 3] = Self::ALPHA_VALUE;
-                        self.heatmap_data[heatmap_index + 0] = Self::RED_VALUE;
+                    let highlighted_alpha = HighlightLevel::Highlighted.alpha_value();
+                    if self.heatmap_data[heatmap_index + 3] != highlighted_alpha {
+                        let pixel = EnergySupplyPixel::with_supply(false, HighlightLevel::Highlighted);
+                        let rgba = pixel.to_rgba();
+                        self.heatmap_data[heatmap_index..heatmap_index + 4].copy_from_slice(&rgba);
                     }
 
                     let new_distance = distance + 1;
@@ -341,8 +405,10 @@ impl OverlayHeatmapCreator<'_> {
                 visited_grid.reset();
                 queue.clear();
                 start_coords.into_iter().for_each(|coords| {
+                    let pixel = EnergySupplyPixel::with_supply(true, HighlightLevel::Highlighted);
                     let heatmap_index = self.coords_to_index(coords);
-                    self.heatmap_data[heatmap_index + 0] = 0;
+                    let rgba = pixel.to_rgba();
+                    self.heatmap_data[heatmap_index..heatmap_index + 4].copy_from_slice(&rgba);
                     queue.push_back((0, *coords));
                     visited_grid.set_visited(*coords);
                 });
@@ -357,8 +423,11 @@ impl OverlayHeatmapCreator<'_> {
                         visited_grid.set_visited(new_coords);
 
                         let heatmap_index = self.coords_to_index(&new_coords);
-                        if self.heatmap_data[heatmap_index + 3] == Self::ALPHA_VALUE {
-                            self.heatmap_data[heatmap_index + 0] = 0;
+                        let highlighted_alpha = HighlightLevel::Highlighted.alpha_value();
+                        if self.heatmap_data[heatmap_index + 3] == highlighted_alpha {
+                            let pixel = EnergySupplyPixel::with_supply(true, HighlightLevel::Highlighted);
+                            let rgba = pixel.to_rgba();
+                            self.heatmap_data[heatmap_index..heatmap_index + 4].copy_from_slice(&rgba);
                             queue.push_back((0, new_coords));
                         }
                     }

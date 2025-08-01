@@ -8,11 +8,17 @@ struct UniformData {
 @group(2) @binding(1) var heatmap_sampler: sampler;
 @group(2) @binding(2) var<uniform> uniforms: UniformData;
 
+// Rendering constants
 const blockSize: f32 = 16.; // Size of each block in pixels
 const outlineThickness: f32 = 2.; // Size of the outline in pixels
 const BASE_COLOR: vec4<f32> = vec4<f32>(1., 1., 1., 0.); // Transparent
 const HAS_POWER_COLOR: vec4<f32> = vec4<f32>(1., 1., 0., 0.5); // Yellow
 const NO_POWER_COLOR: vec4<f32> = vec4<f32>(1., 0.2, 0., 0.5); // Orange
+
+// Thresholds for pixel decoding
+const SUPPLY_THRESHOLD: f32 = 0.0;
+const HIGHLIGHT_THRESHOLD: f32 = 5.0 / 255.0; // This value represents dimmed state. Being above it means it's highlighted.
+const POWER_THRESHOLD: f32 = 0.5; // Red channel threshold
 
 struct SupplyDetails {
     has_supply: bool,
@@ -27,7 +33,11 @@ struct EdgeDetails {
 
 fn supply_details(uv: vec2<f32>) -> SupplyDetails {
     let pixel = textureSample(heatmap, heatmap_sampler, uv);
-    return SupplyDetails(pixel.a > 0.0, pixel.r == 0.0, pixel.a > 0.05);
+    return SupplyDetails(
+        pixel.a > SUPPLY_THRESHOLD,    // has_supply
+        pixel.r < POWER_THRESHOLD,     // has_power (red=0 means power)
+        pixel.a > HIGHLIGHT_THRESHOLD  // is_highlighted
+    );
 }
 fn egde_details_from_supply_details(supply_details1: SupplyDetails, supply_details2: SupplyDetails) -> EdgeDetails {
     return EdgeDetails(

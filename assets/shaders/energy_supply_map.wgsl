@@ -125,7 +125,8 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let atEdge = blockPosition.x <= (outlineThickness / blockSize) || blockPosition.x >= ((blockSize - outlineThickness) / blockSize) ||
                  blockPosition.y <= (outlineThickness / blockSize) || blockPosition.y >= ((blockSize - outlineThickness) / blockSize);
 
-    // Get supply details from buffer
+    // Get cell data from buffer
+    let cell = get_cell_data(uv);
     let supply_detail = supply_details(uv);
     
     // First set general color for the block
@@ -133,17 +134,34 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     var base_color = BASE_COLOR;
     if supply_detail.has_supply {
         base_color = select(NO_POWER_COLOR, HAS_POWER_COLOR, supply_detail.has_power);
-        base_color.a = select(0.5, 0.5, supply_detail.has_power); // Semi-transparent
+        
+        // Set proper alpha based on highlight level
+        // 0 = None (transparent), 1 = Dimmed (5/255), 2 = Highlighted (15/255)
+        if cell.highlight_level == 0u {
+            base_color.a = 0.0; // Transparent (no highlight)
+        } else if cell.highlight_level == 1u {
+            base_color.a = 5.0 / 255.0; // Dimmed highlight
+        } else {
+            base_color.a = 15.0 / 255.0; // Normal/Highlighted
+        }
     }
 
-    // If we're at an edge and it's a boundary, draw the outline. Outline spills to other blocks so make sure you select proper color for it.
+    // If we're at an edge and it's a boundary, draw the outline
     let edge_details = is_edge_boundary(uv, blockPosition);
     if (atEdge && (edge_details.is_supply_boundary || edge_details.is_highlight_boundary)) {
-        base_color = select(HAS_POWER_COLOR, NO_POWER_COLOR, edge_details.is_power_boundary);
-        if (uniforms.highlight_enabled == 0 || edge_details.is_highlight_boundary) {
-            base_color.a = 0.9; // Outline color
+        // For power boundaries, always use the powered color (yellow) for the outline
+        // For non-power boundaries, use the current cell's color
+        if (edge_details.is_power_boundary) {
+            base_color = HAS_POWER_COLOR; // Always yellow for power boundaries
+        } else {
+            base_color = select(NO_POWER_COLOR, HAS_POWER_COLOR, supply_detail.has_power);
+        }
+        
+        // Set outline alpha - always solid for edges
+        if (edge_details.is_highlight_boundary) {
+            base_color.a = 1.0; // Solid outline for highlight boundaries
         } else if (edge_details.is_supply_boundary) {
-            base_color.a = 0.2; // Outline color
+            base_color.a = 1.0; // Solid outline for supply boundaries
         }
     }
 

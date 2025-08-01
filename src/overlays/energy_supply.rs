@@ -8,7 +8,10 @@ use bevy::{
     },
     sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d},
 };
-use lib_grid::grids::energy_supply::EnergySupplyGrid;
+use lib_grid::{
+    grids::energy_supply::EnergySupplyGrid,
+    search::common::{CARDINAL_DIRECTIONS, VISITED_GRID},
+};
 
 use crate::prelude::*;
 use crate::ui::display_info_panel::{UiMapObjectFocusedTrigger, UiMapObjectUnfocusedTrigger};
@@ -159,8 +162,16 @@ fn refresh_display_system(
                 overlay_creator.generate_buffer_data(Some(*building))
             }
             EnergySupplyOverlaySecondaryMode::Placing{grid_coords, grid_imprint, range} => {
-                // TODO: Handle placing mode - for now just use basic data
-                overlay_creator.generate_buffer_data(None)
+                if grid_coords.is_in_bounds(energy_supply_grid.bounds()) {
+                    let covered_coords = grid_imprint.covered_coords(*grid_coords)
+                        .iter()
+                        .copied()
+                        .filter(|coords| coords.is_in_bounds(energy_supply_grid.bounds()))
+                        .collect::<Vec<_>>();
+                    overlay_creator.flood_potential_energy_supply_to_overlay_heatmap(&covered_coords, *range)
+                } else {
+                    overlay_creator.generate_buffer_data(None)
+                }
             }
         };
         
@@ -340,6 +351,96 @@ impl OverlayBufferCreator<'_> {
         EnergySupplyCell::with_supply(grid_field.has_power(), highlight_level, primary_supplier)
     }
     
-    // TODO: Implement placing mode preview for buffer-based approach
-    // The old texture-based flood method has been removed since we now use GPU buffers
+    /// Special version of `flooding::flood_energy_supply` to add the energy supply of a building we are currently placing to the overlay heatmap.
+    /// It writes directly to the overlay texture, so it's only a visual cue that does not affect the actual grid.
+    fn flood_potential_energy_supply_to_overlay_heatmap<'a>(
+        &self,
+        start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
+        range: usize,
+    ) -> Vec<EnergySupplyCell> {
+        use std::collections::VecDeque;
+        
+        // Start with base buffer data
+        let mut buffer_data = self.generate_buffer_data(None);
+        let bounds = self.energy_supply_grid.bounds();
+        
+        VISITED_GRID.with_borrow_mut(|visited_grid| {
+            visited_grid.resize_and_reset(bounds);
+            let mut queue = VecDeque::new();
+            
+            // Initialize starting coordinates
+            start_coords.into_iter().for_each(|coords| {
+                let index = (coords.y * bounds.0 + coords.x) as usize;
+                buffer_data[index] = EnergySupplyCell::with_supply(false, HighlightLevel::Highlighted, None);
+                queue.push_back((0, *coords));
+                visited_grid.set_visited(*coords);
+            });
+            
+            let mut has_power = false;
+            
+            // First flood fill: determine reachability and check for power connection
+            while let Some((distance, coords)) = queue.pop_front() {
+                for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
+                    let new_coords = coords.shifted((delta_x, delta_y));
+                    if !new_coords.is_in_bounds(bounds) || visited_grid.is_visited(new_coords) {
+                        continue;
+                    }
+                    visited_grid.set_visited(new_coords);
+                    
+                    // If we are right at the range boundary - check if that field has power
+                    if distance == range {
+                        if self.energy_supply_grid[new_coords].has_power() {
+                            has_power = true;
+                            break;
+                        }
+                        continue;
+                    }
+                    
+                    let buffer_index = (new_coords.y * bounds.0 + new_coords.x) as usize;
+                    // By default we assume supply but no power
+                    if buffer_data[buffer_index].highlight_level != 2 {
+                        buffer_data[buffer_index] = EnergySupplyCell::with_supply(false, HighlightLevel::Highlighted, None);
+                    }
+                    
+                    let new_distance = distance + 1;
+                    if new_distance < range || (new_distance == range && !has_power) {
+                        queue.push_back((new_distance, new_coords));
+                    }
+                }
+            }
+            
+            // Second flood fill: update with power status if we found power connection
+            // This handles the bridging scenario where new building connects isolated suppliers to main grid
+            if has_power {
+                visited_grid.reset();
+                queue.clear();
+                
+                start_coords.into_iter().for_each(|coords| {
+                    let index = (coords.y * bounds.0 + coords.x) as usize;
+                    buffer_data[index] = EnergySupplyCell::with_supply(true, HighlightLevel::Highlighted, None);
+                    queue.push_back((0, *coords));
+                    visited_grid.set_visited(*coords);
+                });
+                
+                while let Some((_, coords)) = queue.pop_front() {
+                    for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
+                        let new_coords = coords.shifted((delta_x, delta_y));
+                        if !new_coords.is_in_bounds(bounds) || visited_grid.is_visited(new_coords) {
+                            continue;
+                        }
+                        visited_grid.set_visited(new_coords);
+                        
+                        let buffer_index = (new_coords.y * bounds.0 + new_coords.x) as usize;
+                        // Only update cells that were marked as highlighted in first pass
+                        if buffer_data[buffer_index].highlight_level == 2 {
+                            buffer_data[buffer_index] = EnergySupplyCell::with_supply(true, HighlightLevel::Highlighted, None);
+                            queue.push_back((0, new_coords));
+                        }
+                    }
+                }
+            }
+        });
+        
+        buffer_data
+    }
 }

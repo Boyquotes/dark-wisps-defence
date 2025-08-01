@@ -73,7 +73,6 @@ impl EnergySupplyOverlaySecondaryMode {
 struct UniformData {
     grid_width: u32,
     grid_height: u32,
-    highlight_enabled: u32,
 }
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
@@ -90,16 +89,6 @@ impl Material2d for EnergySupplyHeatmapMaterial {
 
     fn alpha_mode(&self) -> AlphaMode2d {
         AlphaMode2d::Blend
-    }
-}
-impl EnergySupplyHeatmapMaterial {
-    fn configure(&mut self, secondary_mode: &EnergySupplyOverlaySecondaryMode) {
-        match secondary_mode {
-            EnergySupplyOverlaySecondaryMode::Highlight{building: _} => {
-                self.uniforms.highlight_enabled = 1;
-            }
-            _ => self.uniforms.highlight_enabled = 0,
-        }
     }
 }
 
@@ -150,7 +139,6 @@ fn refresh_display_system(
         overlay_config.grid_version = energy_supply_grid.version;
         let Ok(heatmap_material_handle) = energy_supply_overlay.single() else { return; };
         let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
-        heatmap_material.configure(&overlay_config.secondary_mode);
         
         // Generate buffer data
         let overlay_creator = OverlayBufferCreator { energy_supply_grid: &energy_supply_grid };
@@ -266,7 +254,6 @@ fn create_energy_supply_overlay_startup_system(
             uniforms: UniformData {
                 grid_width: 0,
                 grid_height: 0,
-                highlight_enabled: 0,
             },
         })),
         Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)

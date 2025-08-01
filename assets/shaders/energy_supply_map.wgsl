@@ -10,7 +10,6 @@ struct EnergySupplyCell {
 struct UniformData {
     grid_width: u32,
     grid_height: u32,
-    highlight_enabled: u32, // 0 or 1
 }
 
 @group(2) @binding(0) var<storage, read> energy_cells: array<EnergySupplyCell>;
@@ -40,10 +39,13 @@ struct EdgeDetails {
 }
 
 fn get_cell_data(uv: vec2<f32>) -> EnergySupplyCell {
-    let grid_pos = vec2<u32>(uv * vec2<f32>(f32(uniforms.grid_width), f32(uniforms.grid_height)));
+    // Clamp UV coordinates to valid range to prevent bleeding at edges
+    let clamped_uv = clamp(uv, vec2<f32>(0.0), vec2<f32>(0.9999));
+    let grid_pos = vec2<u32>(clamped_uv * vec2<f32>(f32(uniforms.grid_width), f32(uniforms.grid_height)));
     let index = grid_pos.y * uniforms.grid_width + grid_pos.x;
     
-    if (index >= arrayLength(&energy_cells)) {
+    // Additional safety check: ensure grid coordinates are within bounds
+    if (grid_pos.x >= uniforms.grid_width || grid_pos.y >= uniforms.grid_height ||  index >= arrayLength(&energy_cells)) {
         return EnergySupplyCell(0u, 0u, 0u, 0u); // Return empty cell if out of bounds
     }
     
@@ -157,11 +159,11 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             base_color = select(NO_POWER_COLOR, HAS_POWER_COLOR, supply_detail.has_power);
         }
         
-        // Set outline alpha - replicate original dimming logic
-        if (uniforms.highlight_enabled == 0u || edge_details.is_highlight_boundary) {
-            base_color.a = 0.9; // Bright outline (no highlight mode OR highlight boundary)
+        // Set outline alpha - simplified logic using cell highlight levels
+        if (edge_details.is_highlight_boundary) {
+            base_color.a = 0.9; // Bright outline for highlight boundaries
         } else if (edge_details.is_supply_boundary) {
-            base_color.a = 0.2; // Dimmed outline (highlight mode AND supply boundary but NOT highlight boundary)
+            base_color.a = 0.2; // Dimmed outline for supply boundaries
         }
     }
 

@@ -157,11 +157,11 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             base_color = select(NO_POWER_COLOR, HAS_POWER_COLOR, supply_detail.has_power);
         }
         
-        // Set outline alpha - always solid for edges
-        if (edge_details.is_highlight_boundary) {
-            base_color.a = 1.0; // Solid outline for highlight boundaries
+        // Set outline alpha - replicate original dimming logic
+        if (uniforms.highlight_enabled == 0u || edge_details.is_highlight_boundary) {
+            base_color.a = 0.9; // Bright outline (no highlight mode OR highlight boundary)
         } else if (edge_details.is_supply_boundary) {
-            base_color.a = 1.0; // Solid outline for supply boundaries
+            base_color.a = 0.2; // Dimmed outline (highlight mode AND supply boundary but NOT highlight boundary)
         }
     }
 

@@ -1792,6 +1792,7 @@ name = "dark-wisps-defence"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bytemuck",
  "lib-core",
  "lib-grid",
  "lib-inventory",

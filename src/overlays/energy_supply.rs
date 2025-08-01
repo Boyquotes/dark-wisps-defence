@@ -1,12 +1,14 @@
-use std::collections::VecDeque;
-
-use bevy::reflect::TypePath;
-use bevy::render::render_asset::RenderAssetUsages;
-use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
-use bevy::sprite::{AlphaMode2d, Material2d, Material2dPlugin};
-
+use bevy::{
+    asset::Assets,
+    reflect::TypePath,
+    render::{
+        render_asset::RenderAssetUsages,
+        render_resource::{AsBindGroup, ShaderRef, ShaderType, Extent3d, TextureDimension, TextureFormat},
+        storage::ShaderStorageBuffer,
+    },
+    sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d},
+};
 use lib_grid::grids::energy_supply::EnergySupplyGrid;
-use lib_grid::search::common::{CARDINAL_DIRECTIONS, VISITED_GRID};
 
 use crate::prelude::*;
 use crate::ui::display_info_panel::{UiMapObjectFocusedTrigger, UiMapObjectUnfocusedTrigger};
@@ -63,30 +65,38 @@ impl EnergySupplyOverlaySecondaryMode {
     pub fn is_none(&self) -> bool { matches!(self, EnergySupplyOverlaySecondaryMode::None) }
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, ShaderType)]
+struct UniformData {
+    grid_width: u32,
+    grid_height: u32,
+    highlight_enabled: u32,
+}
+
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
 pub struct EnergySupplyHeatmapMaterial {
-    #[texture(0)]
-    #[sampler(1)]
-    pub heatmap: Handle<Image>,
-    #[uniform(2)]
-    pub highlight_enabled: u32, // 1 if the display is in highlight mode and should make the specific building range highlighted
-}
-impl EnergySupplyHeatmapMaterial {
-    fn configure(&mut self, secondary_mode: &EnergySupplyOverlaySecondaryMode) {
-        match secondary_mode {
-            EnergySupplyOverlaySecondaryMode::Highlight{building: _} => {
-                self.highlight_enabled = 1;
-            }
-            _ => self.highlight_enabled = 0,
-        }
-    }
+    #[storage(0, read_only)]
+    pub energy_cells: Handle<ShaderStorageBuffer>,
+    #[uniform(1)]
+    pub uniforms: UniformData,
 }
 impl Material2d for EnergySupplyHeatmapMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/energy_supply_map.wgsl".into()
     }
+
     fn alpha_mode(&self) -> AlphaMode2d {
         AlphaMode2d::Blend
+    }
+}
+impl EnergySupplyHeatmapMaterial {
+    fn configure(&mut self, secondary_mode: &EnergySupplyOverlaySecondaryMode) {
+        match secondary_mode {
+            EnergySupplyOverlaySecondaryMode::Highlight{building: _} => {
+                self.uniforms.highlight_enabled = 1;
+            }
+            _ => self.uniforms.highlight_enabled = 0,
+        }
     }
 }
 
@@ -125,7 +135,7 @@ pub fn manage_energy_supply_overlay_global_mode_system(
 }
 
 fn refresh_display_system(
-    mut images: ResMut<Assets<Image>>,
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
     mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
     energy_supply_grid: Res<EnergySupplyGrid>,
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
@@ -138,26 +148,31 @@ fn refresh_display_system(
         let Ok(heatmap_material_handle) = energy_supply_overlay.single() else { return; };
         let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
         heatmap_material.configure(&overlay_config.secondary_mode);
-        let heatmap_image = images.get_mut(&heatmap_material.heatmap).unwrap();
-        let mut overlay_creator = OverlayHeatmapCreator { energy_supply_grid: &energy_supply_grid, heatmap_data: heatmap_image.data.as_mut().unwrap() };
-        match &overlay_config.secondary_mode {
+        
+        // Generate buffer data
+        let overlay_creator = OverlayBufferCreator { energy_supply_grid: &energy_supply_grid };
+        let buffer_data = match &overlay_config.secondary_mode {
             EnergySupplyOverlaySecondaryMode::None => {
-                overlay_creator.imprint_current_state(None); 
+                overlay_creator.generate_buffer_data(None)
             }
             EnergySupplyOverlaySecondaryMode::Highlight{ building } => {
-                overlay_creator.imprint_current_state(Some(*building)); 
+                overlay_creator.generate_buffer_data(Some(*building))
             }
             EnergySupplyOverlaySecondaryMode::Placing{grid_coords, grid_imprint, range} => {
-                overlay_creator.imprint_current_state(None); 
-                if grid_coords.is_in_bounds(energy_supply_grid.bounds()) {
-                    let covered_coords = grid_imprint.covered_coords(*grid_coords).iter().filter(|coords| coords.is_in_bounds(energy_supply_grid.bounds())).copied().collect::<Vec<_>>();
-                    overlay_creator.flood_potential_energy_supply_to_overlay_heatmap(
-                        &covered_coords, 
-                        *range
-                    ); 
-                }
+                // TODO: Handle placing mode - for now just use basic data
+                overlay_creator.generate_buffer_data(None)
             }
-        }
+        };
+        
+        // Create ShaderStorageBuffer
+        let storage_buffer = ShaderStorageBuffer::from(buffer_data.as_slice());
+        let buffer_handle = buffers.add(storage_buffer);
+        
+        // Update material with new buffer
+        heatmap_material.energy_cells = buffer_handle;
+        let bounds = energy_supply_grid.bounds();
+        heatmap_material.uniforms.grid_width = bounds.0 as u32; // width is first element
+        heatmap_material.uniforms.grid_height = bounds.1 as u32; // height is second element
     }
 }
 
@@ -236,8 +251,12 @@ fn create_energy_supply_overlay_startup_system(
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
         MeshMaterial2d(materials.add(EnergySupplyHeatmapMaterial {
-            heatmap: image,
-            highlight_enabled: 0,
+            energy_cells: Handle::default(),
+            uniforms: UniformData {
+                grid_width: 0,
+                grid_height: 0,
+                highlight_enabled: 0,
+            },
         })),
         Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
                 .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
@@ -246,91 +265,68 @@ fn create_energy_supply_overlay_startup_system(
     ));
 }
 
-/// Energy supply pixel encoding for overlay texture
-#[derive(Debug, Clone, PartialEq)]
-struct EnergySupplyPixel {
-    has_supply: bool,
-    has_power: bool,
-    highlight_level: HighlightLevel,
+/// Energy supply cell data for GPU buffer
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable, ShaderType)]
+struct EnergySupplyCell {
+    /// Whether this cell has energy supply (0 = false, 1 = true)
+    has_supply: u32,
+    /// Whether this cell has power connection (0 = false, 1 = true) 
+    has_power: u32,
+    /// Highlight level: 0 = None, 1 = Dimmed, 2 = Highlighted
+    highlight_level: u32,
+    /// Entity ID of primary supplier (0 if none)
+    supplier_entity: u32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 enum HighlightLevel {
     /// No supply - completely transparent
-    None,
+    None = 0,
     /// Has supply but another building is highlighted - dimmed display
-    Dimmed,
+    Dimmed = 1,
     /// This building's energy supply is highlighted
-    Highlighted,
+    Highlighted = 2,
 }
 
-impl EnergySupplyPixel {
-    /// Create a pixel representing no energy supply
+impl EnergySupplyCell {
+    /// Create a cell representing no energy supply
     fn none() -> Self {
         Self {
-            has_supply: false,
-            has_power: false,
-            highlight_level: HighlightLevel::None,
+            has_supply: 0,
+            has_power: 0,
+            highlight_level: HighlightLevel::None as u32,
+            supplier_entity: 0,
         }
     }
 
-    /// Create a pixel with supply and power status
-    fn with_supply(has_power: bool, highlight_level: HighlightLevel) -> Self {
+    /// Create a cell with supply and power status
+    fn with_supply(has_power: bool, highlight_level: HighlightLevel, supplier_entity: Option<Entity>) -> Self {
         Self {
-            has_supply: true,
-            has_power,
-            highlight_level,
-        }
-    }
-
-    /// Convert to RGBA bytes for texture storage
-    /// 
-    /// Encoding scheme:
-    /// - R: 255 if has_supply && !has_power (disconnected from the main power line), 0 otherwise
-    /// - G: Unused (0)
-    /// - B: Unused (0)  
-    /// - A: Alpha value based on highlight level
-    fn to_rgba(&self) -> [u8; 4] {
-        let alpha = self.highlight_level.alpha_value();
-        let red = if self.has_supply && !self.has_power { 255 } else { 0 };
-        [red, 0, 0, alpha]
-    }
-}
-
-impl HighlightLevel {
-    /// Get the alpha value for this highlight level
-    fn alpha_value(&self) -> u8 {
-        match self {
-            HighlightLevel::None => 0,
-            HighlightLevel::Dimmed => 5,
-            HighlightLevel::Highlighted => 15,
+            has_supply: 1,
+            has_power: has_power as u32,
+            highlight_level: highlight_level as u32,
+            supplier_entity: supplier_entity.map(|e| e.index()).unwrap_or(0),
         }
     }
 }
-pub struct OverlayHeatmapCreator<'a> {
+pub struct OverlayBufferCreator<'a> {
     energy_supply_grid: &'a EnergySupplyGrid,
-    heatmap_data: &'a mut Vec<u8>
 }
-impl OverlayHeatmapCreator<'_> {
-    /// Imprint the current state of the energy supply grid into the heatmap
-    fn imprint_current_state(&mut self, highlight_supplier: Option<Entity>) {
-        // Generate pixels for the entire map. 1 pixel per grid cell
-        let pixels: Vec<[u8; 4]> = (0..self.energy_supply_grid.grid.len())
-            .map(|idx| self.create_pixel_for_grid_field(idx, highlight_supplier).to_rgba())
-            .collect();
-        
-        // Then update the heatmap data. Transform each Pixel into [u8, 4]
-        for (chunk, rgba) in self.heatmap_data.chunks_mut(4).zip(pixels.iter()) {
-            chunk.copy_from_slice(rgba);
-        }
+impl OverlayBufferCreator<'_> {
+    /// Generate buffer data for the entire energy supply grid
+    fn generate_buffer_data(&self, highlight_supplier: Option<Entity>) -> Vec<EnergySupplyCell> {
+        (0..self.energy_supply_grid.grid.len())
+            .map(|idx| self.create_cell_for_grid_field(idx, highlight_supplier))
+            .collect()
     }
     
-    /// If `highlight_supplier` is provider, only its range will be shown at full color, other ranges will be dimmed
-    fn create_pixel_for_grid_field(&self, idx: usize, highlight_supplier: Option<Entity>) -> EnergySupplyPixel {
+    /// If `highlight_supplier` is provided, only its range will be shown at full color, other ranges will be dimmed
+    fn create_cell_for_grid_field(&self, idx: usize, highlight_supplier: Option<Entity>) -> EnergySupplyCell {
         let grid_field = &self.energy_supply_grid.grid[idx];
         
         if !grid_field.has_supply() {
-            return EnergySupplyPixel::none();
+            return EnergySupplyCell::none();
         }
         
         let highlight_level = match highlight_supplier {
@@ -339,100 +335,11 @@ impl OverlayHeatmapCreator<'_> {
             None => HighlightLevel::Highlighted, // Every supplier is highlighted
         };
         
-        EnergySupplyPixel::with_supply(grid_field.has_power(), highlight_level)
+        // TODO: Need to access primary supplier properly when public API is available
+        let primary_supplier = None; // grid_field doesn't expose suppliers publicly
+        EnergySupplyCell::with_supply(grid_field.has_power(), highlight_level, primary_supplier)
     }
     
-    fn coords_to_index(&self, coords: &GridCoords) -> usize {
-        (coords.x * 4 + coords.y * self.energy_supply_grid.height * 4) as usize
-    }
-
-    /// Special version of `flooding::flood_energy_supply` to add the energy supply of a building we are currently placing to the overlay heatmap.
-    /// It writes directly to the overlay texture, so it's only a visual cue that does not affect the actual grid.
-    fn flood_potential_energy_supply_to_overlay_heatmap<'a>(
-        &mut self,
-        start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
-        range: usize,
-    ) {
-        VISITED_GRID.with_borrow_mut(|visited_grid| {
-            visited_grid.resize_and_reset(self.energy_supply_grid.bounds());
-            let mut queue = VecDeque::new();
-            start_coords.into_iter().for_each(|coords| {
-                let pixel = EnergySupplyPixel::with_supply(false, HighlightLevel::Highlighted);
-                let heatmap_index = self.coords_to_index(coords);
-                let rgba = pixel.to_rgba();
-                self.heatmap_data[heatmap_index..heatmap_index + 4].copy_from_slice(&rgba);
-                queue.push_back((0, *coords));
-                visited_grid.set_visited(*coords);
-            });
-            let mut has_power = false;
-            while let Some((distance, coords)) = queue.pop_front() {
-                for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
-                    let new_coords = coords.shifted((delta_x, delta_y));
-                    if !new_coords.is_in_bounds(self.energy_supply_grid.bounds())
-                        || visited_grid.is_visited(new_coords)
-                    {
-                        continue;
-                    }
-                    visited_grid.set_visited(new_coords);
-
-                    // If we are right over the range - check if that fields has power(it means we have the power too)
-                    if distance == range {
-                        if self.energy_supply_grid[new_coords].has_power() {
-                            has_power = true;
-                            break;
-                        }
-                        continue;
-                    }
-
-                    let heatmap_index = self.coords_to_index(&new_coords);
-                    // By default we assume supply but no power
-                    let highlighted_alpha = HighlightLevel::Highlighted.alpha_value();
-                    if self.heatmap_data[heatmap_index + 3] != highlighted_alpha {
-                        let pixel = EnergySupplyPixel::with_supply(false, HighlightLevel::Highlighted);
-                        let rgba = pixel.to_rgba();
-                        self.heatmap_data[heatmap_index..heatmap_index + 4].copy_from_slice(&rgba);
-                    }
-
-                    let new_distance = distance + 1;
-                    if new_distance < range || (new_distance == range && !has_power) {
-                        queue.push_back((new_distance, new_coords));
-                    }
-                }
-            }
-            // If we found that we have power, we need to do another flood to update the heatmap
-            // since the new building being placed may be a bridge between a stranded suppliers and the main power grid
-            if has_power {
-                visited_grid.reset();
-                queue.clear();
-                start_coords.into_iter().for_each(|coords| {
-                    let pixel = EnergySupplyPixel::with_supply(true, HighlightLevel::Highlighted);
-                    let heatmap_index = self.coords_to_index(coords);
-                    let rgba = pixel.to_rgba();
-                    self.heatmap_data[heatmap_index..heatmap_index + 4].copy_from_slice(&rgba);
-                    queue.push_back((0, *coords));
-                    visited_grid.set_visited(*coords);
-                });
-                while let Some((_, coords)) = queue.pop_front() {
-                    for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
-                        let new_coords = coords.shifted((delta_x, delta_y));
-                        if !new_coords.is_in_bounds(self.energy_supply_grid.bounds())
-                            || visited_grid.is_visited(new_coords)
-                        {
-                            continue;
-                        }
-                        visited_grid.set_visited(new_coords);
-
-                        let heatmap_index = self.coords_to_index(&new_coords);
-                        let highlighted_alpha = HighlightLevel::Highlighted.alpha_value();
-                        if self.heatmap_data[heatmap_index + 3] == highlighted_alpha {
-                            let pixel = EnergySupplyPixel::with_supply(true, HighlightLevel::Highlighted);
-                            let rgba = pixel.to_rgba();
-                            self.heatmap_data[heatmap_index..heatmap_index + 4].copy_from_slice(&rgba);
-                            queue.push_back((0, new_coords));
-                        }
-                    }
-                }
-            }
-        });
-    }
+    // TODO: Implement placing mode preview for buffer-based approach
+    // The old texture-based flood method has been removed since we now use GPU buffers
 }

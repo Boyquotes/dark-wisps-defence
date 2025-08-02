@@ -135,52 +135,50 @@ fn refresh_display_system(
     mut last_secondary_mode: Local<EnergySupplyOverlaySecondaryMode>,
     mut local_buffer_data: Local<Vec<EnergySupplyCell>>, // To avoid re-allocations every frame
 ) {
-    if overlay_config.grid_version != energy_supply_grid.version || overlay_config.secondary_mode != *last_secondary_mode {
-        *last_secondary_mode = overlay_config.secondary_mode.clone();
-        overlay_config.grid_version = energy_supply_grid.version;
-        let Ok(heatmap_material_handle) = energy_supply_overlay.single() else { return; };
+    if overlay_config.grid_version == energy_supply_grid.version && overlay_config.secondary_mode == *last_secondary_mode { return; }
+    
+    *last_secondary_mode = overlay_config.secondary_mode.clone();
+    overlay_config.grid_version = energy_supply_grid.version;
+    let Ok(heatmap_material_handle) = energy_supply_overlay.single() else { return; };
 
-        let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
-        
-        // Generate buffer data
-        let mut overlay_creator = OverlayBufferCreator::new(&energy_supply_grid, &mut local_buffer_data);
-        match &overlay_config.secondary_mode {
-            EnergySupplyOverlaySecondaryMode::None => {
+    let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
+    
+    // Generate buffer data
+    let mut overlay_creator = OverlayBufferCreator::new(&energy_supply_grid, &mut local_buffer_data);
+    match &overlay_config.secondary_mode {
+        EnergySupplyOverlaySecondaryMode::None => {
+            overlay_creator.generate_buffer_data(None)
+        }
+        EnergySupplyOverlaySecondaryMode::Highlight{ building } => {
+            overlay_creator.generate_buffer_data(Some(*building))
+        }
+        EnergySupplyOverlaySecondaryMode::Placing{grid_coords, grid_imprint, range} => {
+            if grid_coords.is_in_bounds(energy_supply_grid.bounds()) {
+                let covered_coords = grid_imprint.covered_coords(*grid_coords)
+                    .iter()
+                    .copied()
+                    .filter(|coords| coords.is_in_bounds(energy_supply_grid.bounds()))
+                    .collect::<Vec<_>>();
+                overlay_creator.flood_potential_energy_supply_to_overlay_heatmap(&covered_coords, *range)
+            } else {
                 overlay_creator.generate_buffer_data(None)
             }
-            EnergySupplyOverlaySecondaryMode::Highlight{ building } => {
-                overlay_creator.generate_buffer_data(Some(*building))
-            }
-            EnergySupplyOverlaySecondaryMode::Placing{grid_coords, grid_imprint, range} => {
-                if grid_coords.is_in_bounds(energy_supply_grid.bounds()) {
-                    let covered_coords = grid_imprint.covered_coords(*grid_coords)
-                        .iter()
-                        .copied()
-                        .filter(|coords| coords.is_in_bounds(energy_supply_grid.bounds()))
-                        .collect::<Vec<_>>();
-                    overlay_creator.flood_potential_energy_supply_to_overlay_heatmap(&covered_coords, *range)
-                } else {
-                    overlay_creator.generate_buffer_data(None)
-                }
-            }
-        };
-
-        let buffer_handle = &heatmap_material.energy_cells;
-        if let Some(buffer) = buffers.get_mut(buffer_handle) {
-            buffer.set_data(&*local_buffer_data);
-        } else {
-            println!("Creating new buffer");
-            // Create ShaderStorageBuffer
-            let storage_buffer = ShaderStorageBuffer::from(local_buffer_data.as_slice());
-            let buffer_handle = buffers.add(storage_buffer);
-            heatmap_material.energy_cells = buffer_handle;
         }
-        
-        // Update uniforms
-        let bounds = energy_supply_grid.bounds();
-        heatmap_material.uniforms.grid_width = bounds.0 as u32; // width is first element
-        heatmap_material.uniforms.grid_height = bounds.1 as u32; // height is second element
+    };
+    let buffer_handle = &heatmap_material.energy_cells;
+    if let Some(buffer) = buffers.get_mut(buffer_handle) {
+        buffer.set_data(&*local_buffer_data);
+    } else {
+        // Create ShaderStorageBuffer
+        let storage_buffer = ShaderStorageBuffer::from(local_buffer_data.as_slice());
+        let buffer_handle = buffers.add(storage_buffer);
+        heatmap_material.energy_cells = buffer_handle;
     }
+    
+    // Update uniforms
+    let bounds = energy_supply_grid.bounds();
+    heatmap_material.uniforms.grid_width = bounds.0 as u32; // width is first element
+    heatmap_material.uniforms.grid_height = bounds.1 as u32; // height is second element
 }
 
 fn on_grid_placer_changed_system(

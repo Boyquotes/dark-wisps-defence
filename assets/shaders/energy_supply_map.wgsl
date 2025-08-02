@@ -1,18 +1,30 @@
 #import bevy_sprite::mesh2d_vertex_output::VertexOutput
 
-struct UniformData {
-    highligh_enabled: u32, // 0 or 1
+struct EnergySupplyCell {
+    has_supply: u32,
+    has_power: u32,
+    highlight_level: u32,
 }
 
-@group(2) @binding(0) var heatmap: texture_2d<f32>;
-@group(2) @binding(1) var heatmap_sampler: sampler;
-@group(2) @binding(2) var<uniform> uniforms: UniformData;
+struct UniformData {
+    grid_width: u32,
+    grid_height: u32,
+}
 
+@group(2) @binding(0) var<storage, read> energy_cells: array<EnergySupplyCell>;
+@group(2) @binding(1) var<uniform> uniforms: UniformData;
+
+// Rendering constants
 const blockSize: f32 = 16.; // Size of each block in pixels
 const outlineThickness: f32 = 2.; // Size of the outline in pixels
 const BASE_COLOR: vec4<f32> = vec4<f32>(1., 1., 1., 0.); // Transparent
 const HAS_POWER_COLOR: vec4<f32> = vec4<f32>(1., 1., 0., 0.5); // Yellow
 const NO_POWER_COLOR: vec4<f32> = vec4<f32>(1., 0.2, 0., 0.5); // Orange
+
+// Thresholds for pixel decoding
+const SUPPLY_THRESHOLD: f32 = 0.0;
+const HIGHLIGHT_THRESHOLD: f32 = 5.0 / 255.0; // This value represents dimmed state. Being above it means it's highlighted.
+const POWER_THRESHOLD: f32 = 0.5; // Red channel threshold
 
 struct SupplyDetails {
     has_supply: bool,
@@ -25,9 +37,27 @@ struct EdgeDetails {
     is_highlight_boundary: bool,
 }
 
+fn get_cell_data(uv: vec2<f32>) -> EnergySupplyCell {
+    // Clamp UV coordinates to valid range to prevent bleeding at edges
+    let clamped_uv = clamp(uv, vec2<f32>(0.0), vec2<f32>(0.9999));
+    let grid_pos = vec2<u32>(clamped_uv * vec2<f32>(f32(uniforms.grid_width), f32(uniforms.grid_height)));
+    let index = grid_pos.y * uniforms.grid_width + grid_pos.x;
+    
+    // Additional safety check: ensure grid coordinates are within bounds
+    if (grid_pos.x >= uniforms.grid_width || grid_pos.y >= uniforms.grid_height ||  index >= arrayLength(&energy_cells)) {
+        return EnergySupplyCell(0u, 0u, 0u); // Return empty cell if out of bounds
+    }
+    
+    return energy_cells[index];
+}
+
 fn supply_details(uv: vec2<f32>) -> SupplyDetails {
-    let pixel = textureSample(heatmap, heatmap_sampler, uv);
-    return SupplyDetails(pixel.a > 0.0, pixel.r == 0.0, pixel.a > 0.05);
+    let cell = get_cell_data(uv);
+    return SupplyDetails(
+        cell.has_supply != 0u,      // has_supply
+        cell.has_power != 0u,       // has_power
+        cell.highlight_level == 2u  // is_highlighted (2 = Highlighted)
+    );
 }
 fn egde_details_from_supply_details(supply_details1: SupplyDetails, supply_details2: SupplyDetails) -> EdgeDetails {
     return EdgeDetails(
@@ -38,7 +68,7 @@ fn egde_details_from_supply_details(supply_details1: SupplyDetails, supply_detai
 }
 
 fn is_edge_boundary(uv: vec2<f32>, blockPosition: vec2<f32>) -> EdgeDetails {
-    let texDim = textureDimensions(heatmap, 0);
+    let texDim = vec2<u32>(uniforms.grid_width, uniforms.grid_height);
     let stepSize = vec2<f32>(1.0 / f32(texDim.x), 1.0 / f32(texDim.y));
     let supplyDetailsCurrent = supply_details(uv);
 
@@ -90,30 +120,49 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let uv = mesh.uv;
 
     // Calculate position within the block (0.0 to blockSize)
-    let blockPosition = fract(uv * f32(textureDimensions(heatmap, 0).x));
+    let blockPosition = fract(uv * f32(uniforms.grid_width));
 
     // Check if we're at the very edge of a block
     let atEdge = blockPosition.x <= (outlineThickness / blockSize) || blockPosition.x >= ((blockSize - outlineThickness) / blockSize) ||
                  blockPosition.y <= (outlineThickness / blockSize) || blockPosition.y >= ((blockSize - outlineThickness) / blockSize);
 
+    // Get cell data from buffer
+    let cell = get_cell_data(uv);
+    let supply_detail = supply_details(uv);
+    
     // First set general color for the block
     // If there's no supply, use the base color, otherwise check supply vs power
     var base_color = BASE_COLOR;
-    let cell_data = textureSample(heatmap, heatmap_sampler, uv);
-    let no_power_indicator = cell_data.r;
-    if cell_data.a > 0.0 {
-        base_color = select(HAS_POWER_COLOR, NO_POWER_COLOR, no_power_indicator > 0.0);
-        base_color.a = cell_data.a;
+    if supply_detail.has_supply {
+        base_color = select(NO_POWER_COLOR, HAS_POWER_COLOR, supply_detail.has_power);
+        
+        // Set proper alpha based on highlight level
+        // 0 = None (transparent), 1 = Dimmed (5/255), 2 = Highlighted (15/255)
+        if cell.highlight_level == 0u {
+            base_color.a = 0.0; // Transparent (no highlight)
+        } else if cell.highlight_level == 1u {
+            base_color.a = 5.0 / 255.0; // Dimmed highlight
+        } else {
+            base_color.a = 15.0 / 255.0; // Normal/Highlighted
+        }
     }
 
-    // If we're at an edge and it's a boundary, draw the outline. Outline spills to other blocks so make sure you select proper color for it.
+    // If we're at an edge and it's a boundary, draw the outline
     let edge_details = is_edge_boundary(uv, blockPosition);
     if (atEdge && (edge_details.is_supply_boundary || edge_details.is_highlight_boundary)) {
-        base_color = select(HAS_POWER_COLOR, NO_POWER_COLOR, edge_details.is_power_boundary);
-        if (uniforms.highligh_enabled == 0 || edge_details.is_highlight_boundary) {
-            base_color.a = 0.9; // Outline color
+        // For power boundaries, always use the powered color (yellow) for the outline
+        // For non-power boundaries, use the current cell's color
+        if (edge_details.is_power_boundary) {
+            base_color = HAS_POWER_COLOR; // Always yellow for power boundaries
+        } else {
+            base_color = select(NO_POWER_COLOR, HAS_POWER_COLOR, supply_detail.has_power);
+        }
+        
+        // Set outline alpha - simplified logic using cell highlight levels
+        if (edge_details.is_highlight_boundary) {
+            base_color.a = 0.9; // Bright outline for highlight boundaries
         } else if (edge_details.is_supply_boundary) {
-            base_color.a = 0.2; // Outline color
+            base_color.a = 0.2; // Dimmed outline for supply boundaries
         }
     }
 

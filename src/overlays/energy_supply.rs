@@ -12,8 +12,10 @@ use lib_grid::{
 };
 
 use crate::prelude::*;
-use crate::ui::display_info_panel::{UiMapObjectFocusedTrigger, UiMapObjectUnfocusedTrigger};
-use crate::ui::grid_object_placer::GridObjectPlacer;
+use crate::ui::{
+    display_info_panel::{UiMapObjectFocusedTrigger, UiMapObjectUnfocusedTrigger},
+    grid_object_placer::GridObjectPlacer,
+};
 
 pub struct EnergySupplyOverlayPlugin;
 impl Plugin for EnergySupplyOverlayPlugin {
@@ -229,6 +231,7 @@ fn create_energy_supply_overlay_startup_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
 ) {
+    // TODO: React to map loading. At the startup MapInfo is not yet initialized so we can't just use it.
     let full_world_size = 100. * CELL_SIZE;
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
@@ -256,8 +259,25 @@ struct EnergySupplyCell {
     has_power: u32,
     /// Highlight level: 0 = None, 1 = Dimmed, 2 = Highlighted
     highlight_level: u32,
-    /// Entity ID of primary supplier (0 if none)
-    supplier_entity: u32,
+}
+impl EnergySupplyCell {
+    /// Create a cell representing no energy supply
+    fn none() -> Self {
+        Self {
+            has_supply: 0,
+            has_power: 0,
+            highlight_level: HighlightLevel::None as u32,
+        }
+    }
+
+    /// Create a cell with supply and power status
+    fn with_supply(has_power: bool, highlight_level: HighlightLevel) -> Self {
+        Self {
+            has_supply: 1,
+            has_power: has_power as u32,
+            highlight_level: highlight_level as u32,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -268,28 +288,6 @@ enum HighlightLevel {
     Dimmed = 1,
     /// This building's energy supply is highlighted
     Highlighted = 2,
-}
-
-impl EnergySupplyCell {
-    /// Create a cell representing no energy supply
-    fn none() -> Self {
-        Self {
-            has_supply: 0,
-            has_power: 0,
-            highlight_level: HighlightLevel::None as u32,
-            supplier_entity: 0,
-        }
-    }
-
-    /// Create a cell with supply and power status
-    fn with_supply(has_power: bool, highlight_level: HighlightLevel, supplier_entity: Option<Entity>) -> Self {
-        Self {
-            has_supply: 1,
-            has_power: has_power as u32,
-            highlight_level: highlight_level as u32,
-            supplier_entity: supplier_entity.map(|e| e.index()).unwrap_or(0),
-        }
-    }
 }
 pub struct OverlayBufferCreator<'a> {
     energy_supply_grid: &'a EnergySupplyGrid,
@@ -316,9 +314,7 @@ impl OverlayBufferCreator<'_> {
             None => HighlightLevel::Highlighted, // Every supplier is highlighted
         };
         
-        // TODO: Need to access primary supplier properly when public API is available
-        let primary_supplier = None; // grid_field doesn't expose suppliers publicly
-        EnergySupplyCell::with_supply(grid_field.has_power(), highlight_level, primary_supplier)
+        EnergySupplyCell::with_supply(grid_field.has_power(), highlight_level)
     }
     
     /// Special version of `flooding::flood_energy_supply` to add the energy supply of a building we are currently placing to the overlay heatmap.
@@ -338,17 +334,16 @@ impl OverlayBufferCreator<'_> {
             visited_grid.resize_and_reset(bounds);
             let mut queue = VecDeque::new();
             
-            // Initialize starting coordinates
+            // Start Flood from all fields to ensure event distance from buildings that are bigger than one cell
             start_coords.into_iter().for_each(|coords| {
-                let index = (coords.y * bounds.0 + coords.x) as usize;
-                buffer_data[index] = EnergySupplyCell::with_supply(false, HighlightLevel::Highlighted, None);
+                let index = self.energy_supply_grid.index(*coords);
+                buffer_data[index] = EnergySupplyCell::with_supply(false, HighlightLevel::Highlighted);
                 queue.push_back((0, *coords));
                 visited_grid.set_visited(*coords);
             });
             
-            let mut has_power = false;
-            
             // First flood fill: determine reachability and check for power connection
+            let mut has_power = false;
             while let Some((distance, coords)) = queue.pop_front() {
                 for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
                     let new_coords = coords.shifted((delta_x, delta_y));
@@ -366,10 +361,10 @@ impl OverlayBufferCreator<'_> {
                         continue;
                     }
                     
-                    let buffer_index = (new_coords.y * bounds.0 + new_coords.x) as usize;
-                    // By default we assume supply but no power
+                    let buffer_index = self.energy_supply_grid.index(new_coords);
+                    // By default we assume supply but no power.  Don't overwrite if data from the original pass is set.
                     if buffer_data[buffer_index].highlight_level != 2 {
-                        buffer_data[buffer_index] = EnergySupplyCell::with_supply(false, HighlightLevel::Highlighted, None);
+                        buffer_data[buffer_index] = EnergySupplyCell::with_supply(false, HighlightLevel::Highlighted);
                     }
                     
                     let new_distance = distance + 1;
@@ -379,19 +374,20 @@ impl OverlayBufferCreator<'_> {
                 }
             }
             
-            // Second flood fill: update with power status if we found power connection
-            // This handles the bridging scenario where new building connects isolated suppliers to main grid
+            // If we found that we have power, we need to do another flood to update the data
+            // as the new building being placed may be a bridge between a stranded suppliers and the main power grid
+            // Note as this flood is not distance-restriced as the stranded suppliers may form a chain over entire map and putting new one can connect all of them.
             if has_power {
                 visited_grid.reset();
                 queue.clear();
                 
                 start_coords.into_iter().for_each(|coords| {
-                    let index = (coords.y * bounds.0 + coords.x) as usize;
-                    buffer_data[index] = EnergySupplyCell::with_supply(true, HighlightLevel::Highlighted, None);
+                    let index = self.energy_supply_grid.index(*coords);
+                    buffer_data[index] = EnergySupplyCell::with_supply(true, HighlightLevel::Highlighted);
                     queue.push_back((0, *coords));
                     visited_grid.set_visited(*coords);
                 });
-                
+
                 while let Some((_, coords)) = queue.pop_front() {
                     for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
                         let new_coords = coords.shifted((delta_x, delta_y));
@@ -400,10 +396,10 @@ impl OverlayBufferCreator<'_> {
                         }
                         visited_grid.set_visited(new_coords);
                         
-                        let buffer_index = (new_coords.y * bounds.0 + new_coords.x) as usize;
-                        // Only update cells that were marked as highlighted in first pass
+                        let buffer_index = self.energy_supply_grid.index(new_coords);
+                        // Only update cells that were marked as highlighted in the previous passes
                         if buffer_data[buffer_index].highlight_level == 2 {
-                            buffer_data[buffer_index] = EnergySupplyCell::with_supply(true, HighlightLevel::Highlighted, None);
+                            buffer_data[buffer_index] = EnergySupplyCell::with_supply(true, HighlightLevel::Highlighted);
                             queue.push_back((0, new_coords));
                         }
                     }

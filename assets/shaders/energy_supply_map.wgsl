@@ -4,7 +4,6 @@ struct EnergySupplyCell {
     has_supply: u32,
     has_power: u32,
     highlight_level: u32,
-    supplier_entity: u32,
 }
 
 struct UniformData {
@@ -46,7 +45,7 @@ fn get_cell_data(uv: vec2<f32>) -> EnergySupplyCell {
     
     // Additional safety check: ensure grid coordinates are within bounds
     if (grid_pos.x >= uniforms.grid_width || grid_pos.y >= uniforms.grid_height ||  index >= arrayLength(&energy_cells)) {
-        return EnergySupplyCell(0u, 0u, 0u, 0u); // Return empty cell if out of bounds
+        return EnergySupplyCell(0u, 0u, 0u); // Return empty cell if out of bounds
     }
     
     return energy_cells[index];

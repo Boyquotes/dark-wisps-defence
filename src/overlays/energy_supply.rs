@@ -133,16 +133,18 @@ fn refresh_display_system(
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
     energy_supply_overlay: Query<&MeshMaterial2d<EnergySupplyHeatmapMaterial>, With<EnergySupplyOverlay>>,
     mut last_secondary_mode: Local<EnergySupplyOverlaySecondaryMode>,
+    mut local_buffer_data: Local<Vec<EnergySupplyCell>>, // To avoid re-allocations every frame
 ) {
     if overlay_config.grid_version != energy_supply_grid.version || overlay_config.secondary_mode != *last_secondary_mode {
         *last_secondary_mode = overlay_config.secondary_mode.clone();
         overlay_config.grid_version = energy_supply_grid.version;
         let Ok(heatmap_material_handle) = energy_supply_overlay.single() else { return; };
+
         let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
         
         // Generate buffer data
-        let overlay_creator = OverlayBufferCreator { energy_supply_grid: &energy_supply_grid };
-        let buffer_data = match &overlay_config.secondary_mode {
+        let mut overlay_creator = OverlayBufferCreator::new(&energy_supply_grid, &mut local_buffer_data);
+        match &overlay_config.secondary_mode {
             EnergySupplyOverlaySecondaryMode::None => {
                 overlay_creator.generate_buffer_data(None)
             }
@@ -162,13 +164,19 @@ fn refresh_display_system(
                 }
             }
         };
+
+        let buffer_handle = &heatmap_material.energy_cells;
+        if let Some(buffer) = buffers.get_mut(buffer_handle) {
+            buffer.set_data(&*local_buffer_data);
+        } else {
+            println!("Creating new buffer");
+            // Create ShaderStorageBuffer
+            let storage_buffer = ShaderStorageBuffer::from(local_buffer_data.as_slice());
+            let buffer_handle = buffers.add(storage_buffer);
+            heatmap_material.energy_cells = buffer_handle;
+        }
         
-        // Create ShaderStorageBuffer
-        let storage_buffer = ShaderStorageBuffer::from(buffer_data.as_slice());
-        let buffer_handle = buffers.add(storage_buffer);
-        
-        // Update material with new buffer
-        heatmap_material.energy_cells = buffer_handle;
+        // Update uniforms
         let bounds = energy_supply_grid.bounds();
         heatmap_material.uniforms.grid_width = bounds.0 as u32; // width is first element
         heatmap_material.uniforms.grid_height = bounds.1 as u32; // height is second element
@@ -266,13 +274,20 @@ enum HighlightLevel {
 
 pub struct OverlayBufferCreator<'a> {
     energy_supply_grid: &'a EnergySupplyGrid,
+    local_buffer_data: Option<&'a mut Vec<EnergySupplyCell>>,
 }
-impl OverlayBufferCreator<'_> {
+impl<'a> OverlayBufferCreator<'a> {
+    fn new(energy_supply_grid: &'a EnergySupplyGrid, local_buffer_data: &'a mut Vec<EnergySupplyCell>) -> Self {
+        Self { energy_supply_grid, local_buffer_data: Some(local_buffer_data) }
+    }
     /// Generate buffer data for the entire energy supply grid for GPU usage
-    fn generate_buffer_data(&self, highlight_supplier: Option<Entity>) -> Vec<EnergySupplyCell> {
-        (0..self.energy_supply_grid.grid.len())
-            .map(|idx| self.create_cell_for_grid_field(idx, highlight_supplier))
-            .collect()
+    fn generate_buffer_data(&mut self, highlight_supplier: Option<Entity>) {
+        let buffer_data = self.local_buffer_data.take().unwrap(); // To avoid double mutable borrows on the struct's fields
+        buffer_data.clear();
+        let buffer_size = self.energy_supply_grid.grid.len();
+        let new_content = (0..buffer_size).map(|idx| self.create_cell_for_grid_field(idx, highlight_supplier));
+        buffer_data.extend(new_content);
+        self.local_buffer_data = Some(buffer_data);
     }
     
     /// If `highlight_supplier` is provided, only its range will be shown at full color, other ranges will be dimmed
@@ -294,15 +309,16 @@ impl OverlayBufferCreator<'_> {
     
     /// Special version of `flooding::flood_energy_supply` to add the energy supply of a building we are currently placing to the overlay heatmap.
     /// It writes directly to the overlay texture, so it's only a visual cue that does not affect the actual grid.
-    fn flood_potential_energy_supply_to_overlay_heatmap<'a>(
-        &self,
+    fn flood_potential_energy_supply_to_overlay_heatmap(
+        &mut self,
         start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
         range: usize,
-    ) -> Vec<EnergySupplyCell> {
+    ) {
         use std::collections::VecDeque;
         
         // Start with base buffer data
-        let mut buffer_data = self.generate_buffer_data(None);
+        self.generate_buffer_data(None);
+        let buffer_data = self.local_buffer_data.take().unwrap();
         let bounds = self.energy_supply_grid.bounds();
         
         VISITED_GRID.with_borrow_mut(|visited_grid| {
@@ -382,6 +398,6 @@ impl OverlayBufferCreator<'_> {
             }
         });
         
-        buffer_data
+        self.local_buffer_data = Some(buffer_data);
     }
 }

@@ -1,10 +1,11 @@
 use bevy::{
-    reflect::TypePath,
+    input::common_conditions::input_just_released, 
+    reflect::TypePath, 
     render::{
         render_resource::{AsBindGroup, ShaderRef, ShaderType},
         storage::ShaderStorageBuffer,
-    },
-    sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d},
+    }, 
+    sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d}
 };
 use lib_grid::{
     grids::energy_supply::EnergySupplyGrid,
@@ -27,17 +28,17 @@ impl Plugin for EnergySupplyOverlayPlugin {
             .add_systems(Startup, (
                 create_energy_supply_overlay_startup_system,
             ))
-            .add_systems(OnEnter(EnergySupplyOverlayState::Show), on_overlay_show_system)
-            .add_systems(OnExit(EnergySupplyOverlayState::Show), on_overlay_hide_system)
-            .add_systems(OnExit(UiInteraction::PlaceGridObject), on_grid_placer_exited_system)
+            .add_systems(OnEnter(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Inherited; })
+            .add_systems(OnExit(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Hidden; })
+            .add_systems(OnExit(UiInteraction::PlaceGridObject), |mut config: ResMut<EnergySupplyOverlayConfig>| { config.secondary_mode = EnergySupplyOverlaySecondaryMode::None; })
             .add_systems(Update, (
-                on_config_change_system.run_if(resource_changed::<EnergySupplyOverlayConfig>),
+                EnergySupplyOverlayConfig::on_config_change_system.run_if(resource_changed::<EnergySupplyOverlayConfig>),
                 refresh_display_system.run_if(in_state(EnergySupplyOverlayState::Show)),
-                manage_energy_supply_overlay_global_mode_system,
+                (|mut config: ResMut<EnergySupplyOverlayConfig>| { config.is_overlay_globally_enabled ^= true; }).run_if(input_just_released(KeyCode::KeyY)), // Switch overlay on/off on KeyY
                 on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
             ));
-        app.world_mut().add_observer(on_building_ui_focused_trigger);
-        app.world_mut().add_observer(on_building_ui_unfocused_trigger);
+        app.world_mut().add_observer(EnergySupplyOverlayConfig::on_building_ui_focused);
+        app.world_mut().add_observer(EnergySupplyOverlayConfig::on_building_ui_unfocused);
 
     }
 }
@@ -57,6 +58,36 @@ pub struct EnergySupplyOverlayConfig {
     pub grid_version: GridVersion, // Grid version for which we show the overlay
     pub secondary_mode: EnergySupplyOverlaySecondaryMode,
 }
+impl EnergySupplyOverlayConfig {
+    fn on_config_change_system(
+        overlay_config: Res<EnergySupplyOverlayConfig>,
+        mut overlay_state: ResMut<NextState<EnergySupplyOverlayState>>,
+    ) {
+        if overlay_config.is_overlay_globally_enabled || !overlay_config.secondary_mode.is_none() {
+            overlay_state.set(EnergySupplyOverlayState::Show);
+        } else {
+            overlay_state.set(EnergySupplyOverlayState::Hide);
+        }
+    }
+    fn on_building_ui_focused(
+        trigger: Trigger<UiMapObjectFocusedTrigger>,
+        mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
+        buildings: Query<&BuildingType>,
+    ) {
+        let focused_building = trigger.target();
+        if buildings.contains(focused_building) {
+            overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight{building: focused_building};
+        } else {
+            overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
+        }
+    }
+    fn on_building_ui_unfocused(
+        _trigger: Trigger<UiMapObjectUnfocusedTrigger>,
+        mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
+    ) {
+        overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
+    }
+}
 #[derive(Default, Clone, Debug, PartialEq)]
 pub enum EnergySupplyOverlaySecondaryMode {
     #[default]
@@ -70,13 +101,13 @@ impl EnergySupplyOverlaySecondaryMode {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, ShaderType)]
-pub(crate) struct UniformData {
+struct UniformData {
     grid_width: u32,
     grid_height: u32,
 }
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
-pub struct EnergySupplyHeatmapMaterial {
+struct EnergySupplyHeatmapMaterial {
     #[storage(0, read_only)]
     pub energy_cells: Handle<ShaderStorageBuffer>,
     #[uniform(1)]
@@ -94,37 +125,6 @@ impl Material2d for EnergySupplyHeatmapMaterial {
 
 #[derive(Component)]
 pub struct EnergySupplyOverlay;
-
-fn on_config_change_system(
-    overlay_config: Res<EnergySupplyOverlayConfig>,
-    mut overlay_state: ResMut<NextState<EnergySupplyOverlayState>>,
-) {
-    if overlay_config.is_overlay_globally_enabled || !overlay_config.secondary_mode.is_none() {
-        overlay_state.set(EnergySupplyOverlayState::Show);
-    } else {
-        overlay_state.set(EnergySupplyOverlayState::Hide);
-    }
-}
-fn on_overlay_show_system(
-    mut emission_material_visibility: Query<&mut Visibility, With<EnergySupplyOverlay>>,
-) {
-    *emission_material_visibility.single_mut().unwrap() = Visibility::Inherited;
-}
-fn on_overlay_hide_system(
-    mut emission_material_visibility: Query<&mut Visibility, With<EnergySupplyOverlay>>,
-) {
-    *emission_material_visibility.single_mut().unwrap() = Visibility::Hidden;
-}
-
-
-pub fn manage_energy_supply_overlay_global_mode_system(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut overlay_config: ResMut<EnergySupplyOverlayConfig>
-) {
-    if keys.just_pressed(KeyCode::KeyY) {
-        overlay_config.is_overlay_globally_enabled = !overlay_config.is_overlay_globally_enabled;
-    }
-}
 
 fn refresh_display_system(
     mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
@@ -175,26 +175,6 @@ fn refresh_display_system(
     }
 }
 
-fn on_building_ui_focused_trigger(
-    trigger: Trigger<UiMapObjectFocusedTrigger>,
-    mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
-    buildings: Query<&BuildingType>,
-) {
-    let focused_building = trigger.target();
-    if buildings.contains(focused_building) {
-        overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight{building: focused_building};
-    } else {
-        overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
-    }
-}
-
-fn on_building_ui_unfocused_trigger(
-    _trigger: Trigger<UiMapObjectUnfocusedTrigger>,
-    mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
-) {
-    overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
-}
-
 fn on_grid_placer_changed_system(
     almanach: Res<Almanach>,
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
@@ -218,12 +198,6 @@ fn on_grid_placer_changed_system(
             }
         }
     }
-}
-
-fn on_grid_placer_exited_system(
-    mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
-) {
-    overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;
 }
 
 fn create_energy_supply_overlay_startup_system(
@@ -289,11 +263,12 @@ enum HighlightLevel {
     /// This building's energy supply is highlighted
     Highlighted = 2,
 }
+
 pub struct OverlayBufferCreator<'a> {
     energy_supply_grid: &'a EnergySupplyGrid,
 }
 impl OverlayBufferCreator<'_> {
-    /// Generate buffer data for the entire energy supply grid
+    /// Generate buffer data for the entire energy supply grid for GPU usage
     fn generate_buffer_data(&self, highlight_supplier: Option<Entity>) -> Vec<EnergySupplyCell> {
         (0..self.energy_supply_grid.grid.len())
             .map(|idx| self.create_cell_for_grid_field(idx, highlight_supplier))

@@ -119,7 +119,7 @@ pub fn flood_energy_supply<'a>(
     energy_supply_grid: &mut EnergySupplyGrid,
     start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
     mode: FloodEnergySupplyMode,
-    range: usize,
+    range: EnergySupplyRange,
     supplier: Entity,
 ) {
     VISITED_GRID.with_borrow_mut(|visited_grid| {
@@ -148,7 +148,7 @@ pub fn flood_energy_supply<'a>(
                     FloodEnergySupplyMode::Decrease => energy_supply_grid.remove_supplier(new_coords, supplier),
                 }
                 let new_distance = distance + 1;
-                if new_distance < range {
+                if new_distance < range.0 {
                     queue.push_back((new_distance, new_coords));
                 }
             }

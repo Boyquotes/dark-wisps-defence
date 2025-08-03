@@ -20,40 +20,39 @@ impl Plugin for EnergySupplyPlugin {
 
 /// Can provide energy to nearby buildings. Does not produce energy.
 #[derive(Component, Copy, Clone, Debug)]
-pub struct SupplierEnergy {
-    pub range: usize,
-}
+#[require(EnergySupplyRange)]
+pub struct SupplierEnergy;
 impl SupplierEnergy {
-    // Detect insert of GridCoords of SupplierEnergy objects and trigger supply grid update
+    // Detect change in coords or range and trigger supply grid update
     fn refresh_on_insert(
-        trigger: Trigger<OnInsert, GridCoords>,
+        trigger: Trigger<OnInsert, (GridCoords, EnergySupplyRange)>,
         mut supplier_changed_event_writer: EventWriter<SupplierChangedEvent>,
-        suppliers: Query<(&SupplierEnergy, &GridCoords, &GridImprint)>,
+        suppliers: Query<(&EnergySupplyRange, &GridCoords, &GridImprint), With<SupplierEnergy>>,
     ) {
         let entity = trigger.target();
-        let Ok((suplier_energy, grid_coords, grid_imprint)) = suppliers.get(entity) else { return; };
+        let Ok((energy_supply_range, grid_coords, grid_imprint)) = suppliers.get(entity) else { return; };
 
         supplier_changed_event_writer.write(SupplierChangedEvent {
             supplier: entity,
             coords: grid_imprint.covered_coords(*grid_coords),
-            range: suplier_energy.range,
+            range: *energy_supply_range,
             mode: FloodEnergySupplyMode::Increase,
         });
     }
-    // Detect replace of GridCoords of SupplierEnergy objects and trigger supply grid update
+    // Detect change in coords or range and trigger supply grid update
     fn refresh_on_replace(
-        trigger: Trigger<OnReplace, GridCoords>,
+        trigger: Trigger<OnReplace, (GridCoords, EnergySupplyRange)>,
         mut supplier_changed_event_writer: EventWriter<SupplierChangedEvent>,
-        suppliers: Query<(&SupplierEnergy, &GridCoords, &GridImprint)>,
+        suppliers: Query<(&EnergySupplyRange, &GridCoords, &GridImprint), With<SupplierEnergy>>,
 
     ) {
         let entity = trigger.target();
-        let Ok((suplier_energy, grid_coords, grid_imprint)) = suppliers.get(entity) else { return; };
+        let Ok((energy_supply_range, grid_coords, grid_imprint)) = suppliers.get(entity) else { return; };
 
         supplier_changed_event_writer.write(SupplierChangedEvent {
             supplier: entity,
             coords: grid_imprint.covered_coords(*grid_coords),
-            range: suplier_energy.range,
+            range: *energy_supply_range,
             mode: FloodEnergySupplyMode::Decrease,
         });
     }
@@ -67,7 +66,7 @@ pub struct GeneratorEnergy;
 pub struct SupplierChangedEvent {
     pub supplier: Entity,
     pub coords: Vec<GridCoords>,
-    pub range: usize,
+    pub range: EnergySupplyRange,
     pub mode: FloodEnergySupplyMode,
 }
 

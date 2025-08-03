@@ -51,11 +51,12 @@ impl BuilderEnergyRelay {
                     evaluator: FloodEmissionsEvaluator::ExponentialDecay{start_value: 100., decay: 0.1},
                     mode: FloodEmissionsMode::Increase,
                 }),
-                SupplierEnergy{ range: 15 },
+                SupplierEnergy,
                 TechnicalState{ has_energy_supply: true, ..default() },
                 ColorPulsation::new(1.0, 1.8, 3.0),
                 related![Modifiers[
                     (ModifierMaxHealth(100), ModifierSourceBaseline),
+                    (ModifierEnergySupplyRange(12), ModifierSourceBaseline),
                 ]],
             ));
     }

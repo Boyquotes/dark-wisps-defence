@@ -15,6 +15,7 @@ impl Plugin for ModifiersPlugin {
             .add_observer(on_attack_damage_modifier_inserted)
             .add_observer(on_max_health_modifier_inserted)
             .add_observer(on_movement_speed_modifier_inserted)
+            .add_observer(on_energy_supply_range_modifier_inserted)
             .add_observer(ApplyPotentialUpgrade::on_trigger);
     }
 }
@@ -35,12 +36,14 @@ pub enum ModifierType {
     AttackDamage,
     MaxHealth,
     MovementSpeed,
+    EnergySupplyRange,
 }
 #[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackSpeed)] pub struct ModifierAttackSpeed(pub f32);
 #[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackRange)] pub struct ModifierAttackRange(pub usize);
 #[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackDamage)] pub struct ModifierAttackDamage(pub i32);
 #[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::MaxHealth)] pub struct ModifierMaxHealth(pub i32);
 #[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::MovementSpeed)] pub struct ModifierMovementSpeed(pub f32);
+#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::EnergySupplyRange)] pub struct ModifierEnergySupplyRange(pub usize);
 
 
 
@@ -143,6 +146,23 @@ fn on_movement_speed_modifier_inserted(
     commands.entity(modifier_of.0).insert(MovementSpeed(new_value));
 }
 
+fn on_energy_supply_range_modifier_inserted(
+    trigger: Trigger<OnInsert, ModifierEnergySupplyRange>,
+    mut commands: Commands,
+    modifiers: Query<(&ModifierEnergySupplyRange, &ModifierOf)>,
+    modification_targets: Query<&Modifiers>,
+) {
+    let modifier_entity = trigger.target();
+    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
+    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
+    let new_value = all_modifiers_list.iter()
+        .filter_map(|entity| modifiers.get(entity).ok())
+        .map(|(energy_supply_range, _)| energy_supply_range.0)
+        .sum();
+    commands.entity(modifier_of.0).insert(EnergySupplyRange(new_value));
+}
+
+
 
 ////////////////////
 ////  UPGRADES  ////
@@ -190,6 +210,7 @@ impl ApplyPotentialUpgrade {
             ModifierType::AttackSpeed => { commands_entity.insert(ModifierAttackSpeed(new_value)); }
             ModifierType::MaxHealth => { commands_entity.insert(ModifierMaxHealth(new_value as i32)); }
             ModifierType::MovementSpeed => { commands_entity.insert(ModifierMovementSpeed(new_value)); }
+            ModifierType::EnergySupplyRange => { commands_entity.insert(ModifierEnergySupplyRange(new_value as usize)); }
         }
     }
 }

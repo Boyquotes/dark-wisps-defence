@@ -54,10 +54,11 @@ impl BuilderMainBase {
                     mode: FloodEmissionsMode::Increase,
                 }),
                 GeneratorEnergy,
-                SupplierEnergy { range: 15 },
+                SupplierEnergy,
                 TechnicalState { has_energy_supply: true, ..default() },
                 related![Modifiers[
                     (ModifierMaxHealth(10000), ModifierSourceBaseline),
+                    (ModifierEnergySupplyRange(15), ModifierSourceBaseline),
                 ]],
             ));
     }

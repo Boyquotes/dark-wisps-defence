@@ -43,7 +43,7 @@ impl Health {
     }
 }
 
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Copy)]
 #[component(immutable)]
 #[require(Health)]
 pub struct MaxHealth(pub i32);
@@ -59,17 +59,20 @@ impl MaxHealth {
         health.max = max_health.0;
     }
 }
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Copy)]
 #[component(immutable)]
 pub struct MovementSpeed(pub f32);
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Copy)]
 pub struct AttackSpeed(pub f32);
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Copy)]
 #[component(immutable)]
 pub struct AttackDamage(pub i32);
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Copy)]
 #[component(immutable)]
 pub struct AttackRange(pub usize);
+#[derive(Component, Default, Clone, Copy)]
+#[component(immutable)]
+pub struct EnergySupplyRange(pub usize);
 
 
 #[derive(Component, Default)]

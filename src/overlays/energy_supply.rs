@@ -25,9 +25,7 @@ impl Plugin for EnergySupplyOverlayPlugin {
             .add_plugins(Material2dPlugin::<EnergySupplyHeatmapMaterial>::default())
             .init_state::<EnergySupplyOverlayState>()
             .init_resource::<EnergySupplyOverlayConfig>()
-            .add_systems(Startup, (
-                create_energy_supply_overlay_startup_system,
-            ))
+            .add_systems(Startup, |mut commands: Commands| { commands.spawn(EnergySupplyOverlay); })
             .add_systems(OnEnter(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Inherited; })
             .add_systems(OnExit(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Hidden; })
             .add_systems(OnExit(UiInteraction::PlaceGridObject), |mut config: ResMut<EnergySupplyOverlayConfig>| { config.secondary_mode = EnergySupplyOverlaySecondaryMode::None; })
@@ -36,9 +34,10 @@ impl Plugin for EnergySupplyOverlayPlugin {
                 refresh_display_system.run_if(in_state(EnergySupplyOverlayState::Show)),
                 (|mut config: ResMut<EnergySupplyOverlayConfig>| { config.is_overlay_globally_enabled ^= true; }).run_if(input_just_released(KeyCode::KeyY)), // Switch overlay on/off on KeyY
                 on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
-            ));
-        app.world_mut().add_observer(EnergySupplyOverlayConfig::on_building_ui_focused);
-        app.world_mut().add_observer(EnergySupplyOverlayConfig::on_building_ui_unfocused);
+            ))
+            .add_observer(EnergySupplyOverlayConfig::on_building_ui_focused)
+            .add_observer(EnergySupplyOverlayConfig::on_building_ui_unfocused)
+            .add_observer(EnergySupplyOverlay::on_add);
 
     }
 }
@@ -125,6 +124,32 @@ impl Material2d for EnergySupplyHeatmapMaterial {
 
 #[derive(Component)]
 pub struct EnergySupplyOverlay;
+impl EnergySupplyOverlay {
+    fn on_add(
+        trigger: Trigger<OnAdd, EnergySupplyOverlay>,
+        mut commands: Commands,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
+    ) {
+        // TODO: React to map loading. At the startup MapInfo is not yet initialized so we can't just use it.
+        let full_world_size = 100. * CELL_SIZE;
+        let entity = trigger.target();
+        commands.entity(entity).insert((
+            Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
+            MeshMaterial2d(materials.add(EnergySupplyHeatmapMaterial {
+                energy_cells: Handle::default(),
+                uniforms: UniformData {
+                    grid_width: 0,
+                    grid_height: 0,
+                },
+            })),
+            Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
+                    .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
+            Visibility::Hidden,
+        ));
+    }
+
+}
 
 fn refresh_display_system(
     mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
@@ -205,29 +230,6 @@ fn on_grid_placer_changed_system(
             }
         }
     }
-}
-
-fn create_energy_supply_overlay_startup_system(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
-) {
-    // TODO: React to map loading. At the startup MapInfo is not yet initialized so we can't just use it.
-    let full_world_size = 100. * CELL_SIZE;
-    commands.spawn((
-        Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
-        MeshMaterial2d(materials.add(EnergySupplyHeatmapMaterial {
-            energy_cells: Handle::default(),
-            uniforms: UniformData {
-                grid_width: 0,
-                grid_height: 0,
-            },
-        })),
-        Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
-                .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
-        Visibility::Hidden,
-        EnergySupplyOverlay
-    ));
 }
 
 /// Energy supply cell data for GPU buffer

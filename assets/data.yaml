@@ -4,29 +4,44 @@ buildings:
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 300 }
+    baseline:
+      EnergySupplyRange: 12
+      MaxHealth: 100
     upgrades: {}
   - building_type: ExplorationCenter
     name: Exploration Center
     grid_imprint: !Rectangle { width: 4, height: 4 }
     cost:
       - { resource_type: DarkOre, amount: 500 }
+    baseline:
+      MaxHealth: 100
     upgrades: {}
   - building_type: MainBase
     name: Main Base
     grid_imprint: !Rectangle { width: 6, height: 6 }
     cost: []
+    baseline:
+      MaxHealth: 10000
+      EnergySupplyRange: 15
     upgrades: {}
   - building_type: MiningComplex
     name: Mining Complex
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 100 }
+    baseline:
+      MaxHealth: 100
     upgrades: {}
   - building_type: !Tower Blaster
     name: Blaster Tower
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 150 }
+    baseline:
+      MaxHealth: 100
+      AttackRange: 15
+      AttackSpeed: 5
+      AttackDamage: 1
     upgrades:
       AttackSpeed:
         upgrade_type: AttackSpeed
@@ -57,6 +72,11 @@ buildings:
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 250 }
+    baseline:
+      MaxHealth: 100
+      AttackRange: 15
+      AttackSpeed: 0.5
+      AttackDamage: 50
     upgrades:
       AttackRange:
         upgrade_type: AttackRange
@@ -87,6 +107,11 @@ buildings:
     grid_imprint: !Rectangle { width: 2, height: 2 }
     cost:
       - { resource_type: DarkOre, amount: 450 }
+    baseline:
+      MaxHealth: 100
+      AttackRange: 4
+      AttackSpeed: 0.5
+      AttackDamage: 1
     upgrades:
       AttackRange:
         upgrade_type: AttackRange
@@ -117,6 +142,11 @@ buildings:
     grid_imprint: !Rectangle { width: 3, height: 3 }
     cost:
       - { resource_type: DarkOre, amount: 350 }
+    baseline:
+      MaxHealth: 100
+      AttackRange: 30
+      AttackSpeed: 0.33
+      AttackDamage: 50
     upgrades:
       AttackRange:
         upgrade_type: AttackRange

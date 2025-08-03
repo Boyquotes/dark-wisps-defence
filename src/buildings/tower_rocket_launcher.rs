@@ -36,7 +36,8 @@ impl BuilderTowerRocketLauncher {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
         
-        let grid_imprint = almanach.get_building_info(BuildingType::Tower(TowerType::RocketLauncher)).grid_imprint;
+        let building_info = almanach.get_building_info(BuildingType::Tower(TowerType::RocketLauncher));
+        let grid_imprint = building_info.grid_imprint;
         let tower_base_entity = commands.entity(entity)
             .remove::<BuilderTowerRocketLauncher>()
             .insert((
@@ -52,10 +53,10 @@ impl BuilderTowerRocketLauncher {
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
                 related![Modifiers[
-                    (ModifierAttackRange(30), ModifierSourceBaseline),
-                    (ModifierAttackSpeed(0.33), ModifierSourceBaseline),
-                    (ModifierAttackDamage(50), ModifierSourceBaseline),
-                    (ModifierMaxHealth(100), ModifierSourceBaseline),
+                    (ModifierAttackRange(building_info.baseline[&ModifierType::AttackRange] as usize), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(building_info.baseline[&ModifierType::AttackSpeed]), ModifierSourceBaseline),
+                    (ModifierAttackDamage(building_info.baseline[&ModifierType::AttackDamage] as i32), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
                 ]],
             )).id();
         let world_size = grid_imprint.world_size();

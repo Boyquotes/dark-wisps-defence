@@ -32,19 +32,19 @@ impl BuilderEnergyRelay {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
         
-        let grid_imprint = almanach.get_building_info(BuildingType::EnergyRelay).grid_imprint;
+        let building_info = almanach.get_building_info(BuildingType::EnergyRelay);
         commands.entity(entity)
             .remove::<BuilderEnergyRelay>()
             .insert((
                 Sprite {
                     image: asset_server.load(ENERGY_RELAY_BASE_IMAGE),
-                    custom_size: Some(grid_imprint.world_size()),
+                    custom_size: Some(building_info.grid_imprint.world_size()),
                     color: Color::hsla(0., 0.2, 1.0, 1.0), // 1.6 is a good value if the pulsation is off.
                     ..Default::default()
                 },
                 builder.grid_position,
                 EnergyRelay,
-                grid_imprint,
+                building_info.grid_imprint,
                 EmitterEnergy(FloodEmissionsDetails {
                     emissions_type: EmissionsType::Energy,
                     range: usize::MAX,
@@ -55,8 +55,8 @@ impl BuilderEnergyRelay {
                 TechnicalState{ has_energy_supply: true, ..default() },
                 ColorPulsation::new(1.0, 1.8, 3.0),
                 related![Modifiers[
-                    (ModifierMaxHealth(100), ModifierSourceBaseline),
-                    (ModifierEnergySupplyRange(12), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
+                    (ModifierEnergySupplyRange(building_info.baseline[&ModifierType::EnergySupplyRange] as usize), ModifierSourceBaseline),
                 ]],
             ));
     }

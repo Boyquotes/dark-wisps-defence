@@ -41,7 +41,8 @@ impl BuilderExplorationCenter {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
         
-        let grid_imprint = almanach.get_building_info(BuildingType::ExplorationCenter).grid_imprint;
+        let building_info = almanach.get_building_info(BuildingType::ExplorationCenter);
+        let grid_imprint = building_info.grid_imprint;
         commands.entity(entity)
             .remove::<BuilderExplorationCenter>()
             .insert((
@@ -56,7 +57,7 @@ impl BuilderExplorationCenter {
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
                 related![Modifiers[
-                    (ModifierMaxHealth(100), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
                 ]],
             ));
     }

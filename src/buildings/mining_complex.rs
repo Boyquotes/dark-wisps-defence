@@ -43,7 +43,8 @@ impl BuilderMiningComplex {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
         
-        let grid_imprint = almanach.get_building_info(BuildingType::MiningComplex).grid_imprint;
+        let building_info = almanach.get_building_info(BuildingType::MiningComplex);
+        let grid_imprint = building_info.grid_imprint;
         let ore_entities_in_range = obstacle_grid.imprint_query_element(builder.grid_position, grid_imprint, query_dark_ore_helper);
         commands.entity(entity)
             .remove::<BuilderMiningComplex>()
@@ -63,7 +64,7 @@ impl BuilderMiningComplex {
                 MiningRange(grid_imprint),
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
                 related![Modifiers[
-                    (ModifierMaxHealth(100), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
                 ]],
             ));
     }

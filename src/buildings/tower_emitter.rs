@@ -37,7 +37,8 @@ impl BuilderTowerEmitter {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
         
-        let grid_imprint = almanach.get_building_info(BuildingType::Tower(TowerType::Emitter)).grid_imprint;
+        let building_info = almanach.get_building_info(BuildingType::Tower(TowerType::Emitter));
+        let grid_imprint = building_info.grid_imprint;
         commands.entity(entity)
             .remove::<BuilderTowerEmitter>()
             .insert((
@@ -52,10 +53,10 @@ impl BuilderTowerEmitter {
                 grid_imprint,
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 related![Modifiers[
-                    (ModifierAttackRange(4), ModifierSourceBaseline),
-                    (ModifierAttackSpeed(0.5), ModifierSourceBaseline),
-                    (ModifierAttackDamage(1), ModifierSourceBaseline),
-                    (ModifierMaxHealth(100), ModifierSourceBaseline),
+                    (ModifierAttackRange(building_info.baseline[&ModifierType::AttackRange] as usize), ModifierSourceBaseline),
+                    (ModifierAttackSpeed(building_info.baseline[&ModifierType::AttackSpeed]), ModifierSourceBaseline),
+                    (ModifierAttackDamage(building_info.baseline[&ModifierType::AttackDamage] as i32), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
                 ]],
             ));
         commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);

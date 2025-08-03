@@ -25,6 +25,7 @@ pub struct AlmanachBuildingInfo {
     pub cost: Vec<Cost>,
     pub grid_imprint: GridImprint,
     pub upgrades: HashMap<ModifierType, AlmanachUpgradeInfo>,
+    pub baseline: HashMap<ModifierType, f32>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

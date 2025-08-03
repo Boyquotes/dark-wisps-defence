@@ -34,8 +34,9 @@ impl BuilderMainBase {
     ) {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
-        
-        let grid_imprint = almanach.get_building_info(BuildingType::MainBase).grid_imprint;
+
+        let building_info = almanach.get_building_info(BuildingType::MainBase);
+        let grid_imprint = building_info.grid_imprint;
         commands.entity(entity)
             .remove::<BuilderMainBase>()
             .insert((
@@ -57,8 +58,8 @@ impl BuilderMainBase {
                 SupplierEnergy,
                 TechnicalState { has_energy_supply: true, ..default() },
                 related![Modifiers[
-                    (ModifierMaxHealth(10000), ModifierSourceBaseline),
-                    (ModifierEnergySupplyRange(15), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
+                    (ModifierEnergySupplyRange(building_info.baseline[&ModifierType::EnergySupplyRange] as usize), ModifierSourceBaseline),
                 ]],
             ));
     }

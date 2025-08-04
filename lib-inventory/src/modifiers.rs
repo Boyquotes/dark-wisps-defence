@@ -45,27 +45,12 @@ pub enum ModifierType {
     MovementSpeed,
     EnergySupplyRange,
 }
-#[derive(Component, Clone, Default, Property)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackSpeed)] pub struct ModifierAttackSpeed(pub f32);
-impl Modifier for ModifierAttackSpeed {
-    const MODIFIER_TYPE: ModifierType = ModifierType::AttackSpeed;
-}
-#[derive(Component, Clone, Default, Property)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackRange)] pub struct ModifierAttackRange(pub f32);
-impl Modifier for ModifierAttackRange {
-    const MODIFIER_TYPE: ModifierType = ModifierType::AttackRange;
-}
-#[derive(Component, Clone, Default, Property)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackDamage)] pub struct ModifierAttackDamage(pub f32);
-impl Modifier for ModifierAttackDamage {
-    const MODIFIER_TYPE: ModifierType = ModifierType::AttackDamage;
-}
-#[derive(Component, Clone, Default, Property)]#[component(immutable)]#[require(ModifierType = ModifierType::MaxHealth)] pub struct ModifierMaxHealth(pub f32);
-impl Modifier for ModifierMaxHealth {
-    const MODIFIER_TYPE: ModifierType = ModifierType::MaxHealth;
-}
-#[derive(Component, Clone, Default, Property)]#[component(immutable)]#[require(ModifierType = ModifierType::MovementSpeed)] pub struct ModifierMovementSpeed(pub f32);
-#[derive(Component, Clone, Default, Property)]#[component(immutable)]#[require(ModifierType = ModifierType::EnergySupplyRange)] pub struct ModifierEnergySupplyRange(pub f32);
-impl Modifier for ModifierEnergySupplyRange {
-    const MODIFIER_TYPE: ModifierType = ModifierType::EnergySupplyRange;
-}
+#[derive(Component, Clone, Default, Property, Modifier)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackSpeed)] pub struct ModifierAttackSpeed(pub f32);
+#[derive(Component, Clone, Default, Property, Modifier)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackRange)] pub struct ModifierAttackRange(pub f32);
+#[derive(Component, Clone, Default, Property, Modifier)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackDamage)] pub struct ModifierAttackDamage(pub f32);
+#[derive(Component, Clone, Default, Property, Modifier)]#[component(immutable)]#[require(ModifierType = ModifierType::MaxHealth)] pub struct ModifierMaxHealth(pub f32);
+#[derive(Component, Clone, Default, Property, Modifier)]#[component(immutable)]#[require(ModifierType = ModifierType::MovementSpeed)] pub struct ModifierMovementSpeed(pub f32);
+#[derive(Component, Clone, Default, Property, Modifier)]#[component(immutable)]#[require(ModifierType = ModifierType::EnergySupplyRange)] pub struct ModifierEnergySupplyRange(pub f32);
 
 #[derive(Component, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModifierSource {

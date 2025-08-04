@@ -9,3 +9,6 @@ serde = "1.0.*"
 
 [dependencies.lib-core]
 path = "../lib-core"
+
+[dependencies.lib-derive]
+path = "../lib-derive"

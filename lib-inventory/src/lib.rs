@@ -22,6 +22,9 @@ pub mod prelude {
     pub use crate::resources::resources_prelude::*;
     pub use crate::almanach::almanach_prelude::*;
     pub use crate::modifiers::modifiers_prelude::*;
+
+    // Re-export the derive macros
+    pub use lib_derive::Modifier;
 }
 
 pub mod lib_prelude {

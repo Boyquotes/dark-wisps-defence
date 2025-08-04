@@ -30,7 +30,7 @@ pub mod prelude {
     pub use crate::states::states_prelude::*;
     pub use crate::common::common_prelude::*;
 
-    // Re-export the derive macro
+    // Re-export the derive macros
     pub use lib_derive::Property;
 }
 

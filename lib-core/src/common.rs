@@ -49,7 +49,7 @@ impl Health {
     }
 }
 
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Component, Default, Clone, Copy, Property)]
 #[component(immutable)]
 #[require(Health)]
 pub struct MaxHealth(pub f32);
@@ -65,45 +65,21 @@ impl MaxHealth {
         health.max = max_health.0;
     }
 }
-impl Property for MaxHealth {
-    fn get(&self) -> f32 { self.0 }
-    fn set(&mut self, value: f32) { self.0 = value }
-}
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Component, Default, Clone, Copy, Property)]
 #[component(immutable)]
 pub struct MovementSpeed(pub f32);
-impl Property for MovementSpeed {
-    fn get(&self) -> f32 { self.0 }
-    fn set(&mut self, value: f32) { self.0 = value }
-}
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Component, Default, Clone, Copy, Property)]
 #[component(immutable)]
 pub struct AttackSpeed(pub f32);
-impl Property for AttackSpeed {
-    fn get(&self) -> f32 { self.0 }
-    fn set(&mut self, value: f32) { self.0 = value }
-}
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Component, Default, Clone, Copy, Property)]
 #[component(immutable)]
 pub struct AttackDamage(pub f32);
-impl Property for AttackDamage {
-    fn get(&self) -> f32 { self.0 }
-    fn set(&mut self, value: f32) { self.0 = value }
-}
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Component, Default, Clone, Copy, Property)]
 #[component(immutable)]
 pub struct AttackRange(pub f32);
-impl Property for AttackRange {
-    fn get(&self) -> f32 { self.0 }
-    fn set(&mut self, value: f32) { self.0 = value }
-}
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Component, Default, Clone, Copy, Property)]
 #[component(immutable)]
 pub struct EnergySupplyRange(pub f32);
-impl Property for EnergySupplyRange {
-    fn get(&self) -> f32 { self.0 }
-    fn set(&mut self, value: f32) { self.0 = value }
-}
 
 
 #[derive(Component, Default)]

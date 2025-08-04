@@ -2581,7 +2581,17 @@ name = "lib-core"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "lib-derive",
  "serde",
+]
+
+[[package]]
+name = "lib-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

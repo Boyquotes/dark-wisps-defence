@@ -29,6 +29,9 @@ pub mod prelude {
     pub use crate::mouse::mouse_prelude::*;
     pub use crate::states::states_prelude::*;
     pub use crate::common::common_prelude::*;
+
+    // Re-export the derive macro
+    pub use lib_derive::Property;
 }
 
 pub mod lib_prelude {

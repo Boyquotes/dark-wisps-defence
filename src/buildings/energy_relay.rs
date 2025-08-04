@@ -55,8 +55,8 @@ impl BuilderEnergyRelay {
                 TechnicalState{ has_energy_supply: true, ..default() },
                 ColorPulsation::new(1.0, 1.8, 3.0),
                 related![Modifiers[
-                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth]), ModifierSourceBaseline),
-                    (ModifierEnergySupplyRange(building_info.baseline[&ModifierType::EnergySupplyRange]), ModifierSourceBaseline),
+                    (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
+                    (ModifierEnergySupplyRange::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
             ));
     }

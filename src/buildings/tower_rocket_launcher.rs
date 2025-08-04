@@ -53,10 +53,10 @@ impl BuilderTowerRocketLauncher {
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
                 related![Modifiers[
-                    (ModifierAttackRange(building_info.baseline[&ModifierType::AttackRange]), ModifierSourceBaseline),
-                    (ModifierAttackSpeed(building_info.baseline[&ModifierType::AttackSpeed]), ModifierSourceBaseline),
-                    (ModifierAttackDamage(building_info.baseline[&ModifierType::AttackDamage]), ModifierSourceBaseline),
-                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth]), ModifierSourceBaseline),
+                    (ModifierAttackRange::from_baseline(building_info), ModifierSourceBaseline),
+                    (ModifierAttackSpeed::from_baseline(building_info), ModifierSourceBaseline),
+                    (ModifierAttackDamage::from_baseline(building_info), ModifierSourceBaseline),
+                    (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
             )).id();
         let world_size = grid_imprint.world_size();

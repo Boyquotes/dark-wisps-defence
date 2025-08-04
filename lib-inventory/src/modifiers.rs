@@ -27,6 +27,15 @@ pub struct ModifierOf(pub Entity);
 #[relationship_target(relationship = ModifierOf, linked_spawn)]
 pub struct Modifiers(Vec<Entity>);
 
+pub trait Modifier: Property + Default {
+    const MODIFIER_TYPE: ModifierType;
+    fn from_baseline(info: &AlmanachBuildingInfo) -> Self {
+        let mut modifier = Self::default();
+        modifier.set(info.baseline[&Self::MODIFIER_TYPE]);
+        modifier
+    }
+}
+
 #[derive(Component, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModifierType {
     AttackSpeed,
@@ -36,37 +45,51 @@ pub enum ModifierType {
     MovementSpeed,
     EnergySupplyRange,
 }
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackSpeed)] pub struct ModifierAttackSpeed(pub f32);
+#[derive(Component, Clone, Default)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackSpeed)] pub struct ModifierAttackSpeed(pub f32);
 impl Property for ModifierAttackSpeed {
     fn get(&self) -> f32 { self.0 }
     fn set(&mut self, value: f32) { self.0 = value }
 }
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackRange)] pub struct ModifierAttackRange(pub f32);
+impl Modifier for ModifierAttackSpeed {
+    const MODIFIER_TYPE: ModifierType = ModifierType::AttackSpeed;
+}
+#[derive(Component, Clone, Default)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackRange)] pub struct ModifierAttackRange(pub f32);
 impl Property for ModifierAttackRange {
     fn get(&self) -> f32 { self.0 }
     fn set(&mut self, value: f32) { self.0 = value }
 }
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackDamage)] pub struct ModifierAttackDamage(pub f32);
+impl Modifier for ModifierAttackRange {
+    const MODIFIER_TYPE: ModifierType = ModifierType::AttackRange;
+}
+#[derive(Component, Clone, Default)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackDamage)] pub struct ModifierAttackDamage(pub f32);
 impl Property for ModifierAttackDamage {
     fn get(&self) -> f32 { self.0 }
     fn set(&mut self, value: f32) { self.0 = value }
 }
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::MaxHealth)] pub struct ModifierMaxHealth(pub f32);
+impl Modifier for ModifierAttackDamage {
+    const MODIFIER_TYPE: ModifierType = ModifierType::AttackDamage;
+}
+#[derive(Component, Clone, Default)]#[component(immutable)]#[require(ModifierType = ModifierType::MaxHealth)] pub struct ModifierMaxHealth(pub f32);
 impl Property for ModifierMaxHealth {
     fn get(&self) -> f32 { self.0 }
     fn set(&mut self, value: f32) { self.0 = value }
 }
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::MovementSpeed)] pub struct ModifierMovementSpeed(pub f32);
+impl Modifier for ModifierMaxHealth {
+    const MODIFIER_TYPE: ModifierType = ModifierType::MaxHealth;
+}
+#[derive(Component, Clone, Default)]#[component(immutable)]#[require(ModifierType = ModifierType::MovementSpeed)] pub struct ModifierMovementSpeed(pub f32);
 impl Property for ModifierMovementSpeed {
     fn get(&self) -> f32 { self.0 }
     fn set(&mut self, value: f32) { self.0 = value }
 }
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::EnergySupplyRange)] pub struct ModifierEnergySupplyRange(pub f32);
+#[derive(Component, Clone, Default)]#[component(immutable)]#[require(ModifierType = ModifierType::EnergySupplyRange)] pub struct ModifierEnergySupplyRange(pub f32);
 impl Property for ModifierEnergySupplyRange {
     fn get(&self) -> f32 { self.0 }
     fn set(&mut self, value: f32) { self.0 = value }
 }
-
+impl Modifier for ModifierEnergySupplyRange {
+    const MODIFIER_TYPE: ModifierType = ModifierType::EnergySupplyRange;
+}
 
 #[derive(Component, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModifierSource {

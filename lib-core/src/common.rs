@@ -16,63 +16,94 @@ impl Plugin for CommonPlugin {
     }
 }
 
+// Simple property trait for single value objects. Useful in generic contexts.
+pub trait Property {
+    fn get(&self) -> f32;
+    fn set(&mut self, value: f32);
+}
+
 
 #[derive(Component, Default)]
 pub struct Health {
-    current: i32,
-    max: i32, // A helper, source of truth is in MaxHealth component
+    current: f32,
+    max: f32, // A helper, source of truth is in MaxHealth component
 }
 impl Health {
-    pub fn new(max: i32) -> Self {
+    pub fn new(max: f32) -> Self {
         Self { current: max, max }
     }
-    pub fn get_current(&self) -> i32 {
+    pub fn get_current(&self) -> f32 {
         self.current
     }
-    pub fn get_max(&self) -> i32 {
+    pub fn get_max(&self) -> f32 {
         self.max
     }
     pub fn get_percent(&self) -> f32 {
-        self.current as f32 / self.max as f32
+        self.current / self.max
     }
-    pub fn decrease(&mut self, amount: i32) {
-        self.current = std::cmp::max(self.current - amount, 0);
+    pub fn decrease(&mut self, amount: f32) {
+        self.current = (self.current - amount).max(0.);
     }
     pub fn is_dead(&self) -> bool {
-        self.current <= 0
+        self.current <= 0.
     }
 }
 
 #[derive(Component, Default, Clone, Copy)]
 #[component(immutable)]
 #[require(Health)]
-pub struct MaxHealth(pub i32);
+pub struct MaxHealth(pub f32);
 impl MaxHealth {
     fn on_insert(
         trigger: Trigger<OnInsert, MaxHealth>,
         mut healths: Query<(&mut Health, &MaxHealth)>,
     ) {
         let Ok((mut health, max_health)) = healths.get_mut(trigger.target()) else { return; };
-        if health.current == 0 {
+        if health.current == 0. {
             health.current = max_health.0;
         }
         health.max = max_health.0;
     }
 }
+impl Property for MaxHealth {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
 #[derive(Component, Default, Clone, Copy)]
 #[component(immutable)]
 pub struct MovementSpeed(pub f32);
+impl Property for MovementSpeed {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
 #[derive(Component, Default, Clone, Copy)]
+#[component(immutable)]
 pub struct AttackSpeed(pub f32);
+impl Property for AttackSpeed {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
 #[derive(Component, Default, Clone, Copy)]
 #[component(immutable)]
-pub struct AttackDamage(pub i32);
+pub struct AttackDamage(pub f32);
+impl Property for AttackDamage {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
 #[derive(Component, Default, Clone, Copy)]
 #[component(immutable)]
-pub struct AttackRange(pub usize);
+pub struct AttackRange(pub f32);
+impl Property for AttackRange {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
 #[derive(Component, Default, Clone, Copy)]
 #[component(immutable)]
-pub struct EnergySupplyRange(pub usize);
+pub struct EnergySupplyRange(pub f32);
+impl Property for EnergySupplyRange {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
 
 
 #[derive(Component, Default)]

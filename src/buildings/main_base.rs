@@ -58,8 +58,8 @@ impl BuilderMainBase {
                 SupplierEnergy,
                 TechnicalState { has_energy_supply: true, ..default() },
                 related![Modifiers[
-                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
-                    (ModifierEnergySupplyRange(building_info.baseline[&ModifierType::EnergySupplyRange] as usize), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth]), ModifierSourceBaseline),
+                    (ModifierEnergySupplyRange(building_info.baseline[&ModifierType::EnergySupplyRange]), ModifierSourceBaseline),
                 ]],
             ));
     }

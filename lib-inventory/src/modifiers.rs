@@ -1,5 +1,3 @@
-use bevy::math::i32;
-
 use crate::lib_prelude::*;
 
 pub mod modifiers_prelude {
@@ -39,12 +37,35 @@ pub enum ModifierType {
     EnergySupplyRange,
 }
 #[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackSpeed)] pub struct ModifierAttackSpeed(pub f32);
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackRange)] pub struct ModifierAttackRange(pub usize);
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackDamage)] pub struct ModifierAttackDamage(pub i32);
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::MaxHealth)] pub struct ModifierMaxHealth(pub i32);
+impl Property for ModifierAttackSpeed {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
+#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackRange)] pub struct ModifierAttackRange(pub f32);
+impl Property for ModifierAttackRange {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
+#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::AttackDamage)] pub struct ModifierAttackDamage(pub f32);
+impl Property for ModifierAttackDamage {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
+#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::MaxHealth)] pub struct ModifierMaxHealth(pub f32);
+impl Property for ModifierMaxHealth {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
 #[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::MovementSpeed)] pub struct ModifierMovementSpeed(pub f32);
-#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::EnergySupplyRange)] pub struct ModifierEnergySupplyRange(pub usize);
-
+impl Property for ModifierMovementSpeed {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
+#[derive(Component, Clone)]#[component(immutable)]#[require(ModifierType = ModifierType::EnergySupplyRange)] pub struct ModifierEnergySupplyRange(pub f32);
+impl Property for ModifierEnergySupplyRange {
+    fn get(&self) -> f32 { self.0 }
+    fn set(&mut self, value: f32) { self.0 = value }
+}
 
 
 #[derive(Component, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -205,12 +226,12 @@ impl ApplyPotentialUpgrade {
         // And add matching value component
         let new_value = modifier_source_upgrade.current_value();
         match modifier_type {
-            ModifierType::AttackDamage => { commands_entity.insert(ModifierAttackDamage(new_value as i32)); }
-            ModifierType::AttackRange => { commands_entity.insert(ModifierAttackRange(new_value as usize)); }
+            ModifierType::AttackDamage => { commands_entity.insert(ModifierAttackDamage(new_value)); }
+            ModifierType::AttackRange => { commands_entity.insert(ModifierAttackRange(new_value)); }
             ModifierType::AttackSpeed => { commands_entity.insert(ModifierAttackSpeed(new_value)); }
-            ModifierType::MaxHealth => { commands_entity.insert(ModifierMaxHealth(new_value as i32)); }
+            ModifierType::MaxHealth => { commands_entity.insert(ModifierMaxHealth(new_value)); }
             ModifierType::MovementSpeed => { commands_entity.insert(ModifierMovementSpeed(new_value)); }
-            ModifierType::EnergySupplyRange => { commands_entity.insert(ModifierEnergySupplyRange(new_value as usize)); }
+            ModifierType::EnergySupplyRange => { commands_entity.insert(ModifierEnergySupplyRange(new_value)); }
         }
     }
 }

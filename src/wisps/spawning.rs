@@ -38,8 +38,8 @@ impl BuilderWisp {
                 Wisp,
                 builder.wisp_type,
                 related![Modifiers[
-                    (ModifierMaxHealth(10), ModifierSourceBaseline),
-                    (ModifierAttackRange(1), ModifierSourceBaseline),
+                    (ModifierMaxHealth(10.), ModifierSourceBaseline),
+                    (ModifierAttackRange(1.), ModifierSourceBaseline),
                     (ModifierMovementSpeed(30.), ModifierSourceBaseline),
                 ]],
             ));

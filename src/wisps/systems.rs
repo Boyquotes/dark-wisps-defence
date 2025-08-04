@@ -94,7 +94,7 @@ pub fn wisp_charge_attack(
             // If wisps is at distance 1 to its target, it's always in range
             if grid_path.distance() == 1 {
                 *wisp_state = WispState::Attacking;
-            } else if let Some(coords_in_range) = grid_path.at_distance(attack_range.0) {
+            } else if let Some(coords_in_range) = grid_path.at_distance(attack_range.get() as usize) {
                 // Otherwise, check if the field in the current range is a building
                 if obstacle_grid[coords_in_range].is_building() {
                     *wisp_state = WispState::Attacking;
@@ -103,10 +103,10 @@ pub fn wisp_charge_attack(
         }
         if !matches!(*wisp_state, WispState::Attacking) { continue; }
         // Then confirm the target still exists
-        let Some(target_coords) = grid_path.at_distance(attack_range.0) else { continue; };
+        let Some(target_coords) = grid_path.at_distance(attack_range.get() as usize) else { continue; };
         let Field::Building(target_entity, .. ) = obstacle_grid[target_coords] else {
             // If not, then either find new target if we were already at our itended target, or continue moving if we were stopped by an obstacle
-            if grid_path.distance() <= attack_range.0 {
+            if grid_path.distance() <= attack_range.get() as usize {
                 *wisp_state = WispState::NeedTarget;
             } else {
                 *wisp_state = WispState::MovingToTarget;
@@ -129,7 +129,7 @@ pub fn wisp_charge_attack(
                     commands.spawn(BuilderWispAttackEffect(transform.translation.xy()));
                     // Deal damage to the building
                     let _ = buildings.get_mut(target_entity).map(|mut health| {
-                        health.decrease(1);
+                        health.decrease(1.);
                     });
                 } else {
                     let wisp_speed = time.delta_secs() * speed.0 * 5.; // Speed up during charge
@@ -187,7 +187,7 @@ pub fn collide_wisps(
             _ => panic!("Expected a building"),
         };
         let mut health = buildings.get_mut(building_entity).unwrap();
-        health.decrease(1);
+        health.decrease(1.);
         wisps_grid.wisp_remove(*coords, wisp_entity.into());
         commands.entity(wisp_entity).despawn();
         commands.spawn(BuilderWispAttackEffect(transform.translation.xy()));

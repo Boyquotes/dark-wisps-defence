@@ -148,7 +148,7 @@ pub fn flood_energy_supply<'a>(
                     FloodEnergySupplyMode::Decrease => energy_supply_grid.remove_supplier(new_coords, supplier),
                 }
                 let new_distance = distance + 1;
-                if new_distance < range.0 {
+                if new_distance < range.get() as usize {
                     queue.push_back((new_distance, new_coords));
                 }
             }

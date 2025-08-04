@@ -55,10 +55,10 @@ impl BuilderTowerBlaster {
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
                 related![Modifiers[
-                    (ModifierAttackRange(building_info.baseline[&ModifierType::AttackRange] as usize), ModifierSourceBaseline),
+                    (ModifierAttackRange(building_info.baseline[&ModifierType::AttackRange]), ModifierSourceBaseline),
                     (ModifierAttackSpeed(building_info.baseline[&ModifierType::AttackSpeed]), ModifierSourceBaseline),
-                    (ModifierAttackDamage(building_info.baseline[&ModifierType::AttackDamage] as i32), ModifierSourceBaseline),
-                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
+                    (ModifierAttackDamage(building_info.baseline[&ModifierType::AttackDamage]), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth]), ModifierSourceBaseline),
                 ]],
             )).id();
         let world_size = grid_imprint.world_size();

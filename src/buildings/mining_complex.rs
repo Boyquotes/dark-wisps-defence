@@ -64,7 +64,7 @@ impl BuilderMiningComplex {
                 MiningRange(grid_imprint),
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
                 related![Modifiers[
-                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth]), ModifierSourceBaseline),
                 ]],
             ));
     }

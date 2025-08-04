@@ -69,16 +69,16 @@ impl AlmanachRequestPotentialUpgradesInsertion {
                         parent.spawn((ModifierAttackSpeed(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::AttackRange => {
-                        parent.spawn((ModifierAttackRange(upgrade.levels[0].value as usize), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                        parent.spawn((ModifierAttackRange(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::AttackDamage => {
-                        parent.spawn((ModifierAttackDamage(upgrade.levels[0].value as i32), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                        parent.spawn((ModifierAttackDamage(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::MaxHealth => {
-                        parent.spawn((ModifierMaxHealth(upgrade.levels[0].value as i32), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                        parent.spawn((ModifierMaxHealth(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::EnergySupplyRange => {
-                        parent.spawn((ModifierEnergySupplyRange(upgrade.levels[0].value as usize), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                        parent.spawn((ModifierEnergySupplyRange(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::MovementSpeed => {
                         panic!("Building is trying to run away!");

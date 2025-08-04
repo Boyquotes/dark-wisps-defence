@@ -57,7 +57,7 @@ impl BuilderExplorationCenter {
                 TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
                 related![Modifiers[
-                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth] as i32), ModifierSourceBaseline),
+                    (ModifierMaxHealth(building_info.baseline[&ModifierType::MaxHealth]), ModifierSourceBaseline),
                 ]],
             ));
     }

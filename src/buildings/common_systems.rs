@@ -129,7 +129,7 @@ pub fn targeting_system(
             TowerWispTarget::Wisp(wisp_entity) => {
                 if let Ok(wisp_coords) = wisps.get(wisp_entity) {
                     // Check if wisp is still in range. For now we use Manhattan distance to check. This may not be correct for all tower types.
-                    if coords.manhattan_distance(wisp_coords) as usize <= range.0 { continue; }
+                    if coords.manhattan_distance(wisp_coords) <= range.get() as i32 { continue; }
                 }
             },
             TowerWispTarget::NoValidTargets(grid_version) => {
@@ -143,7 +143,7 @@ pub fn targeting_system(
             &obstacle_grid,
             &wisps_grid,
             grid_imprint.covered_coords(*coords),
-            range.0,
+            range.get() as usize,
             true,
         ) {
             *target = TowerWispTarget::Wisp(target_wisp);

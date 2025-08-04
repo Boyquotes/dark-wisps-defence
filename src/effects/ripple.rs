@@ -129,7 +129,7 @@ pub fn ripple_hit_system(
                     let distance = wisp_transform.translation.distance(ripple_transform.translation);
                     // Hit only wisps that are up to 5 units away from the front of the ripple
                     if distance > ripple.current_radius || distance < ripple.current_radius - 1. { continue; }
-                    wisp_health.decrease(1);
+                    wisp_health.decrease(1.);
                 }
             }
         }

@@ -20,6 +20,7 @@ impl Plugin for CommonPlugin {
 pub trait Property {
     fn get(&self) -> f32;
     fn set(&mut self, value: f32);
+    fn new(value: f32) -> Self;
 }
 
 

@@ -8,12 +8,12 @@ pub struct ModifiersPlugin;
 impl Plugin for ModifiersPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_observer(on_attack_range_modifier_inserted)
-            .add_observer(on_attack_speed_modifier_inserted)
-            .add_observer(on_attack_damage_modifier_inserted)
-            .add_observer(on_max_health_modifier_inserted)
-            .add_observer(on_movement_speed_modifier_inserted)
-            .add_observer(on_energy_supply_range_modifier_inserted)
+            .add_observer(recalculate_on_modifier_inserted::<ModifierAttackRange, AttackRange>)
+            .add_observer(recalculate_on_modifier_inserted::<ModifierAttackSpeed, AttackSpeed>)
+            .add_observer(recalculate_on_modifier_inserted::<ModifierAttackDamage, AttackDamage>)
+            .add_observer(recalculate_on_modifier_inserted::<ModifierMaxHealth, MaxHealth>)
+            .add_observer(recalculate_on_modifier_inserted::<ModifierMovementSpeed, MovementSpeed>)
+            .add_observer(recalculate_on_modifier_inserted::<ModifierEnergySupplyRange, EnergySupplyRange>)
             .add_observer(ApplyPotentialUpgrade::on_trigger);
     }
 }
@@ -27,12 +27,10 @@ pub struct ModifierOf(pub Entity);
 #[relationship_target(relationship = ModifierOf, linked_spawn)]
 pub struct Modifiers(Vec<Entity>);
 
-pub trait Modifier: Property + Default {
+pub trait Modifier: Property + Sized {
     const MODIFIER_TYPE: ModifierType;
     fn from_baseline(info: &AlmanachBuildingInfo) -> Self {
-        let mut modifier = Self::default();
-        modifier.set(info.baseline[&Self::MODIFIER_TYPE]);
-        modifier
+        Self::new(info.baseline[&Self::MODIFIER_TYPE])
     }
 }
 
@@ -74,10 +72,13 @@ impl ModifierSourceUpgrade {
 /// - Get all modifiers of the target
 /// - Calculate the new value
 /// - Insert the new value
-fn on_attack_range_modifier_inserted(
-    trigger: Trigger<OnInsert, ModifierAttackRange>,
+/// 
+/// T - Modifier component (for example ModifierAttackRange)
+/// U - Property component (for example AttackRange)
+fn recalculate_on_modifier_inserted<T: Component + Modifier, U: Component + Property>(
+    trigger: Trigger<OnInsert, T>,
     mut commands: Commands,
-    modifiers: Query<(&ModifierAttackRange, &ModifierOf)>,
+    modifiers: Query<(&T, &ModifierOf)>,
     modification_targets: Query<&Modifiers>,
 ) {
     let modifier_entity = trigger.target();
@@ -85,89 +86,10 @@ fn on_attack_range_modifier_inserted(
     let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
     let new_value = all_modifiers_list.iter()
         .filter_map(|entity| modifiers.get(entity).ok())
-        .map(|(attack_range, _)| attack_range.0)
+        .map(|(modifier, _)| modifier.get())
         .sum();
-    commands.entity(modifier_of.0).insert(AttackRange(new_value));
+    commands.entity(modifier_of.0).insert(U::new(new_value));
 }
-fn on_attack_speed_modifier_inserted(
-    trigger: Trigger<OnInsert, ModifierAttackSpeed>,
-    mut commands: Commands,
-    modifiers: Query<(&ModifierAttackSpeed, &ModifierOf)>,
-    modification_targets: Query<&Modifiers>,
-) {
-    let modifier_entity = trigger.target();
-    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
-    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
-    let new_value = all_modifiers_list.iter()
-        .filter_map(|entity| modifiers.get(entity).ok())
-        .map(|(attack_speed, _)| attack_speed.0)
-        .sum();
-    commands.entity(modifier_of.0).insert(AttackSpeed(new_value));
-}
-fn on_attack_damage_modifier_inserted(
-    trigger: Trigger<OnInsert, ModifierAttackDamage>,
-    mut commands: Commands,
-    modifiers: Query<(&ModifierAttackDamage, &ModifierOf)>,
-    modification_targets: Query<&Modifiers>,
-) {
-    let modifier_entity = trigger.target();
-    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
-    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
-    let new_value = all_modifiers_list.iter()
-        .filter_map(|entity| modifiers.get(entity).ok())
-        .map(|(attack_damage, _)| attack_damage.0)
-        .sum();
-    commands.entity(modifier_of.0).insert(AttackDamage(new_value));
-}
-fn on_max_health_modifier_inserted(
-    trigger: Trigger<OnInsert, ModifierMaxHealth>,
-    mut commands: Commands,
-    modifiers: Query<(&ModifierMaxHealth, &ModifierOf)>,
-    modification_targets: Query<&Modifiers>,
-) {
-    let modifier_entity = trigger.target();
-    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
-    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
-    let new_value = all_modifiers_list.iter()
-        .filter_map(|entity| modifiers.get(entity).ok())
-        .map(|(max_health, _)| max_health.0)
-        .sum();
-    commands.entity(modifier_of.0).insert(MaxHealth(new_value));
-}
-
-fn on_movement_speed_modifier_inserted(
-    trigger: Trigger<OnInsert, ModifierMovementSpeed>,
-    mut commands: Commands,
-    modifiers: Query<(&ModifierMovementSpeed, &ModifierOf)>,
-    modification_targets: Query<&Modifiers>,
-) {
-    let modifier_entity = trigger.target();
-    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
-    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
-    let new_value = all_modifiers_list.iter()
-        .filter_map(|entity| modifiers.get(entity).ok())
-        .map(|(movement_speed, _)| movement_speed.0)
-        .sum();
-    commands.entity(modifier_of.0).insert(MovementSpeed(new_value));
-}
-
-fn on_energy_supply_range_modifier_inserted(
-    trigger: Trigger<OnInsert, ModifierEnergySupplyRange>,
-    mut commands: Commands,
-    modifiers: Query<(&ModifierEnergySupplyRange, &ModifierOf)>,
-    modification_targets: Query<&Modifiers>,
-) {
-    let modifier_entity = trigger.target();
-    let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
-    let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
-    let new_value = all_modifiers_list.iter()
-        .filter_map(|entity| modifiers.get(entity).ok())
-        .map(|(energy_supply_range, _)| energy_supply_range.0)
-        .sum();
-    commands.entity(modifier_of.0).insert(EnergySupplyRange(new_value));
-}
-
-
 
 ////////////////////
 ////  UPGRADES  ////

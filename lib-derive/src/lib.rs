@@ -55,6 +55,10 @@ fn generate_property_impl(data: &Data) -> syn::Result<TokenStream2> {
                         fn set(&mut self, value: f32) {
                             self.0 = value;
                         }
+                        
+                        fn new(value: f32) -> Self {
+                            Self(value)
+                        }
                     })
                 }
                 Fields::Named(fields) if fields.named.len() == 1 => {
@@ -68,6 +72,10 @@ fn generate_property_impl(data: &Data) -> syn::Result<TokenStream2> {
                         
                         fn set(&mut self, value: f32) {
                             self.#field_name = value;
+                        }
+
+                        fn new(value: f32) -> Self {
+                            Self { #field_name: value }
                         }
                     })
                 }

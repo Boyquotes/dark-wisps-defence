@@ -26,6 +26,10 @@ impl BuildingType {
     pub fn is_energy_supplier(&self) -> bool {
         matches!(self, BuildingType::MainBase | BuildingType::EnergyRelay)
     }
+    /// EnergyRelay is considered a consumer as it cannot operate without energy supply
+    pub fn is_energy_consumer(&self) -> bool {
+        !matches!(self, BuildingType::MainBase)
+    }
 }
 
 #[derive(Copy, Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash)]

@@ -86,6 +86,7 @@ pub enum GridImprint {
     Rectangle{width: i32, height: i32},
 }
 impl GridImprint {
+    /// Return all the GridCoords covered by the imprint. Does not check for map bounds.
     pub fn covered_coords(&self, coords: GridCoords) -> Vec<GridCoords> {
         match self {
             GridImprint::Rectangle{width, height} => {

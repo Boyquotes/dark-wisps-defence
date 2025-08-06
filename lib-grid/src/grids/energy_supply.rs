@@ -87,6 +87,7 @@ impl EnergySupplyField {
     pub fn has_supplier(&self, supplier: Entity) -> bool { self.suppliers.contains(&supplier) }
     pub fn has_power(&self) -> bool { self.has_power }
     pub fn set_power(&mut self, power: bool) { self.has_power = power; }
+    pub fn suppliers(&self) -> &HashSet<Entity> { &self.suppliers }
 }
 
 pub type EnergySupplyGrid = BaseGrid<EnergySupplyField, GridVersion>;

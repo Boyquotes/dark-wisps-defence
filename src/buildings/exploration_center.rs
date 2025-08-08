@@ -1,5 +1,3 @@
-use lib_grid::grids::energy_supply::EnergySupplyGrid;
-
 use crate::prelude::*;
 use crate::map_objects::common::{ExpeditionTargetMarker, ExpeditionZone};
 use crate::units::expedition_drone::BuilderExpeditionDrone;
@@ -36,7 +34,6 @@ impl BuilderExplorationCenter {
         builders: Query<&BuilderExplorationCenter>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
-        energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
@@ -54,7 +51,6 @@ impl BuilderExplorationCenter {
                 ExplorationCenter,
                 builder.grid_position,
                 grid_imprint,
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),

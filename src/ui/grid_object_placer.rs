@@ -85,16 +85,16 @@ impl GridObjectPlacer {
             _ => obstacle_grid.imprint_query_all(*grid_coords, *grid_imprint, |field| field.is_empty()),
         };
     
-        let (needs_energy_supply, is_imprint_suppliable) = match &*grid_object_placer {
+        let (needs_energy_supply, is_imprint_powered) = match &*grid_object_placer {
             GridObjectPlacer::Building(building_type) => match building_type {
                 BuildingType::MainBase | BuildingType::EnergyRelay => (false, false),
-                _ => (true, energy_supply_grid.is_imprint_suppliable(*grid_coords, *grid_imprint)),
+                _ => (true, energy_supply_grid.is_imprint_powered(*grid_coords, *grid_imprint)),
             },
             _ => (false, false)
         };
     
         sprite.color = if is_imprint_placable && is_imprint_in_bounds {
-            if needs_energy_supply && !is_imprint_suppliable {
+            if needs_energy_supply && !is_imprint_powered {
                 Color::srgba(1.0, 1.0, 0.0, 0.2)
             } else {
                 Color::srgba(0.0, 1.0, 0.0, 0.2)

@@ -1,4 +1,3 @@
-use lib_grid::grids::energy_supply::EnergySupplyGrid;
 use lib_core::utils::angle_difference;
 
 use crate::prelude::*;
@@ -31,7 +30,6 @@ impl BuilderTowerRocketLauncher {
         builders: Query<&BuilderTowerRocketLauncher>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
-        energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
@@ -50,7 +48,6 @@ impl BuilderTowerRocketLauncher {
                 TowerRocketLauncher,
                 builder.grid_position,
                 grid_imprint,
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
                 related![Modifiers[
                     (ModifierAttackRange::from_baseline(building_info), ModifierSourceBaseline),

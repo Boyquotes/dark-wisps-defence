@@ -41,7 +41,7 @@ pub enum TowerType {
 }
 
 #[derive(Component, Clone, Debug, Default)]
-#[require(AutoGridTransformSync, ZDepth = Z_BUILDING, MaxHealth)]
+#[require(AutoGridTransformSync, ZDepth = Z_BUILDING, MaxHealth, TechnicalState)]
 pub struct Building;
 
 #[derive(Component)]
@@ -82,11 +82,12 @@ pub struct TowerEmitter;
 #[derive(Component, Default)]
 pub struct TechnicalState {
     pub has_energy_supply: bool,
+    pub has_power: bool,
     pub has_ore_fields: Option<bool>,
 }
 impl TechnicalState {
     pub fn is_operational(&self) -> bool {
-        self.has_energy_supply && self.has_ore_fields.unwrap_or(true)
+        self.has_power && self.has_ore_fields.unwrap_or(true)
     }
 }
 

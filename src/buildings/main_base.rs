@@ -56,7 +56,6 @@ impl BuilderMainBase {
                 }),
                 GeneratorEnergy,
                 SupplierEnergy,
-                TechnicalState { has_energy_supply: true, ..default() },
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierEnergySupplyRange::from_baseline(building_info), ModifierSourceBaseline),

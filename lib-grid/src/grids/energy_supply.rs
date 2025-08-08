@@ -14,7 +14,8 @@ impl Plugin for EnergySupplyPlugin {
                 on_recalculate_power_system.after(on_supplier_changed_system).run_if(resource_changed::<EnergySupplyRecalculatePower>),
             ))
             .add_observer(SupplierEnergy::refresh_on_insert)
-            .add_observer(SupplierEnergy::refresh_on_replace);
+            .add_observer(SupplierEnergy::refresh_on_replace)
+            .add_observer(GeneratorEnergy::on_insert_for_technical_state);
     }
 }
 
@@ -61,6 +62,15 @@ impl SupplierEnergy {
 // Produces energy
 #[derive(Component, Copy, Clone, Debug)]
 pub struct GeneratorEnergy;
+impl GeneratorEnergy {
+    fn on_insert_for_technical_state(
+        trigger: Trigger<OnInsert, GeneratorEnergy>,
+        mut technical_states: Query<&mut TechnicalState>,
+    ) {
+        let Ok(mut technical_state) = technical_states.get_mut(trigger.target()) else { return; };
+        technical_state.has_power = true;
+    }
+}
 
 #[derive(Event)]
 pub struct SupplierChangedEvent {
@@ -109,6 +119,23 @@ impl EnergySupplyGrid {
                     for x in 0..width {
                         let inner_coords = coords.shifted((x, y));
                         if inner_coords.is_in_bounds(self.bounds()) && self[inner_coords].has_supply() {
+                            return true;
+                        }
+
+                    }
+                }
+            }
+        }
+        false
+    }
+    /// At least one of the imprint's cells must have power.
+    pub fn is_imprint_powered(&self, coords: GridCoords, imprint: GridImprint) -> bool {
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let inner_coords = coords.shifted((x, y));
+                        if inner_coords.is_in_bounds(self.bounds()) && self[inner_coords].has_power() {
                             return true;
                         }
 

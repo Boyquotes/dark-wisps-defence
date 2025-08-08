@@ -52,7 +52,6 @@ impl BuilderEnergyRelay {
                     mode: FloodEmissionsMode::Increase,
                 }),
                 SupplierEnergy,
-                TechnicalState{ has_energy_supply: true, ..default() },
                 ColorPulsation::new(1.0, 1.8, 3.0),
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),

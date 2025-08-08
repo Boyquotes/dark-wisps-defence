@@ -1,5 +1,3 @@
-use lib_grid::grids::energy_supply::EnergySupplyGrid;
-
 use crate::effects::ripple::BuilderRipple;
 use crate::prelude::*;
 use crate::wisps::components::Wisp;
@@ -32,7 +30,6 @@ impl BuilderTowerEmitter {
         builders: Query<&BuilderTowerEmitter>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
-        energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
@@ -51,7 +48,6 @@ impl BuilderTowerEmitter {
                 TowerEmitter,
                 builder.grid_position,
                 grid_imprint,
-                TechnicalState{ has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint), ..default() },
                 related![Modifiers[
                     (ModifierAttackRange::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierAttackSpeed::from_baseline(building_info), ModifierSourceBaseline),
@@ -69,7 +65,7 @@ pub fn shooting_system(
     wisps: Query<(), With<Wisp>>,
 ) {
     for (transform, technical_state, range, mut timer, mut target) in tower_emitters.iter_mut() {
-        if !technical_state.has_energy_supply { continue; }
+        if !technical_state.has_power { continue; }
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
 

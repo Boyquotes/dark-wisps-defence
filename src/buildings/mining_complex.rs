@@ -1,5 +1,4 @@
 use lib_grid::grids::obstacles::{Field, BelowField, ObstacleGrid};
-use lib_grid::grids::energy_supply::EnergySupplyGrid;
 
 use crate::map_objects::dark_ore::DarkOre;
 use crate::prelude::*;
@@ -38,7 +37,6 @@ impl BuilderMiningComplex {
         obstacle_grid: Res<ObstacleGrid>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
-        energy_supply_grid: Res<EnergySupplyGrid>,
     ) {
         let entity = trigger.target();
         let Ok(builder) = builders.get(entity) else { return; };
@@ -53,10 +51,6 @@ impl BuilderMiningComplex {
                     image: asset_server.load(MINING_COMPLEX_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
-                },
-                TechnicalState{ 
-                    has_energy_supply: energy_supply_grid.is_imprint_suppliable(builder.grid_position, grid_imprint),
-                    has_ore_fields: Some(!ore_entities_in_range.is_empty()),
                 },
                 MiningComplex { ore_entities_in_range },
                 builder.grid_position,
@@ -83,6 +77,7 @@ fn mine_ore_system(
 ) {
     let mut rng = nanorand::tls_rng();
     for (mut mining_complex, mut timer, mut technical_state) in mining_complexes.iter_mut() {
+        technical_state.has_ore_fields = Some(!mining_complex.ore_entities_in_range.is_empty());
         if !technical_state.is_operational() { continue; }
         timer.0.tick(time.delta());
         if timer.0.just_finished() {

@@ -5,6 +5,7 @@ mod badges;
 pub mod display_info_panel;
 pub mod grid_display;
 pub mod grid_object_placer;
+pub mod indicators;
 
 use crate::prelude::*;
 
@@ -16,6 +17,7 @@ impl Plugin for UiPlugin {
                 badges::BadgesPlugin,
                 display_info_panel::DisplayInfoPanelPlugin,
                 grid_object_placer::GridObjectPlacerPlugin,
+                indicators::IndicatorsPlugin,
                 objectives_panel::ObjectivesPanelPlugin,
                 construction_menu::ConstructionMenuPlugin,
             ))

@@ -3,6 +3,7 @@ use lib_grid::grids::energy_supply::{GeneratorEnergy, SupplierEnergy};
 use lib_grid::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode};
 
 use crate::prelude::*;
+use crate::ui::indicators::IndicatorDisplay;
 
 
 pub struct MainBasePlugin;
@@ -60,6 +61,12 @@ impl BuilderMainBase {
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierEnergySupplyRange::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
+                related![crate::ui::indicators::Indicators[
+                    crate::ui::indicators::IndicatorType::NoPower,
+                ]]
             ));
     }
 }

@@ -168,7 +168,8 @@ define_z_indexes!(
     Z_WISP,
     Z_GROUND_EFFECT,
     Z_TOWER_TOP,
+    Z_MAP_UI,
+    Z_AERIAL_UNIT,
     Z_PROJECTILE_UNDER,
-    Z_PROJECTILE,
-    Z_AERIAL_UNIT
+    Z_PROJECTILE
 );

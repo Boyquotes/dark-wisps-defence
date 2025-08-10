@@ -54,9 +54,7 @@ pub struct EnergyRelay;
 
 #[derive(Component)]
 #[require(Building, BuildingType = BuildingType::MiningComplex)]
-pub struct MiningComplex {
-    pub ore_entities_in_range: Vec<Entity>,
-}
+pub struct MiningComplex;
 
 #[derive(Component)]
 #[require(Building, BuildingType = BuildingType::ExplorationCenter)]

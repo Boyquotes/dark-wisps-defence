@@ -96,6 +96,13 @@ impl GridImprint {
             }
         }
     }
+    pub fn covers_coords(&self, imprint_coords: GridCoords, query_coords: GridCoords) -> bool {
+        match self {
+            GridImprint::Rectangle{width, height} => {
+                query_coords.x >= imprint_coords.x && query_coords.x < imprint_coords.x + *width && query_coords.y >= imprint_coords.y && query_coords.y < imprint_coords.y + *height
+            }
+        }
+    }
     pub fn bounds(&self) -> (i32, i32) {
         match self {
             GridImprint::Rectangle{width, height} => {

@@ -45,14 +45,15 @@ impl BuilderMiningComplex {
         commands.entity(entity)
             .remove::<BuilderMiningComplex>()
             .insert((
+                MiningComplex,
                 Sprite {
                     image: asset_server.load(MINING_COMPLEX_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                MiningComplex,
                 builder.grid_position,
                 grid_imprint,
+                NeedsPower::default(),
                 DarkOreAreaScanner{range_imprint: grid_imprint},
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
                 related![Modifiers[
@@ -64,15 +65,14 @@ impl BuilderMiningComplex {
 
 fn mine_ore_system(
     mut stock: ResMut<Stock>,
-    mut mining_complexes: Query<(&mut MiningComplexDeliveryTimer, &mut TechnicalState, &DarkOreInRange), With<MiningComplex>>,
+    mut mining_complexes: Query<(&mut MiningComplexDeliveryTimer, &DarkOreInRange), (With<MiningComplex>, With<HasPower>)>,
     mut dark_ores: Query<&mut DarkOre>,
     time: Res<Time>,
 ) {
     let mut rng = nanorand::tls_rng();
-    for (mut timer, mut technical_state, ore_in_range) in mining_complexes.iter_mut() {
+    for (mut timer, ore_in_range) in mining_complexes.iter_mut() {
         let ore_in_range = &ore_in_range.0;
-        technical_state.has_ore_fields = Some(!ore_in_range.is_empty());
-        if !technical_state.is_operational() { continue; }
+        if ore_in_range.is_empty() { continue; }
         timer.0.tick(time.delta());
         if timer.0.just_finished() {
             let ore_index = rng.generate_range(0..ore_in_range.len());

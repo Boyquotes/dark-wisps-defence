@@ -41,7 +41,7 @@ pub enum TowerType {
 }
 
 #[derive(Component, Clone, Debug, Default)]
-#[require(AutoGridTransformSync, ZDepth = Z_BUILDING, MaxHealth, TechnicalState)]
+#[require(AutoGridTransformSync, ZDepth = Z_BUILDING, MaxHealth)]
 pub struct Building;
 
 #[derive(Component)]
@@ -76,18 +76,6 @@ pub struct TowerRocketLauncher;
 #[require(Building, BuildingType = BuildingType::Tower(TowerType::Emitter), AttackRange, AttackSpeed, AttackDamage, TowerShootingTimer, TowerWispTarget)]
 pub struct TowerEmitter;
 
-
-#[derive(Component, Default)]
-pub struct TechnicalState {
-    pub has_energy_supply: bool,
-    pub has_power: bool,
-    pub has_ore_fields: Option<bool>,
-}
-impl TechnicalState {
-    pub fn is_operational(&self) -> bool {
-        self.has_power && self.has_ore_fields.unwrap_or(true)
-    }
-}
 
 #[derive(Component, Default)]
 #[require(AttackSpeed)]

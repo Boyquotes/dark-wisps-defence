@@ -39,15 +39,16 @@ impl BuilderTowerEmitter {
         commands.entity(entity)
             .remove::<BuilderTowerEmitter>()
             .insert((
+                TowerEmitter,
                 Sprite {
                     image: asset_server.load(TOWER_EMITTER_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
                 MarkerTower,
-                TowerEmitter,
                 builder.grid_position,
                 grid_imprint,
+                NeedsPower::default(),
                 related![Modifiers[
                     (ModifierAttackRange::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierAttackSpeed::from_baseline(building_info), ModifierSourceBaseline),
@@ -61,11 +62,10 @@ impl BuilderTowerEmitter {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_emitters: Query<(&Transform, &TechnicalState, &AttackRange, &mut TowerShootingTimer, &mut TowerWispTarget), With<TowerEmitter>>,
+    mut tower_emitters: Query<(&Transform, &AttackRange, &mut TowerShootingTimer, &mut TowerWispTarget), (With<TowerEmitter>, With<HasPower>)>,
     wisps: Query<(), With<Wisp>>,
 ) {
-    for (transform, technical_state, range, mut timer, mut target) in tower_emitters.iter_mut() {
-        if !technical_state.has_power { continue; }
+    for (transform, range, mut timer, mut target) in tower_emitters.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
 

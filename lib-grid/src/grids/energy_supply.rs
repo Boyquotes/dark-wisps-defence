@@ -10,12 +10,16 @@ impl Plugin for EnergySupplyPlugin {
             .init_resource::<EnergySupplyRecalculatePower>()
             .add_event::<SupplierChangedEvent>()
             .add_systems(PostUpdate, (
-                on_supplier_changed_system,
-                on_recalculate_power_system.after(on_supplier_changed_system).run_if(resource_changed::<EnergySupplyRecalculatePower>),
+                (
+                    on_supplier_changed_system,
+                    on_recalculate_power_system.run_if(resource_changed::<EnergySupplyRecalculatePower>),
+                    NeedsPower::update_system,
+                ).chain(),
             ))
             .add_observer(SupplierEnergy::refresh_on_insert)
             .add_observer(SupplierEnergy::refresh_on_replace)
-            .add_observer(GeneratorEnergy::on_insert_for_technical_state);
+            .add_observer(NeedsPower::on_insert)
+            .add_observer(NeedsPower::on_coords_change);
     }
 }
 
@@ -61,16 +65,8 @@ impl SupplierEnergy {
 
 // Produces energy
 #[derive(Component, Copy, Clone, Debug)]
+#[require(HasPower)]
 pub struct GeneratorEnergy;
-impl GeneratorEnergy {
-    fn on_insert_for_technical_state(
-        trigger: Trigger<OnInsert, GeneratorEnergy>,
-        mut technical_states: Query<&mut TechnicalState>,
-    ) {
-        let Ok(mut technical_state) = technical_states.get_mut(trigger.target()) else { return; };
-        technical_state.has_power = true;
-    }
-}
 
 #[derive(Event)]
 pub struct SupplierChangedEvent {
@@ -177,4 +173,80 @@ fn on_recalculate_power_system(
     need_recalculate_power.0 = false;
 
     flood_power_coverage(&mut energy_supply_grid, &generators_energy);
+}
+
+// ============================================================================
+// Power State Components
+// ============================================================================
+
+/// Component indicating that an entity uses power and should have its power state managed.
+/// Automatically manages HasPower/NoPower companion components based on energy grid state.
+/// Also stores the current power state directly for convenience access.
+#[derive(Component, Default)]
+#[require(GridCoords, GridImprint, NoPower)]
+pub struct NeedsPower {
+    pub has_power: bool,
+}
+#[derive(Component, Default)]
+pub struct HasPower;
+#[derive(Component, Default)]
+pub struct NoPower;
+
+impl NeedsPower {
+    fn on_insert(
+        trigger: Trigger<OnInsert, NeedsPower>,
+        mut commands: Commands,
+        energy_supply_grid: Res<EnergySupplyGrid>,
+        mut power_query: Query<(&GridCoords, &GridImprint, &mut NeedsPower)>,
+    ) {
+        let entity = trigger.target();
+        let Ok((grid_coords, grid_imprint, mut uses_power)) = power_query.get_mut(entity) else { return; };
+
+        let has_power = energy_supply_grid.is_imprint_powered(*grid_coords, *grid_imprint);
+        uses_power.set(&mut commands, entity, has_power);
+        commands.entity(entity).observe(Self::on_coords_change);
+    }
+
+    /// Local observer triggered when GridCoords or GridImprint changes on UsesPower entities
+    fn on_coords_change(
+        trigger: Trigger<OnInsert, (GridCoords, GridImprint)>,
+        mut commands: Commands,
+        energy_supply_grid: Res<EnergySupplyGrid>,
+        mut power_query: Query<(&GridCoords, &GridImprint, &mut NeedsPower)>,
+    ) {
+        let entity = trigger.target();
+        let Ok((grid_coords, grid_imprint, mut uses_power)) = power_query.get_mut(entity) else { return; };
+
+        let has_power = energy_supply_grid.is_imprint_powered(*grid_coords, *grid_imprint);
+        uses_power.set(&mut commands, entity, has_power);
+    }
+
+    /// Set the expected value and manage companion components
+    fn set(&mut self, commands: &mut Commands, entity: Entity, has_power: bool) {
+        if self.has_power != has_power {
+            if has_power {
+                commands.entity(entity).insert(HasPower).remove::<NoPower>();
+            } else {
+                commands.entity(entity).insert(NoPower).remove::<HasPower>();
+            }
+        }
+        self.has_power = has_power;
+    }
+
+    /// System that updates power states when the energy grid changes
+    fn update_system(
+        energy_supply_grid: Res<EnergySupplyGrid>,
+        mut commands: Commands,
+        mut power_entities: Query<(Entity, &GridCoords, &GridImprint, &mut NeedsPower)>,
+        mut current_energy_supply_grid_version: Local<GridVersion>,
+    ) {
+        // Only run when energy grid version changes
+        if *current_energy_supply_grid_version == energy_supply_grid.version { return; }
+        *current_energy_supply_grid_version = energy_supply_grid.version;
+        
+        for (entity, grid_coords, grid_imprint, mut uses_power) in power_entities.iter_mut() {
+            let has_power = energy_supply_grid.is_imprint_powered(*grid_coords, *grid_imprint);
+            uses_power.set(&mut commands, entity, has_power);
+        }
+    }
 }

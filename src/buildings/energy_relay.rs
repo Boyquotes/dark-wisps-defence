@@ -36,6 +36,7 @@ impl BuilderEnergyRelay {
         commands.entity(entity)
             .remove::<BuilderEnergyRelay>()
             .insert((
+                EnergyRelay,
                 Sprite {
                     image: asset_server.load(ENERGY_RELAY_BASE_IMAGE),
                     custom_size: Some(building_info.grid_imprint.world_size()),
@@ -43,8 +44,8 @@ impl BuilderEnergyRelay {
                     ..Default::default()
                 },
                 builder.grid_position,
-                EnergyRelay,
                 building_info.grid_imprint,
+                NeedsPower::default(),
                 EmitterEnergy(FloodEmissionsDetails {
                     emissions_type: EmissionsType::Energy,
                     range: usize::MAX,

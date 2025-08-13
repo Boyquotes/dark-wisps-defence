@@ -43,14 +43,15 @@ impl BuilderExplorationCenter {
         commands.entity(entity)
             .remove::<BuilderExplorationCenter>()
             .insert((
+                ExplorationCenter,
                 Sprite {
                     image: asset_server.load(EXPLORATION_CENTER_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                ExplorationCenter,
                 builder.grid_position,
                 grid_imprint,
+                NeedsPower::default(),
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
@@ -62,13 +63,12 @@ impl BuilderExplorationCenter {
 pub fn create_expedition_system(
     mut commands: Commands,
     //mut dark_ore_stock: ResMut<DarkOreStock>,
-    mut exploration_centres: Query<(&mut ExplorationCenterNewExpeditionTimer, &TechnicalState, &Transform), With<ExplorationCenter>>,
+    mut exploration_centres: Query<(&mut ExplorationCenterNewExpeditionTimer, &Transform), (With<ExplorationCenter>, With<HasPower>)>,
     expedition_zones: Query<(Entity, &Transform), (With<ExpeditionZone>, With<ExpeditionTargetMarker>)>,
     time: Res<Time>,
 ) {
     let mut zones_positions = None;
-    for (mut timer, technical_state, exploration_center_transform) in exploration_centres.iter_mut() {
-        if !technical_state.is_operational() { continue; }
+    for (mut timer, exploration_center_transform) in exploration_centres.iter_mut() {
         timer.0.tick(time.delta());
         if timer.0.just_finished() {
             if zones_positions.is_none() {

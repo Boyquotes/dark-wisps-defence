@@ -1,4 +1,3 @@
-use lib_grid::grids::energy_supply::{EnergySupplyGrid, GeneratorEnergy};
 use lib_grid::grids::obstacles::{BelowField, Field, ObstacleGrid};
 use lib_grid::grids::wisps::WispsGrid;
 use lib_grid::search::targetfinding::target_find_closest_wisp;
@@ -25,7 +24,6 @@ impl Plugin for CommonSystemsPlugin {
             .add_systems(PreUpdate, tick_shooting_timers_system.run_if(in_state(GameState::Running)))
             .add_systems(Update,(
                 onclick_building_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
-                check_energy_supply_and_power_system,
                 (
                     targeting_system,
                     rotate_tower_top_system,
@@ -36,7 +34,7 @@ impl Plugin for CommonSystemsPlugin {
     }
 }
 
-pub fn onclick_building_spawn_system(
+fn onclick_building_spawn_system(
     mut commands: Commands,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -117,14 +115,13 @@ pub fn onclick_building_spawn_system(
     }
 }
 
-pub fn targeting_system(
+fn targeting_system(
     obstacle_grid: Res<ObstacleGrid>,
     wisps_grid: Res<WispsGrid>,
-    mut towers: Query<(&GridCoords, &GridImprint, &TechnicalState, &AttackRange, &mut TowerWispTarget), (With<MarkerTower>, Without<Wisp>)>,
-    wisps: Query<&GridCoords, (With<Wisp>, Without<MarkerTower>)>,
+    mut towers: Query<(&GridCoords, &GridImprint, &AttackRange, &mut TowerWispTarget), (With<MarkerTower>, With<HasPower>)>,
+    wisps: Query<&GridCoords, With<Wisp>>,
 ) {
-    for (coords, grid_imprint, technical_state, range, mut target) in towers.iter_mut() {
-        if !technical_state.has_power { continue; }
+    for (coords, grid_imprint, range, mut target) in towers.iter_mut() {
         match *target {
             TowerWispTarget::Wisp(wisp_entity) => {
                 if let Ok(wisp_coords) = wisps.get(wisp_entity) {
@@ -153,32 +150,14 @@ pub fn targeting_system(
     }
 }
 
-pub fn tick_shooting_timers_system(
-    mut shooting_timers: Query<&mut TowerShootingTimer>,
+fn tick_shooting_timers_system(
+    mut shooting_timers: Query<&mut TowerShootingTimer, With<HasPower>>,
     time: Res<Time>,
 ) {
     shooting_timers.iter_mut().for_each(|mut timer| { timer.0.tick(time.delta()); });
 }
 
-pub fn check_energy_supply_and_power_system(
-    mut current_energy_supply_grid_version: Local<GridVersion>,
-    energy_supply_grid: Res<EnergySupplyGrid>,
-    mut buildings: Query<(&GridImprint, &GridCoords, &mut TechnicalState), Without<GeneratorEnergy>>
-) {
-    for (grid_imprint, grid_coords, mut technical_state) in buildings.iter_mut() {
-        // Update if energy supply grid has changed or the TechnicalStaet was just added
-        if *current_energy_supply_grid_version == energy_supply_grid.version && !technical_state.is_added() { continue; }
-        technical_state.has_power = energy_supply_grid.is_imprint_powered(*grid_coords, *grid_imprint);
-        if technical_state.has_power {
-            technical_state.has_energy_supply = true;
-        } else {
-            technical_state.has_energy_supply = energy_supply_grid.is_imprint_suppliable(*grid_coords, *grid_imprint);
-        }
-    }
-    *current_energy_supply_grid_version = energy_supply_grid.version;
-}
-
-pub fn damage_control_system(
+fn damage_control_system(
     mut commands: Commands,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     buildings: Query<(Entity, &Health, &GridImprint, &GridCoords), With<Building>>,
@@ -195,7 +174,7 @@ pub fn damage_control_system(
     }
 }
 
-pub fn rotate_tower_top_system(
+fn rotate_tower_top_system(
     mut tower_rotational_top: Query<(&MarkerTowerRotationalTop, &mut Transform)>,
     towers: Query<&TowerTopRotation, With<MarkerTower>>,
 ) {
@@ -208,13 +187,12 @@ pub fn rotate_tower_top_system(
     }
 }
 
-pub fn rotational_aiming_system(
+fn rotational_aiming_system(
     time: Res<Time>,
-    mut towers: Query<(&mut TowerTopRotation, &TowerWispTarget, &Transform, &TechnicalState), Without<Wisp>>,
+    mut towers: Query<(&mut TowerTopRotation, &TowerWispTarget, &Transform), With<HasPower>>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
-    for (mut rotation, target, tower_transform, technical_state) in towers.iter_mut() {
-        if !technical_state.has_power { continue; }
+    for (mut rotation, target, tower_transform) in towers.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = target else { continue; };
         let Ok(wisp_position) = wisps.get(*target_wisp).map(|target| target.translation.xy()) else { continue; };
 

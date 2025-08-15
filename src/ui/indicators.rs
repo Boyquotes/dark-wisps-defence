@@ -1,6 +1,7 @@
 use bevy::ecs::entity_disabling::Disabled;
 
 use crate::prelude::*;
+use crate::map_objects::dark_ore::dark_ore_area_scanner::{HasOreInScannerRange, NoOreInScannerRange};
 
 pub struct IndicatorsPlugin;
 impl Plugin for IndicatorsPlugin {
@@ -64,12 +65,13 @@ impl IndicatorType {
         asset_server: Res<AssetServer>,
         mut indicators: Query<(&IndicatorType, &mut IndicatorSpriteHandle, &IndicatorOf, Has<Disabled>)>,
         parents_with_no_power: Query<(), With<NoPower>>,
+        parents_with_no_ore: Query<(), With<NoOreInScannerRange>>,
     ) {
         let entity = trigger.target();
         let (indicator_type, mut sprite_handle, indicator_of, _) = indicators.get_mut(entity).unwrap();
         let path = match indicator_type {
             IndicatorType::NoPower => "indicators/no_power.png",
-            IndicatorType::OreDepleted => panic!("No asset yet!"),
+            IndicatorType::OreDepleted => "indicators/no_dark_ore.png",
             IndicatorType::Disabled => panic!("No asset yet!")
         };
         sprite_handle.0 = asset_server.load(path);
@@ -84,6 +86,15 @@ impl IndicatorType {
                     commands.entity(entity).remove::<Disabled>();
                 }
             }
+            IndicatorType::OreDepleted => {
+                // Add Ore State observers to the parent
+                commands.spawn((Observer::new(Self::on_parent_gains_ore).with_entity(indicator_of.0), IndicatorObserverForChanges(entity)));
+                commands.spawn((Observer::new(Self::on_parent_looses_ore).with_entity(indicator_of.0), IndicatorObserverForChanges(entity)));
+                // Configure initial state - check if parent has no ore in scanner range
+                if parents_with_no_ore.contains(indicator_of.0) {
+                    commands.entity(entity).remove::<Disabled>();
+                }
+            }
             _ => {}
         }
     }
@@ -92,11 +103,11 @@ impl IndicatorType {
         trigger: Trigger<OnInsert, NoPower>,
         mut commands: Commands,
         observers_for_changes: Query<&IndicatorObserverForChanges>,
-        indicators: Query<&IndicatorType, With<Disabled>>,
+        indicators: Query<(&IndicatorType, Has<Disabled>)>,
     ) {
         let observer_entity = trigger.observer();
         let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
-        let Ok(indicator_type) = indicators.get(indicator_entity.0) else { 
+        let Ok((indicator_type, _)) = indicators.get(indicator_entity.0) else { 
             commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
             return;
         };
@@ -117,6 +128,38 @@ impl IndicatorType {
             return;
         };
         if !matches!(indicator_type, IndicatorType::NoPower) { return; };
+        commands.entity(indicator_entity.0).insert(Disabled);
+    }
+
+    fn on_parent_looses_ore(
+        trigger: Trigger<OnInsert, NoOreInScannerRange>,
+        mut commands: Commands,
+        observers_for_changes: Query<&IndicatorObserverForChanges>,
+        indicators: Query<(&IndicatorType, Has<Disabled>)>,
+    ) {
+        let observer_entity = trigger.observer();
+        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok((indicator_type, _)) = indicators.get(indicator_entity.0) else { 
+            commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
+            return;
+        };
+        if !matches!(indicator_type, IndicatorType::OreDepleted) { return; };
+        commands.entity(indicator_entity.0).remove::<Disabled>();
+    }
+
+    fn on_parent_gains_ore(
+        trigger: Trigger<OnInsert, HasOreInScannerRange>,
+        mut commands: Commands,
+        observers_for_changes: Query<&IndicatorObserverForChanges>,
+        indicators: Query<&IndicatorType>,
+    ) {
+        let observer_entity = trigger.observer();
+        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok(indicator_type) = indicators.get(indicator_entity.0) else { 
+            commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
+            return;
+        };
+        if !matches!(indicator_type, IndicatorType::OreDepleted) { return; };
         commands.entity(indicator_entity.0).insert(Disabled);
     }
 }

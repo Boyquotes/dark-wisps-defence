@@ -59,6 +59,7 @@ impl BuilderTowerCannon {
                 ]],
                 related![Indicators[
                     IndicatorType::NoPower,
+                    IndicatorType::DisabledByPlayer,
                 ]],
                 children![
                     IndicatorDisplay::default(),

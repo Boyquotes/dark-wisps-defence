@@ -57,8 +57,10 @@ impl BuilderExplorationCenter {
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                DisabledByPlayer,
                 related![Indicators[
                     IndicatorType::NoPower,
+                    IndicatorType::DisabledByPlayer,
                 ]],
                 children![
                     IndicatorDisplay::default(),
@@ -69,8 +71,7 @@ impl BuilderExplorationCenter {
 
 pub fn create_expedition_system(
     mut commands: Commands,
-    //mut dark_ore_stock: ResMut<DarkOreStock>,
-    mut exploration_centres: Query<(&mut ExplorationCenterNewExpeditionTimer, &Transform), (With<ExplorationCenter>, With<HasPower>)>,
+    mut exploration_centres: Query<(&mut ExplorationCenterNewExpeditionTimer, &Transform), (With<ExplorationCenter>, With<HasPower>, Without<DisabledByPlayer>)>,
     expedition_zones: Query<(Entity, &Transform), (With<ExpeditionZone>, With<ExpeditionTargetMarker>)>,
     time: Res<Time>,
 ) {

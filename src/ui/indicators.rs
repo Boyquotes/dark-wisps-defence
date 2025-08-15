@@ -56,7 +56,7 @@ pub struct IndicatorObserverForChanges(Entity);
 pub enum IndicatorType {
     NoPower,
     OreDepleted,
-    Disabled,
+    DisabledByPlayer,
 }
 impl IndicatorType {
     fn on_insert_update_sprite_handle(
@@ -66,13 +66,14 @@ impl IndicatorType {
         mut indicators: Query<(&IndicatorType, &mut IndicatorSpriteHandle, &IndicatorOf, Has<Disabled>)>,
         parents_with_no_power: Query<(), With<NoPower>>,
         parents_with_no_ore: Query<(), With<NoOreInScannerRange>>,
+        parents_disabled_by_player: Query<(), With<DisabledByPlayer>>,
     ) {
         let entity = trigger.target();
         let (indicator_type, mut sprite_handle, indicator_of, _) = indicators.get_mut(entity).unwrap();
         let path = match indicator_type {
             IndicatorType::NoPower => "indicators/no_power.png",
             IndicatorType::OreDepleted => "indicators/no_dark_ore.png",
-            IndicatorType::Disabled => panic!("No asset yet!")
+            IndicatorType::DisabledByPlayer => "indicators/disabled.png",
         };
         sprite_handle.0 = asset_server.load(path);
 
@@ -95,10 +96,20 @@ impl IndicatorType {
                     commands.entity(entity).remove::<Disabled>();
                 }
             }
+            IndicatorType::DisabledByPlayer => {
+                // Add DisabledByPlayer observers to the parent
+                commands.spawn((Observer::new(Self::on_parent_disabled_by_player).with_entity(indicator_of.0), IndicatorObserverForChanges(entity)));
+                commands.spawn((Observer::new(Self::on_parent_enabled_by_player).with_entity(indicator_of.0), IndicatorObserverForChanges(entity)));
+                // Configure initial state - check if parent is disabled by player
+                if parents_disabled_by_player.contains(indicator_of.0) {
+                    commands.entity(entity).remove::<Disabled>();
+                }
+            }
             _ => {}
         }
     }
 
+    // TODO: Condolidate when Bevy supports multiple different triggers in one expression
     fn on_parent_looses_power(
         trigger: Trigger<OnInsert, NoPower>,
         mut commands: Commands,
@@ -160,6 +171,38 @@ impl IndicatorType {
             return;
         };
         if !matches!(indicator_type, IndicatorType::OreDepleted) { return; };
+        commands.entity(indicator_entity.0).insert(Disabled);
+    }
+
+    fn on_parent_disabled_by_player(
+        trigger: Trigger<OnInsert, DisabledByPlayer>,
+        mut commands: Commands,
+        observers_for_changes: Query<&IndicatorObserverForChanges>,
+        indicators: Query<&IndicatorType, With<Disabled>>,
+    ) {
+        let observer_entity = trigger.observer();
+        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok(indicator_type) = indicators.get(indicator_entity.0) else { 
+            commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
+            return;
+        };
+        if !matches!(indicator_type, IndicatorType::DisabledByPlayer) { return; };
+        commands.entity(indicator_entity.0).remove::<Disabled>();
+    }
+
+    fn on_parent_enabled_by_player(
+        trigger: Trigger<OnRemove, DisabledByPlayer>,
+        mut commands: Commands,
+        observers_for_changes: Query<&IndicatorObserverForChanges>,
+        indicators: Query<&IndicatorType>,
+    ) {
+        let observer_entity = trigger.observer();
+        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok(indicator_type) = indicators.get(indicator_entity.0) else { 
+            commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
+            return;
+        };
+        if !matches!(indicator_type, IndicatorType::DisabledByPlayer) { return; };
         commands.entity(indicator_entity.0).insert(Disabled);
     }
 }

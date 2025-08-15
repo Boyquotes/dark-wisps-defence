@@ -103,3 +103,6 @@ pub enum TowerWispTarget {
     Wisp(Entity),
     NoValidTargets(GridVersion),
 }
+
+#[derive(Component, Default)]
+pub struct DisabledByPlayer;

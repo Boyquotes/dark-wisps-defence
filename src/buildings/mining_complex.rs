@@ -63,6 +63,7 @@ impl BuilderMiningComplex {
                 related![Indicators[
                     IndicatorType::NoPower,
                     IndicatorType::OreDepleted,
+                    IndicatorType::DisabledByPlayer,
                 ]],
                 children![
                     IndicatorDisplay::default(),

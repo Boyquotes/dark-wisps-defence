@@ -1,6 +1,7 @@
 use lib_core::utils::angle_difference;
 
 use crate::prelude::*;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 use crate::projectiles::laser_dart::BuilderLaserDart;
 use crate::wisps::components::Wisp;
 
@@ -58,6 +59,12 @@ impl BuilderTowerBlaster {
                     (ModifierAttackDamage::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                related![Indicators[
+                    IndicatorType::NoPower,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
             )).id();
         let world_size = grid_imprint.world_size();
         let tower_top = commands.spawn((

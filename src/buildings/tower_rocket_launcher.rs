@@ -1,7 +1,9 @@
+use bevy::sprite::Anchor;
+
 use lib_core::utils::angle_difference;
 
 use crate::prelude::*;
-use bevy::sprite::Anchor;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 use crate::projectiles::rocket::BuilderRocket;
 use crate::wisps::components::Wisp;
 
@@ -56,6 +58,12 @@ impl BuilderTowerRocketLauncher {
                     (ModifierAttackDamage::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                related![Indicators[
+                    IndicatorType::NoPower,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
             )).id();
         let world_size = grid_imprint.world_size();
         let tower_top = commands.spawn((

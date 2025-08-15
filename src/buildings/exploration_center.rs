@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 use crate::map_objects::common::{ExpeditionTargetMarker, ExpeditionZone};
 use crate::units::expedition_drone::BuilderExpeditionDrone;
 
@@ -56,6 +57,12 @@ impl BuilderExplorationCenter {
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                related![Indicators[
+                    IndicatorType::NoPower,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
             ));
     }
 }

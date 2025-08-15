@@ -1,5 +1,6 @@
 use crate::effects::ripple::BuilderRipple;
 use crate::prelude::*;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 use crate::wisps::components::Wisp;
 
 pub struct TowerEmitterPlugin;
@@ -55,6 +56,12 @@ impl BuilderTowerEmitter {
                     (ModifierAttackDamage::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                related![Indicators[
+                    IndicatorType::NoPower,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
             ));
         commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);
     }

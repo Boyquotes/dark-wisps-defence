@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 use crate::projectiles::cannonball::BuilderCannonball;
 use crate::wisps::components::Wisp;
 use crate::wisps::spawning::WISP_GRID_IMPRINT;
@@ -56,6 +57,12 @@ impl BuilderTowerCannon {
                     (ModifierAttackDamage::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                related![Indicators[
+                    IndicatorType::NoPower,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
             ));
         commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);
     }

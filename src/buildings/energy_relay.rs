@@ -1,7 +1,9 @@
-use crate::prelude::*;
 use lib_grid::grids::emissions::{EmissionsType, EmitterEnergy};
 use lib_grid::grids::energy_supply::SupplierEnergy;
 use lib_grid::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode};
+
+use crate::prelude::*;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 
 pub struct EnergyRelayPlugin;
 impl Plugin for EnergyRelayPlugin {
@@ -58,6 +60,12 @@ impl BuilderEnergyRelay {
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierEnergySupplyRange::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                related![Indicators[
+                    IndicatorType::NoPower,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
             ));
     }
 }

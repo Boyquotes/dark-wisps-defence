@@ -3,6 +3,7 @@ use crate::map_objects::dark_ore::{
     dark_ore_area_scanner::{DarkOreAreaScanner, DarkOreInRange},
 };
 use crate::prelude::*;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 
 pub struct MiningComplexPlugin;
 impl Plugin for MiningComplexPlugin {
@@ -59,6 +60,12 @@ impl BuilderMiningComplex {
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                related![Indicators[
+                    IndicatorType::NoPower,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
             ));
     }
 }

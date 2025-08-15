@@ -55,7 +55,6 @@ impl BuilderEnergyRelay {
                     mode: FloodEmissionsMode::Increase,
                 }),
                 SupplierEnergy,
-                ColorPulsation::new(1.0, 1.8, 3.0),
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierEnergySupplyRange::from_baseline(building_info), ModifierSourceBaseline),
@@ -66,6 +65,8 @@ impl BuilderEnergyRelay {
                 children![
                     IndicatorDisplay::default(),
                 ],
-            ));
+            ))
+            .observe(|trigger: Trigger<OnInsert, HasPower>, mut commands: Commands| { commands.entity(trigger.target()).insert(ColorPulsation::new(1.0, 1.8, 3.0)); })
+            .observe(|trigger: Trigger<OnInsert, NoPower>, mut commands: Commands| { commands.entity(trigger.target()).remove::<ColorPulsation>(); });
     }
 }

@@ -94,17 +94,13 @@ impl IndicatorType {
         observers_for_changes: Query<&IndicatorObserverForChanges>,
         indicators: Query<&IndicatorType, With<Disabled>>,
     ) {
-        println!("Here in Looses Power1!");
         let observer_entity = trigger.observer();
         let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
-        println!("Here in Looses Power!2");
         let Ok(indicator_type) = indicators.get(indicator_entity.0) else { 
             commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
             return;
         };
-        println!("Here in Looses Power!3");
         if !matches!(indicator_type, IndicatorType::NoPower) { return; };
-        println!("Here in Looses Power!4");
         commands.entity(indicator_entity.0).remove::<Disabled>();
     }
 
@@ -157,12 +153,22 @@ fn cycle_indicators_system(
         };
         sprite.image = sprite_handle.0.clone();
                 
-        // Calculate fade alpha based on cycle time
+        // Calculate fade alpha with moderate non-linear curve
+        // Short visible plateau with smooth transitions
         let progress = display.cycle_time / IndicatorDisplay::PERIOD_SECONDS;
-        let alpha = if progress < 0.5 {
-            IndicatorDisplay::MIN_ALPHA + (IndicatorDisplay::MAX_ALPHA - IndicatorDisplay::MIN_ALPHA) * (progress * 2.0)
+        let alpha = if progress < 0.3 {
+            // Fade in (first 30% of cycle)
+            let t = progress / 0.3; // Map 0..0.3 to 0..1
+            let smoothed = t * t * (3.0 - 2.0 * t); // smoothstep
+            IndicatorDisplay::MIN_ALPHA + (IndicatorDisplay::MAX_ALPHA - IndicatorDisplay::MIN_ALPHA) * smoothed
+        } else if progress < 0.4 {
+            // Visible plateau (brief 10% of cycle)
+            IndicatorDisplay::MAX_ALPHA
         } else {
-            IndicatorDisplay::MAX_ALPHA - (IndicatorDisplay::MAX_ALPHA - IndicatorDisplay::MIN_ALPHA) * ((progress - 0.5) * 2.0)
+            // Fade out (last 60% of cycle)
+            let t = (progress - 0.4) / 0.6; // Map 0.4..1 to 0..1
+            let smoothed = t * t * (3.0 - 2.0 * t); // smoothstep
+            IndicatorDisplay::MAX_ALPHA - (IndicatorDisplay::MAX_ALPHA - IndicatorDisplay::MIN_ALPHA) * smoothed
         };
         sprite.color.set_alpha(alpha);
     }

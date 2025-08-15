@@ -12,7 +12,8 @@ impl Plugin for CommonPlugin {
                 ColorPulsation::pulsate_sprites_system,
             ))
             .add_observer(ZDepth::on_insert)
-            .add_observer(MaxHealth::on_insert);
+            .add_observer(MaxHealth::on_insert)
+            .add_observer(ColorPulsation::on_remove);
     }
 }
 
@@ -103,6 +104,20 @@ impl ColorPulsation {
         self.max_brightness = max_brightness;
         self.duration = duration;
         self.delta_change = (max_brightness - min_brightness) / duration;
+    }
+
+    fn on_remove(
+        trigger: Trigger<OnRemove, ColorPulsation>,
+        mut sprites: Query<&mut Sprite>,
+    ) {
+        let entity = trigger.target();
+        let Ok(mut sprite) = sprites.get_mut(entity) else { return; };
+        match &mut sprite.color {
+            Color::Hsla(Hsla {lightness, .. }) => {
+                *lightness = 1.0;
+            }
+            _ => {}
+        }
     }
 
     fn pulsate_sprites_system(

@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 use crate::projectiles::cannonball::BuilderCannonball;
 use crate::wisps::components::Wisp;
 use crate::wisps::spawning::WISP_GRID_IMPRINT;
@@ -40,21 +41,29 @@ impl BuilderTowerCannon {
         commands.entity(entity)
             .remove::<BuilderTowerCannon>()
             .insert((
+                TowerCannon,
                 Sprite {
                     image: asset_server.load(TOWER_CANNON_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
                 MarkerTower,
-                TowerCannon,
                 builder.grid_position,
                 grid_imprint,
+                NeedsPower::default(),
                 related![Modifiers[
                     (ModifierAttackRange::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierAttackSpeed::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierAttackDamage::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                related![Indicators[
+                    IndicatorType::NoPower,
+                    IndicatorType::DisabledByPlayer,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
             ));
         commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);
     }
@@ -62,11 +71,10 @@ impl BuilderTowerCannon {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_cannons: Query<(&Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &AttackDamage), With<TowerCannon>>,
+    mut tower_cannons: Query<(&Transform, &mut TowerShootingTimer, &mut TowerWispTarget, &AttackDamage), (With<TowerCannon>, With<HasPower>)>,
     wisps: Query<(&GridPath, &GridCoords), With<Wisp>>,
 ) {
-    for (transform, technical_state, mut timer, mut target, attack_damage) in tower_cannons.iter_mut() {
-        if !technical_state.has_power { continue; }
+    for (transform, mut timer, mut target, attack_damage) in tower_cannons.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
 

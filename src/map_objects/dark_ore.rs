@@ -13,7 +13,9 @@ impl Plugin for DarkOrePlugin {
                 onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 remove_empty_dark_ore_system,
             ))
-            .add_observer(BuilderDarkOre::on_add);
+            .add_observer(BuilderDarkOre::on_add)
+            .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_add)
+            .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_remove_dark_ore);
     }
 }
 
@@ -120,4 +122,82 @@ fn remove_empty_dark_ore_system(
             remove_dark_ore(&mut commands, &mut obstacle_grid, *grid_coords);
         }
     }
+}
+
+pub mod dark_ore_area_scanner {
+    use super::*;
+
+    #[derive(Component, Default)]
+    pub struct HasOreInScannerRange;
+    #[derive(Component, Default)]
+    pub struct NoOreInScannerRange;
+
+    #[derive(Component, Clone)]
+    #[component(immutable)]
+    #[require(GridCoords, DarkOreInRange, NoOreInScannerRange)]
+    pub struct DarkOreAreaScanner {
+        pub range_imprint: GridImprint,
+    }
+    impl DarkOreAreaScanner {
+        pub fn on_add(
+            trigger: Trigger<OnAdd, DarkOreAreaScanner>,
+            mut commands: Commands,
+            scanners: Query<&DarkOreAreaScanner>
+        ) {
+            let entity = trigger.target();
+            let scanner = scanners.get(entity).unwrap();
+            commands.entity(entity)
+                .observe(Self::scan_on_change)
+                .insert(scanner.clone()); // Reinsert self to trigger initial scan; TODO: improve once Bevy introduces compound triggers
+        }
+
+        // Local triggers when entity that is interested in scanner info changes by moving or changing the scanner range
+        fn scan_on_change(
+            trigger: Trigger<OnInsert, (DarkOreAreaScanner, GridCoords)>,
+            mut commands: Commands,
+            obstacle_grid: Res<ObstacleGrid>,
+            mut scanners: Query<(&DarkOreAreaScanner, &GridCoords, &mut DarkOreInRange)>,
+        ) {
+            let entity = trigger.target();
+            let Ok((scanner, grid_coords, mut dark_ore_in_range)) = scanners.get_mut(entity) else { return; };
+            let ore_entities_in_range = obstacle_grid.imprint_query_element(*grid_coords, scanner.range_imprint, Self::is_dark_ore_helper);
+            if ore_entities_in_range.is_empty() {
+                commands.entity(entity).insert(NoOreInScannerRange).remove::<HasOreInScannerRange>();
+            } else {
+                commands.entity(entity).insert(HasOreInScannerRange).remove::<NoOreInScannerRange>();
+            }
+            dark_ore_in_range.0 = ore_entities_in_range;
+        }
+
+        // Global trigger reacting to any dark ore removal to keep DarkOreinRange in sync
+        pub fn on_remove_dark_ore(
+            trigger: Trigger<OnRemove, DarkOre>,
+            mut commands: Commands,
+            dark_ores: Query<&GridCoords, With<DarkOre>>,
+            mut scanners: Query<(Entity, &DarkOreAreaScanner, &mut DarkOreInRange, &GridCoords)>,
+        ) {
+            let entity = trigger.target();
+            let dark_ore_grid_coords = dark_ores.get(entity).unwrap();
+            for (scanner_entity, scanner, mut dark_ore_in_range, scanner_grid_coords) in scanners.iter_mut() {
+                // TODO: This won't work when we want to implement Mining Complex range expansion, as the GridCoords won't match ScannerImprint coords
+                // Ie, the expected mining range coords will shift in relation to the MiningComplex own's coords as they start in bottom left corner.
+                if scanner.range_imprint.covers_coords(*scanner_grid_coords, *dark_ore_grid_coords) {
+                    if let Some(index) = dark_ore_in_range.0.iter().position(|&x| x == entity) {
+                        dark_ore_in_range.0.swap_remove(index);
+                    }
+                }
+                if dark_ore_in_range.0.is_empty() {
+                    commands.entity(scanner_entity).insert(NoOreInScannerRange).remove::<HasOreInScannerRange>();
+                }
+            }
+        }
+
+        // Helper to execute on every obstacle grid field to gather the dark_ore entities
+        fn is_dark_ore_helper(field: &Field) -> Option<Entity> {
+            if let Field::Building(_, BuildingType::MiningComplex, BelowField::DarkOre(dark_ore_entity)) = field { Some(*dark_ore_entity) } else { None }
+        }
+    }
+
+    #[derive(Component, Default)]
+    pub struct DarkOreInRange(pub Vec<Entity>);
 }

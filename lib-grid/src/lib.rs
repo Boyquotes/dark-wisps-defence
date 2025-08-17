@@ -8,3 +8,7 @@ pub mod lib_prelude {
 
     pub use lib_core::prelude::*;
 }
+
+pub mod prelude {
+    pub use crate::grids::energy_supply::{NeedsPower, HasPower, NoPower};
+}

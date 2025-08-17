@@ -1,6 +1,7 @@
 use lib_core::utils::angle_difference;
 
 use crate::prelude::*;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 use crate::projectiles::laser_dart::BuilderLaserDart;
 use crate::wisps::components::Wisp;
 
@@ -41,22 +42,30 @@ impl BuilderTowerBlaster {
         let tower_base_entity = commands.entity(entity)
             .remove::<BuilderTowerBlaster>()
             .insert((
+                TowerBlaster,
                 Sprite {
                     image: asset_server.load(TOWER_BLASTER_BASE_IMAGE),
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
                 MarkerTower,
-                TowerBlaster,
                 builder.grid_position,
                 grid_imprint,
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
+                NeedsPower::default(),
                 related![Modifiers[
                     (ModifierAttackRange::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierAttackSpeed::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierAttackDamage::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
+                related![Indicators[
+                    IndicatorType::NoPower,
+                    IndicatorType::DisabledByPlayer,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
             )).id();
         let world_size = grid_imprint.world_size();
         let tower_top = commands.spawn((
@@ -75,11 +84,10 @@ impl BuilderTowerBlaster {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_blasters: Query<(&GridImprint, &Transform, &TechnicalState, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation, &AttackDamage), With<TowerBlaster>>,
+    mut tower_blasters: Query<(&GridImprint, &Transform, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation, &AttackDamage), (With<TowerBlaster>, With<HasPower>)>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
-    for (grid_imprint, transform, technical_state, mut timer, mut target, top_rotation, attack_damage) in tower_blasters.iter_mut() {
-        if !technical_state.is_operational() { continue; }
+    for (grid_imprint, transform, mut timer, mut target, top_rotation, attack_damage) in tower_blasters.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
         if !timer.0.finished() { continue; }
 

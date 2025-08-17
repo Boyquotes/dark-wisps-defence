@@ -6,5 +6,6 @@ pub use bevy::platform::collections::{HashMap, HashSet};
 
 pub use lib_core::prelude::*;
 pub use lib_inventory::prelude::*;
+pub use lib_grid::prelude::*;
 
 pub use crate::buildings::prelude::*;

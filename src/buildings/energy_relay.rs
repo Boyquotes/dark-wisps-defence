@@ -1,7 +1,9 @@
-use crate::prelude::*;
 use lib_grid::grids::emissions::{EmissionsType, EmitterEnergy};
 use lib_grid::grids::energy_supply::SupplierEnergy;
 use lib_grid::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode};
+
+use crate::prelude::*;
+use crate::ui::indicators::{IndicatorDisplay, IndicatorType, Indicators};
 
 pub struct EnergyRelayPlugin;
 impl Plugin for EnergyRelayPlugin {
@@ -36,6 +38,7 @@ impl BuilderEnergyRelay {
         commands.entity(entity)
             .remove::<BuilderEnergyRelay>()
             .insert((
+                EnergyRelay,
                 Sprite {
                     image: asset_server.load(ENERGY_RELAY_BASE_IMAGE),
                     custom_size: Some(building_info.grid_imprint.world_size()),
@@ -43,8 +46,8 @@ impl BuilderEnergyRelay {
                     ..Default::default()
                 },
                 builder.grid_position,
-                EnergyRelay,
                 building_info.grid_imprint,
+                NeedsPower::default(),
                 EmitterEnergy(FloodEmissionsDetails {
                     emissions_type: EmissionsType::Energy,
                     range: usize::MAX,
@@ -52,11 +55,19 @@ impl BuilderEnergyRelay {
                     mode: FloodEmissionsMode::Increase,
                 }),
                 SupplierEnergy,
-                ColorPulsation::new(1.0, 1.8, 3.0),
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                     (ModifierEnergySupplyRange::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
-            ));
+                related![Indicators[
+                    IndicatorType::NoPower,
+                    IndicatorType::DisabledByPlayer,
+                ]],
+                children![
+                    IndicatorDisplay::default(),
+                ],
+            ))
+            .observe(|trigger: Trigger<OnInsert, HasPower>, mut commands: Commands| { commands.entity(trigger.target()).insert(ColorPulsation::new(1.0, 1.8, 3.0)); })
+            .observe(|trigger: Trigger<OnInsert, NoPower>, mut commands: Commands| { commands.entity(trigger.target()).remove::<ColorPulsation>(); });
     }
 }

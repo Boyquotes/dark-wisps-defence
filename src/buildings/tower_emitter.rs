@@ -70,7 +70,7 @@ impl BuilderTowerEmitter {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_emitters: Query<(&Transform, &AttackRange, &mut TowerShootingTimer, &mut TowerWispTarget), (With<TowerEmitter>, With<HasPower>)>,
+    mut tower_emitters: Query<(&Transform, &AttackRange, &mut TowerShootingTimer, &mut TowerWispTarget), (With<TowerEmitter>, With<HasPower>, Without<DisabledByPlayer>)>,
     wisps: Query<(), With<Wisp>>,
 ) {
     for (transform, range, mut timer, mut target) in tower_emitters.iter_mut() {

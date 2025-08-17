@@ -16,10 +16,9 @@ impl Plugin for EnergySupplyPlugin {
                     NeedsPower::update_system,
                 ).chain(),
             ))
-            .add_observer(SupplierEnergy::refresh_on_insert)
-            .add_observer(SupplierEnergy::refresh_on_replace)
-            .add_observer(NeedsPower::on_insert)
-            .add_observer(NeedsPower::on_coords_change);
+            .add_observer(SupplierEnergy::on_add)
+            .add_observer(NeedsPower::on_add)
+            ;
     }
 }
 
@@ -28,9 +27,19 @@ impl Plugin for EnergySupplyPlugin {
 #[require(EnergySupplyRange)]
 pub struct SupplierEnergy;
 impl SupplierEnergy {
+    fn on_add(
+        trigger: Trigger<OnAdd, SupplierEnergy>,
+        mut commands: Commands,
+    ) {
+        let entity = trigger.target();
+        commands.entity(entity)
+            .observe(Self::refresh_on_insert)
+            .observe(Self::refresh_on_replace);
+    }
+
     // Detect change in coords or range and trigger supply grid update
     fn refresh_on_insert(
-        trigger: Trigger<OnInsert, (GridCoords, EnergySupplyRange)>,
+        trigger: Trigger<OnInsert, (GridCoords, EnergySupplyRange, SupplierEnergy)>,
         mut supplier_changed_event_writer: EventWriter<SupplierChangedEvent>,
         suppliers: Query<(&EnergySupplyRange, &GridCoords, &GridImprint), With<SupplierEnergy>>,
     ) {
@@ -46,7 +55,7 @@ impl SupplierEnergy {
     }
     // Detect change in coords or range and trigger supply grid update
     fn refresh_on_replace(
-        trigger: Trigger<OnReplace, (GridCoords, EnergySupplyRange)>,
+        trigger: Trigger<OnReplace, (GridCoords, EnergySupplyRange, SupplierEnergy)>,
         mut supplier_changed_event_writer: EventWriter<SupplierChangedEvent>,
         suppliers: Query<(&EnergySupplyRange, &GridCoords, &GridImprint), With<SupplierEnergy>>,
 
@@ -193,8 +202,8 @@ pub struct HasPower;
 pub struct NoPower;
 
 impl NeedsPower {
-    fn on_insert(
-        trigger: Trigger<OnInsert, NeedsPower>,
+    fn on_add(
+        trigger: Trigger<OnAdd, NeedsPower>,
         mut commands: Commands,
         energy_supply_grid: Res<EnergySupplyGrid>,
         mut power_query: Query<(&GridCoords, &GridImprint, &mut NeedsPower)>,

@@ -68,6 +68,9 @@ impl BuilderEnergyRelay {
                 ],
             ))
             .observe(|trigger: Trigger<OnInsert, HasPower>, mut commands: Commands| { commands.entity(trigger.target()).insert(ColorPulsation::new(1.0, 1.8, 3.0)); })
-            .observe(|trigger: Trigger<OnInsert, NoPower>, mut commands: Commands| { commands.entity(trigger.target()).remove::<ColorPulsation>(); });
+            .observe(|trigger: Trigger<OnInsert, NoPower>, mut commands: Commands| { commands.entity(trigger.target()).remove::<ColorPulsation>(); })
+            .observe(|trigger: Trigger<OnInsert, DisabledByPlayer>, mut commands: Commands| { commands.entity(trigger.target()).remove::<SupplierEnergy>(); })
+            .observe(|trigger: Trigger<OnRemove, DisabledByPlayer>, mut commands: Commands| { commands.entity(trigger.target()).try_insert(SupplierEnergy); })
+            ;
     }
 }

@@ -84,7 +84,7 @@ impl BuilderTowerBlaster {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_blasters: Query<(&GridImprint, &Transform, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation, &AttackDamage), (With<TowerBlaster>, With<HasPower>)>,
+    mut tower_blasters: Query<(&GridImprint, &Transform, &mut TowerShootingTimer, &mut TowerWispTarget, &TowerTopRotation, &AttackDamage), (With<TowerBlaster>, With<HasPower>, Without<DisabledByPlayer>)>,
     wisps: Query<&Transform, With<Wisp>>,
 ) {
     for (grid_imprint, transform, mut timer, mut target, top_rotation, attack_damage) in tower_blasters.iter_mut() {

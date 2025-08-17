@@ -74,7 +74,7 @@ impl BuilderMiningComplex {
 
 fn mine_ore_system(
     mut stock: ResMut<Stock>,
-    mut mining_complexes: Query<(&mut MiningComplexDeliveryTimer, &DarkOreInRange), (With<MiningComplex>, With<HasPower>)>,
+    mut mining_complexes: Query<(&mut MiningComplexDeliveryTimer, &DarkOreInRange), (With<MiningComplex>, With<HasPower>, Without<DisabledByPlayer>)>,
     mut dark_ores: Query<&mut DarkOre>,
     time: Res<Time>,
 ) {

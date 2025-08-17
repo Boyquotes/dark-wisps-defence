@@ -71,7 +71,7 @@ impl BuilderTowerCannon {
 
 pub fn shooting_system(
     mut commands: Commands,
-    mut tower_cannons: Query<(&Transform, &mut TowerShootingTimer, &mut TowerWispTarget, &AttackDamage), (With<TowerCannon>, With<HasPower>)>,
+    mut tower_cannons: Query<(&Transform, &mut TowerShootingTimer, &mut TowerWispTarget, &AttackDamage), (With<TowerCannon>, With<HasPower>, Without<DisabledByPlayer>)>,
     wisps: Query<(&GridPath, &GridCoords), With<Wisp>>,
 ) {
     for (transform, mut timer, mut target, attack_damage) in tower_cannons.iter_mut() {

@@ -117,7 +117,7 @@ impl IndicatorType {
         indicators: Query<(&IndicatorType, Has<Disabled>)>,
     ) {
         let observer_entity = trigger.observer();
-        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok(indicator_entity) = observers_for_changes.get(observer_entity) else { return; };
         let Ok((indicator_type, _)) = indicators.get(indicator_entity.0) else { 
             commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
             return;
@@ -133,7 +133,7 @@ impl IndicatorType {
         indicators: Query<&IndicatorType>,
     ) {
         let observer_entity = trigger.observer();
-        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok(indicator_entity) = observers_for_changes.get(observer_entity) else { return; };
         let Ok(indicator_type) = indicators.get(indicator_entity.0) else { 
             commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
             return;
@@ -149,7 +149,7 @@ impl IndicatorType {
         indicators: Query<(&IndicatorType, Has<Disabled>)>,
     ) {
         let observer_entity = trigger.observer();
-        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok(indicator_entity) = observers_for_changes.get(observer_entity) else { return; };
         let Ok((indicator_type, _)) = indicators.get(indicator_entity.0) else { 
             commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
             return;
@@ -165,7 +165,7 @@ impl IndicatorType {
         indicators: Query<&IndicatorType>,
     ) {
         let observer_entity = trigger.observer();
-        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok(indicator_entity) = observers_for_changes.get(observer_entity) else { return; };
         let Ok(indicator_type) = indicators.get(indicator_entity.0) else { 
             commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
             return;
@@ -181,7 +181,7 @@ impl IndicatorType {
         indicators: Query<&IndicatorType, With<Disabled>>,
     ) {
         let observer_entity = trigger.observer();
-        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok(indicator_entity) = observers_for_changes.get(observer_entity) else { return; };
         let Ok(indicator_type) = indicators.get(indicator_entity.0) else { 
             commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
             return;
@@ -197,13 +197,13 @@ impl IndicatorType {
         indicators: Query<&IndicatorType>,
     ) {
         let observer_entity = trigger.observer();
-        let indicator_entity = observers_for_changes.get(observer_entity).unwrap();
+        let Ok(indicator_entity) = observers_for_changes.get(observer_entity) else { return; };
         let Ok(indicator_type) = indicators.get(indicator_entity.0) else { 
             commands.entity(indicator_entity.0).despawn(); // Indicator no longer exist, remove the observer
             return;
         };
         if !matches!(indicator_type, IndicatorType::DisabledByPlayer) { return; };
-        commands.entity(indicator_entity.0).insert(Disabled);
+        commands.entity(indicator_entity.0).try_insert(Disabled);
     }
 }
 

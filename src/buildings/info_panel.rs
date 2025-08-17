@@ -1,9 +1,8 @@
-use bevy::color::palettes::css::BLUE;
+use bevy::color::palettes::css::{BLUE, WHITE};
 use lib_ui::prelude::{Healthbar, UpgradeLineBuilder};
 
 use crate::prelude::*;
 use crate::ui::display_info_panel::{DisplayInfoPanel, DisplayPanelMainContentRoot, UiMapObjectFocusedTrigger};
-
 
 pub struct InfoPanelPlugin;
 impl Plugin for InfoPanelPlugin {
@@ -15,6 +14,7 @@ impl Plugin for InfoPanelPlugin {
             .add_observer(on_building_info_panel_enabled_for_towers_trigger)
             .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<OnInsert, ModifierSourceUpgrade>) // Refresh upgrade text on new upgrade
             .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<BuildingInfoPanelEnabledTrigger, ()>) // Refresh upgrade text on panel enabled
+            .add_observer(BuildingInfoPanelDisableButton::on_add)
             ;
     }
 }
@@ -72,8 +72,11 @@ fn on_ui_map_object_focus_changed_trigger(
     mut commands: Commands,
     almanach: Res<Almanach>,
     mut building_name_text: Query<&mut Text, With<BuildingInfoPanelNameText>>,
-    mut building_panel: Query<&mut Node, With<BuildingInfoPanel>>,
+    mut building_panel: Query<&mut Node, (With<BuildingInfoPanel>, Without<BuildingInfoPanelDisableButton>)>,
     buildings: Query<&BuildingType>,
+    disabled_by_player: Query<(), With<DisabledByPlayer>>,
+    mut disable_button_node: Query<&mut Node, (With<BuildingInfoPanelDisableButton>, Without<BuildingInfoPanel>)>,
+    mut disable_button_icon: Query<&mut ImageNode, With<BuildingInfoPanelDisableButtonIcon>>,
 ) {
     let focused_entity = trigger.target();
     let Ok(building_type) = buildings.get(focused_entity) else { 
@@ -85,6 +88,19 @@ fn on_ui_map_object_focus_changed_trigger(
 
     // Update the building name
     building_name_text.single_mut().unwrap().0 = almanach.get_building_info(*building_type).name.to_string();
+
+    // Manage the Disable button
+    let is_main_base = matches!(building_type, &BuildingType::MainBase);
+    let mut node = disable_button_node.single_mut().unwrap();
+    node.display = if is_main_base { 
+        // MainBase cannot be disabled
+        Display::None 
+    } else { 
+        let mut icon = disable_button_icon.single_mut().unwrap();
+        let is_disabled = disabled_by_player.contains(focused_entity);
+        icon.color.set_alpha(if is_disabled { 1.0 } else { 0.35 });
+        Display::Flex 
+    };
 }
 
 fn initialize_building_panel_content_system(
@@ -112,6 +128,7 @@ fn initialize_building_panel_content_system(
                         width: Val::Percent(100.),
                         flex_direction: FlexDirection::Row,
                         justify_content: JustifyContent::Start,
+                        align_items: AlignItems::Center,
                         ..default()
                     },
                     children![
@@ -135,6 +152,10 @@ fn initialize_building_panel_content_system(
                             },
                             Healthbar::default(),
                             BuildingInfoPanelHealthbar,
+                        ),
+                        // Disable/Enable button (top-right)
+                        (
+                            BuildingInfoPanelDisableButton,
                         ),
                     ],
                 ),
@@ -207,4 +228,61 @@ fn tower_subpanel_content_bundle() -> impl Bundle {
             ),
         ],
     )
+}
+
+// Disable/Enable button
+#[derive(Component)]
+#[require(Button)]
+struct BuildingInfoPanelDisableButton;
+#[derive(Component)]
+struct BuildingInfoPanelDisableButtonIcon;
+impl BuildingInfoPanelDisableButton {
+    fn on_add(
+        trigger: Trigger<OnAdd, BuildingInfoPanelDisableButton>,
+        mut commands: Commands,
+        asset_server: Res<AssetServer>,
+    ) {
+        let entity = trigger.target();
+        // Style the button and attach click handler
+        commands
+            .entity(entity)
+            .insert((
+                Node {
+                    width: Val::Px(32.),
+                    height: Val::Px(32.),
+                    margin: UiRect { left: Val::Px(2.), ..default() },
+                    align_self: AlignSelf::Center,
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+            ))
+            .observe(Self::on_click)
+            .with_children(|parent| {
+                parent.spawn((
+                    ImageNode::new(asset_server.load("indicators/disabled.png")).with_color(WHITE.with_alpha(0.35).into()),
+                    BuildingInfoPanelDisableButtonIcon,
+                ));
+            });
+    }
+
+    fn on_click(
+        _trigger: Trigger<Pointer<Click>>,
+        mut commands: Commands,
+        display_info_panel: Query<&DisplayInfoPanel>,
+        disabled_by_player: Query<(), With<DisabledByPlayer>>,
+        mut icons: Query<&mut ImageNode, With<BuildingInfoPanelDisableButtonIcon>>,
+    ) {
+        let focused_entity = display_info_panel.single().unwrap().current_focus;
+        let is_disabled = disabled_by_player.contains(focused_entity);
+        if is_disabled {
+            commands.entity(focused_entity).remove::<DisabledByPlayer>();
+        } else {
+            commands.entity(focused_entity).insert(DisabledByPlayer);
+        }
+
+        // Update icon alpha to reflect state after toggle
+        let mut icon = icons.single_mut().unwrap();
+        icon.color.set_alpha(if is_disabled { 0.35 } else { 1.0 });
+    }
 }

@@ -21,11 +21,6 @@ const BASE_COLOR: vec4<f32> = vec4<f32>(1., 1., 1., 0.); // Transparent
 const HAS_POWER_COLOR: vec4<f32> = vec4<f32>(1., 1., 0., 0.5); // Yellow
 const NO_POWER_COLOR: vec4<f32> = vec4<f32>(1., 0.2, 0., 0.5); // Orange
 
-// Thresholds for pixel decoding
-const SUPPLY_THRESHOLD: f32 = 0.0;
-const HIGHLIGHT_THRESHOLD: f32 = 5.0 / 255.0; // This value represents dimmed state. Being above it means it's highlighted.
-const POWER_THRESHOLD: f32 = 0.5; // Red channel threshold
-
 struct SupplyDetails {
     has_supply: bool,
     has_power: bool,
@@ -120,7 +115,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let uv = mesh.uv;
 
     // Calculate position within the block (0.0 to blockSize)
-    let blockPosition = fract(uv * f32(uniforms.grid_width));
+    let blockPosition = fract(uv * vec2<f32>(f32(uniforms.grid_width), f32(uniforms.grid_height)));
 
     // Check if we're at the very edge of a block
     let atEdge = blockPosition.x <= (outlineThickness / blockSize) || blockPosition.x >= ((blockSize - outlineThickness) / blockSize) ||

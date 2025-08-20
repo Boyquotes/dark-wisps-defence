@@ -17,6 +17,7 @@ struct UniformData {
 // Rendering constants
 const blockSize: f32 = 16.; // Size of each block in pixels
 const outlineThickness: f32 = 2.; // Size of the outline in pixels
+const outlineRatio: f32 = outlineThickness / blockSize; // Outline thickness relative to cell size
 const BASE_COLOR: vec4<f32> = vec4<f32>(1., 1., 1., 0.); // Transparent
 const HAS_POWER_COLOR: vec4<f32> = vec4<f32>(1., 1., 0., 0.5); // Yellow
 const NO_POWER_COLOR: vec4<f32> = vec4<f32>(1., 0.2, 0., 0.5); // Orange
@@ -54,7 +55,7 @@ fn supply_details(uv: vec2<f32>) -> SupplyDetails {
         cell.highlight_level == 2u  // is_highlighted (2 = Highlighted)
     );
 }
-fn egde_details_from_supply_details(supply_details1: SupplyDetails, supply_details2: SupplyDetails) -> EdgeDetails {
+fn edge_details_from_supply_details(supply_details1: SupplyDetails, supply_details2: SupplyDetails) -> EdgeDetails {
     return EdgeDetails(
         supply_details1.has_supply != supply_details2.has_supply,
         supply_details1.has_power != supply_details2.has_power,
@@ -62,49 +63,56 @@ fn egde_details_from_supply_details(supply_details1: SupplyDetails, supply_detai
     );
 }
 
-fn is_edge_boundary(uv: vec2<f32>, blockPosition: vec2<f32>) -> EdgeDetails {
+fn check_neighbor(supplyDetailsCurrent: SupplyDetails, neighborUV: vec2<f32>) -> EdgeDetails {
+    if (neighborUV.x >= 0.0 && neighborUV.x < 1.0 && neighborUV.y >= 0.0 && neighborUV.y < 1.0) {
+        return edge_details_from_supply_details(supplyDetailsCurrent, supply_details(neighborUV));
+    }
+    return EdgeDetails(false, false, false);
+}
+
+fn analyse_edge_boundaries(uv: vec2<f32>, blockPosition: vec2<f32>) -> EdgeDetails {
     let texDim = vec2<u32>(uniforms.grid_width, uniforms.grid_height);
     let stepSize = vec2<f32>(1.0 / f32(texDim.x), 1.0 / f32(texDim.y));
     let supplyDetailsCurrent = supply_details(uv);
 
-    if (blockPosition.x < (outlineThickness / blockSize)) {
+    if (blockPosition.x <= outlineRatio) {
         // Check left neighbor
-        let neighborUV = uv + vec2<f32>(-stepSize.x, 0.0);
-        if (neighborUV.x >= 0.0) {
-            let edge_details = egde_details_from_supply_details(supplyDetailsCurrent, supply_details(neighborUV));
-            if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) {
-                return edge_details;
-            }
-        }
-    } else if (blockPosition.x > ((blockSize - outlineThickness) / blockSize)) {
+        let edge_details = check_neighbor(supplyDetailsCurrent, uv + vec2<f32>(-stepSize.x, 0.0));
+        if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) { return edge_details; }
+    } else if (blockPosition.x >= (1.0 - outlineRatio)) {
         // Check right neighbor
-        let neighborUV = uv + vec2<f32>(stepSize.x, 0.0);
-        if (neighborUV.x < 1.0) {
-            let edge_details = egde_details_from_supply_details(supplyDetailsCurrent, supply_details(neighborUV));
-            if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) {
-                return edge_details;
-            }
-        }
+        let edge_details = check_neighbor(supplyDetailsCurrent, uv + vec2<f32>(stepSize.x, 0.0));
+        if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) { return edge_details; }
     }
 
-    if (blockPosition.y < (outlineThickness / blockSize)) {
+    if (blockPosition.y <= outlineRatio) {
         // Check bottom neighbor
-        let neighborUV = uv + vec2<f32>(0.0, -stepSize.y);
-        if (neighborUV.y >= 0.0) {
-            let edge_details = egde_details_from_supply_details(supplyDetailsCurrent, supply_details(neighborUV));
-            if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) {
-                return edge_details;
-            }
-        }
-    } else if (blockPosition.y > ((blockSize - outlineThickness) / blockSize)) {
+        let edge_details = check_neighbor(supplyDetailsCurrent, uv + vec2<f32>(0.0, -stepSize.y));
+        if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) { return edge_details; }
+    } else if (blockPosition.y >= (1.0 - outlineRatio)) {
         // Check top neighbor
-        let neighborUV = uv + vec2<f32>(0.0, stepSize.y);
-        if (neighborUV.y < 1.0) {
-            let edge_details = egde_details_from_supply_details(supplyDetailsCurrent, supply_details(neighborUV));
-            if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) {
-                return edge_details;
-            }
-        }
+        let edge_details = check_neighbor(supplyDetailsCurrent, uv + vec2<f32>(0.0, stepSize.y));
+        if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) { return edge_details; }
+    }
+
+    // Corner pixels: if both x and y are within the outline band, also check diagonal neighbors.
+    // This fills inner/outer corners where axis-only checks miss a pixel.
+    if (blockPosition.x <= outlineRatio && blockPosition.y <= outlineRatio) {
+        // Bottom-left corner -> sample bottom-left diagonal
+        let edge_details = check_neighbor(supplyDetailsCurrent, uv + vec2<f32>(-stepSize.x, -stepSize.y));
+        if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) { return edge_details; }
+    } else if (blockPosition.x <= outlineRatio && blockPosition.y >= (1.0 - outlineRatio)) {
+        // Top-left corner -> sample top-left diagonal
+        let edge_details = check_neighbor(supplyDetailsCurrent, uv + vec2<f32>(-stepSize.x, stepSize.y));
+        if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) { return edge_details; }
+    } else if (blockPosition.x >= (1.0 - outlineRatio) && blockPosition.y <= outlineRatio) {
+        // Bottom-right corner -> sample bottom-right diagonal
+        let edge_details = check_neighbor(supplyDetailsCurrent, uv + vec2<f32>(stepSize.x, -stepSize.y));
+        if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) { return edge_details; }
+    } else if (blockPosition.x >= (1.0 - outlineRatio) && blockPosition.y >= (1.0 - outlineRatio)) {
+        // Top-right corner -> sample top-right diagonal
+        let edge_details = check_neighbor(supplyDetailsCurrent, uv + vec2<f32>(stepSize.x, stepSize.y));
+        if (edge_details.is_supply_boundary || edge_details.is_highlight_boundary) { return edge_details; }
     }
 
     return EdgeDetails(false, false, false);
@@ -118,8 +126,8 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let blockPosition = fract(uv * vec2<f32>(f32(uniforms.grid_width), f32(uniforms.grid_height)));
 
     // Check if we're at the very edge of a block
-    let atEdge = blockPosition.x <= (outlineThickness / blockSize) || blockPosition.x >= ((blockSize - outlineThickness) / blockSize) ||
-                 blockPosition.y <= (outlineThickness / blockSize) || blockPosition.y >= ((blockSize - outlineThickness) / blockSize);
+    let atEdge = blockPosition.x <= outlineRatio || blockPosition.x >= (1.0 - outlineRatio) ||
+                 blockPosition.y <= outlineRatio || blockPosition.y >= (1.0 - outlineRatio);
 
     // Get cell data from buffer
     let cell = get_cell_data(uv);
@@ -143,7 +151,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     }
 
     // If we're at an edge and it's a boundary, draw the outline
-    let edge_details = is_edge_boundary(uv, blockPosition);
+    let edge_details = analyse_edge_boundaries(uv, blockPosition);
     if (atEdge && (edge_details.is_supply_boundary || edge_details.is_highlight_boundary)) {
         // For power boundaries, always use the powered color (yellow) for the outline
         // For non-power boundaries, use the current cell's color

@@ -1,0 +1,380 @@
+use bevy::{
+    reflect::TypePath,
+    render::{
+        render_resource::{AsBindGroup, ShaderRef, ShaderType},
+        storage::ShaderStorageBuffer,
+    },
+    sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d},
+};
+use lib_grid::{
+    grids::towers_range::TowersRangeGrid,
+    search::common::{CARDINAL_DIRECTIONS, VISITED_GRID},
+};
+
+use crate::prelude::*;
+use crate::ui::{
+    display_info_panel::{UiMapObjectFocusedTrigger, UiMapObjectUnfocusedTrigger},
+    grid_object_placer::GridObjectPlacer,
+};
+
+pub struct TowersRangeOverlayPlugin;
+impl Plugin for TowersRangeOverlayPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_plugins(Material2dPlugin::<TowersRangeMaterial>::default())
+            .init_state::<TowersRangeOverlayState>()
+            .init_resource::<TowersRangeOverlayConfig>()
+            .add_systems(Startup, |mut commands: Commands| { commands.spawn(TowersRangeOverlay); })
+            .add_systems(
+                OnEnter(TowersRangeOverlayState::Show),
+                |mut visiblitiy: Query<&mut Visibility, With<TowersRangeOverlay>>| {
+                    *visiblitiy.single_mut().unwrap() = Visibility::Inherited;
+                },
+            )
+            .add_systems(
+                OnExit(TowersRangeOverlayState::Show),
+                |mut visiblitiy: Query<&mut Visibility, With<TowersRangeOverlay>>| {
+                    *visiblitiy.single_mut().unwrap() = Visibility::Hidden;
+                },
+            )
+            .add_systems(
+                OnExit(UiInteraction::PlaceGridObject),
+                |mut config: ResMut<TowersRangeOverlayConfig>| {
+                    config.secondary_mode = TowersRangeOverlaySecondaryMode::None;
+                },
+            )
+            .add_systems(
+                Update,
+                (
+                    TowersRangeOverlayConfig::on_config_change_system
+                        .run_if(resource_changed::<TowersRangeOverlayConfig>),
+                    refresh_display_system.run_if(in_state(TowersRangeOverlayState::Show)),
+                    on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
+                ),
+            )
+            .add_observer(TowersRangeOverlayConfig::on_building_ui_focused)
+            .add_observer(TowersRangeOverlayConfig::on_building_ui_unfocused)
+            .add_observer(TowersRangeOverlay::on_add);
+    }
+}
+
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub enum TowersRangeOverlayState {
+    #[default]
+    Hide,
+    Show,
+}
+#[derive(Resource, Default)]
+pub struct TowersRangeOverlayConfig {
+    pub grid_version: GridVersion, // Grid version for which we show the overlay
+    pub secondary_mode: TowersRangeOverlaySecondaryMode,
+}
+impl TowersRangeOverlayConfig {
+    fn on_config_change_system(
+        overlay_config: Res<TowersRangeOverlayConfig>,
+        mut overlay_state: ResMut<NextState<TowersRangeOverlayState>>,
+    ) {
+        if !overlay_config.secondary_mode.is_none() {
+            overlay_state.set(TowersRangeOverlayState::Show);
+        } else {
+            overlay_state.set(TowersRangeOverlayState::Hide);
+        }
+    }
+    fn on_building_ui_focused(
+        trigger: Trigger<UiMapObjectFocusedTrigger>,
+        mut overlay_config: ResMut<TowersRangeOverlayConfig>,
+        towers: Query<(), With<Tower>>, // Is focused a tower?
+    ) {
+        let focused_entity = trigger.target();
+        if towers.contains(focused_entity) {
+            overlay_config.secondary_mode =
+                TowersRangeOverlaySecondaryMode::Highlight { tower: focused_entity };
+        } else {
+            overlay_config.secondary_mode = TowersRangeOverlaySecondaryMode::None;
+        }
+    }
+    fn on_building_ui_unfocused(
+        _trigger: Trigger<UiMapObjectUnfocusedTrigger>,
+        mut overlay_config: ResMut<TowersRangeOverlayConfig>,
+    ) {
+        overlay_config.secondary_mode = TowersRangeOverlaySecondaryMode::None;
+    }
+}
+#[derive(Default, Clone, Debug, PartialEq)]
+pub enum TowersRangeOverlaySecondaryMode {
+    #[default]
+    None,
+    Highlight { tower: Entity },
+    PlacingTower {
+        grid_coords: GridCoords,
+        grid_imprint: GridImprint,
+        range: usize,
+    },
+}
+impl TowersRangeOverlaySecondaryMode {
+    pub fn is_none(&self) -> bool {
+        matches!(self, TowersRangeOverlaySecondaryMode::None)
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, ShaderType)]
+struct UniformData {
+    grid_width: u32,
+    grid_height: u32,
+}
+
+#[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
+struct TowersRangeMaterial {
+    #[storage(0, read_only)]
+    pub cells: Handle<ShaderStorageBuffer>,
+    #[uniform(1)]
+    pub uniforms: UniformData,
+}
+impl Material2d for TowersRangeMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/towers_ranges_map.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
+    }
+}
+
+#[derive(Component)]
+pub struct TowersRangeOverlay;
+impl TowersRangeOverlay {
+    fn on_add(
+        trigger: Trigger<OnAdd, TowersRangeOverlay>,
+        mut commands: Commands,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut materials: ResMut<Assets<TowersRangeMaterial>>,
+    ) {
+        // TODO: React to map loading. At the startup MapInfo is not yet initialized so we can't just use it.
+        let full_world_size = 100. * CELL_SIZE;
+        let entity = trigger.target();
+        commands.entity(entity).insert((
+            Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
+            MeshMaterial2d(materials.add(TowersRangeMaterial {
+                cells: Handle::default(),
+                uniforms: UniformData {
+                    grid_width: 0,
+                    grid_height: 0,
+                },
+            })),
+            // Reuse the same overlay z-depth as energy supply for now
+            Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
+                .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
+            Visibility::Hidden,
+        ));
+    }
+}
+
+fn refresh_display_system(
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut materials: ResMut<Assets<TowersRangeMaterial>>,
+    tower_ranges_grid: Res<TowersRangeGrid>,
+    mut overlay_config: ResMut<TowersRangeOverlayConfig>,
+    overlay_query: Query<&MeshMaterial2d<TowersRangeMaterial>, With<TowersRangeOverlay>>,
+    mut last_secondary_mode: Local<TowersRangeOverlaySecondaryMode>,
+    mut local_buffer_data: Local<Vec<TowerRangeCell>>, // To avoid re-allocations every frame
+) {
+    if overlay_config.grid_version == tower_ranges_grid.version
+        && overlay_config.secondary_mode == *last_secondary_mode
+    {
+        return;
+    }
+
+    *last_secondary_mode = overlay_config.secondary_mode.clone();
+    overlay_config.grid_version = tower_ranges_grid.version;
+    let Ok(material_handle) = overlay_query.single() else { return; };
+
+    let material = materials.get_mut(material_handle).unwrap();
+
+    // Generate buffer data
+    let mut overlay_creator = OverlayBufferCreator::new(&tower_ranges_grid, &mut local_buffer_data);
+    match &overlay_config.secondary_mode {
+        TowersRangeOverlaySecondaryMode::None => overlay_creator.generate_buffer_data(&HighlightMode::All),
+        TowersRangeOverlaySecondaryMode::Highlight { tower } => {
+            overlay_creator.generate_buffer_data(&HighlightMode::Selected(vec![*tower]))
+        }
+        TowersRangeOverlaySecondaryMode::PlacingTower {
+            grid_coords,
+            grid_imprint,
+            range,
+        } => {
+            if grid_coords.is_in_bounds(tower_ranges_grid.bounds()) {
+                let covered_coords = grid_imprint
+                    .covered_coords(*grid_coords)
+                    .iter()
+                    .copied()
+                    .filter(|coords| coords.is_in_bounds(tower_ranges_grid.bounds()))
+                    .collect::<Vec<_>>();
+                overlay_creator.flood_preview_to_overlay(&covered_coords, *range)
+            } else {
+                overlay_creator.generate_buffer_data(&HighlightMode::All)
+            }
+        }
+    };
+
+    let buffer_handle = &material.cells;
+    if let Some(buffer) = buffers.get_mut(buffer_handle) {
+        buffer.set_data(&*local_buffer_data);
+    } else {
+        // Create ShaderStorageBuffer
+        let storage_buffer = ShaderStorageBuffer::from(local_buffer_data.as_slice());
+        let buffer_handle = buffers.add(storage_buffer);
+        material.cells = buffer_handle;
+    }
+
+    // Update uniforms
+    let bounds = tower_ranges_grid.bounds();
+    material.uniforms.grid_width = bounds.0 as u32; // width is first element
+    material.uniforms.grid_height = bounds.1 as u32; // height is second element
+}
+
+fn on_grid_placer_changed_system(
+    almanach: Res<Almanach>,
+    mut overlay_config: ResMut<TowersRangeOverlayConfig>,
+    grid_object_placer: Query<(&GridObjectPlacer, &GridCoords)>,
+    mut last_grid_object_placer: Local<(GridObjectPlacer, GridCoords)>,
+) {
+    let Ok((grid_object_placer, grid_coords)) = grid_object_placer.single() else { return; };
+    if grid_object_placer != &last_grid_object_placer.0 || grid_coords != &last_grid_object_placer.1 {
+        *last_grid_object_placer = (grid_object_placer.clone(), *grid_coords);
+        let (grid_object_placer, grid_coords) = (grid_object_placer, grid_coords);
+        match grid_object_placer {
+            GridObjectPlacer::Building(building_type) => match building_type {
+                BuildingType::Tower(_) => {
+                    let building_info = almanach.get_building_info(*building_type);
+                    overlay_config.secondary_mode = TowersRangeOverlaySecondaryMode::PlacingTower {
+                        grid_coords: *grid_coords,
+                        grid_imprint: building_info.grid_imprint,
+                        range: building_info.baseline[&ModifierType::AttackRange] as usize,
+                    };
+                }
+                _ => {
+                    overlay_config.secondary_mode = TowersRangeOverlaySecondaryMode::None;
+                }
+            },
+            _ => {
+                overlay_config.secondary_mode = TowersRangeOverlaySecondaryMode::None;
+            }
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable, ShaderType)]
+struct TowerRangeCell {
+    /// XOR signature of towers covering this cell
+    signature: u32,
+    /// 1 if the cell is covered by the selected tower(s), otherwise 0
+    selected: u32,
+    /// 1 if the cell is covered by the placement preview, otherwise 0
+    preview: u32,
+}
+impl TowerRangeCell {
+    fn empty() -> Self {
+        Self {
+            signature: 0,
+            selected: 0,
+            preview: 0,
+        }
+    }
+}
+
+#[derive(PartialEq)]
+enum HighlightMode {
+    All,
+    Selected(Vec<Entity>),
+}
+
+struct OverlayBufferCreator<'a> {
+    grid: &'a TowersRangeGrid,
+    local_buffer_data: Option<&'a mut Vec<TowerRangeCell>>,
+}
+impl<'a> OverlayBufferCreator<'a> {
+    fn new(grid: &'a TowersRangeGrid, local_buffer_data: &'a mut Vec<TowerRangeCell>) -> Self {
+        Self { grid, local_buffer_data: Some(local_buffer_data) }
+    }
+
+    fn generate_buffer_data(&mut self, highlight_mode: &HighlightMode) {
+        let buffer_data = self.local_buffer_data.take().unwrap(); // Avoid double mutable borrows
+        buffer_data.clear();
+        let buffer_size = self.grid.grid.len();
+        let new_content = (0..buffer_size).map(|idx| self.create_cell_for_grid_index(idx, highlight_mode));
+        buffer_data.extend(new_content);
+        self.local_buffer_data = Some(buffer_data);
+    }
+
+    fn create_cell_for_grid_index(&self, idx: usize, highlight_mode: &HighlightMode) -> TowerRangeCell {
+        let set = &self.grid.grid[idx];
+        if set.is_empty() {
+            return TowerRangeCell::empty();
+        }
+        let mut signature: u32 = 0;
+        for &entity in set.iter() {
+            signature ^= entity.index();
+        }
+        let selected = match highlight_mode {
+            HighlightMode::All => 0u32,
+            HighlightMode::Selected(selected_entities) => {
+                if selected_entities.iter().any(|e| set.contains(e)) { 1 } else { 0 }
+            }
+        };
+        TowerRangeCell { signature, selected, preview: 0 }
+    }
+
+    /// Similar to energy overlay's preview flood, but only toggles preview bit
+    fn flood_preview_to_overlay(
+        &mut self,
+        start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
+        range: usize,
+    ) {
+        use std::collections::VecDeque;
+
+        // Start with base buffer data (all signatures + optional selection)
+        self.generate_buffer_data(&HighlightMode::All);
+        let buffer_data = self.local_buffer_data.take().unwrap();
+        let bounds = self.grid.bounds();
+
+        VISITED_GRID.with_borrow_mut(|visited_grid| {
+            visited_grid.resize_and_reset(bounds);
+            let mut queue = VecDeque::new();
+
+            // Start Flood from all fields to ensure even distance from buildings bigger than one cell
+            start_coords.into_iter().for_each(|coords| {
+                let index = self.grid.index(*coords);
+                // Do not alter signature/selected; set preview flag
+                let mut cell = buffer_data[index];
+                cell.preview = 1;
+                buffer_data[index] = cell;
+                queue.push_back((0, *coords));
+                visited_grid.set_visited(*coords);
+            });
+
+            while let Some((distance, coords)) = queue.pop_front() {
+                for (dx, dy) in CARDINAL_DIRECTIONS {
+                    let new_coords = coords.shifted((dx, dy));
+                    if !new_coords.is_in_bounds(bounds) || visited_grid.is_visited(new_coords) {
+                        continue;
+                    }
+                    visited_grid.set_visited(new_coords);
+
+                    let buffer_index = self.grid.index(new_coords);
+                    let mut cell = buffer_data[buffer_index];
+                    cell.preview = 1;
+                    buffer_data[buffer_index] = cell;
+
+                    let new_distance = distance + 1;
+                    if new_distance < range {
+                        queue.push_back((new_distance, new_coords));
+                    }
+                }
+            }
+        });
+
+        self.local_buffer_data = Some(buffer_data);
+    }
+}

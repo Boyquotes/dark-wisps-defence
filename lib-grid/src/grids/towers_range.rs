@@ -25,7 +25,7 @@ impl TowersRangeGrid {
         self.version = self.version.wrapping_add(1);
     }
     fn on_tower_added(
-        trigger: Trigger<OnAdd, Tower>,
+        trigger: Trigger<OnInsert, AttackRange>,
         mut tower_ranges_grid: ResMut<TowersRangeGrid>,
         towers: Query<(&GridCoords, &GridImprint, &AttackRange), With<Tower>>,
     ) {
@@ -34,7 +34,7 @@ impl TowersRangeGrid {
         flood_tower_range(&mut tower_ranges_grid, &grid_imprint.covered_coords(*grid_coords), FloodTowerRangeMode::Add, attack_range.0 as usize, entity);
     }
     fn on_tower_removed(
-        trigger: Trigger<OnRemove, Tower>,
+        trigger: Trigger<OnReplace, AttackRange>,
         mut tower_ranges_grid: ResMut<TowersRangeGrid>,
         towers: Query<(&GridCoords, &GridImprint, &AttackRange), With<Tower>>,
     ) {

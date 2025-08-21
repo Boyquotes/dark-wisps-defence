@@ -1,4 +1,4 @@
-use lib_grid::grids::emissions::{EmissionsType, EmitterEnergy};
+use lib_grid::grids::emissions::{EmissionsType, EmitterEnergy, EmitterEnergyEnabled};
 use lib_grid::grids::energy_supply::SupplierEnergy;
 use lib_grid::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode};
 
@@ -67,10 +67,35 @@ impl BuilderEnergyRelay {
                     IndicatorDisplay::default(),
                 ],
             ))
-            .observe(|trigger: Trigger<OnInsert, HasPower>, mut commands: Commands| { commands.entity(trigger.target()).insert(ColorPulsation::new(1.0, 1.8, 3.0)); })
-            .observe(|trigger: Trigger<OnInsert, NoPower>, mut commands: Commands| { commands.entity(trigger.target()).remove::<ColorPulsation>(); })
-            .observe(|trigger: Trigger<OnInsert, DisabledByPlayer>, mut commands: Commands| { commands.entity(trigger.target()).remove::<SupplierEnergy>(); })
-            .observe(|trigger: Trigger<OnRemove, DisabledByPlayer>, mut commands: Commands| { commands.entity(trigger.target()).try_insert(SupplierEnergy); })
+            .observe(|trigger: Trigger<OnInsert, HasPower>, mut commands: Commands| { commands.trigger_targets(RequestTechnicalStateUpdate, trigger.target()); })
+            .observe(|trigger: Trigger<OnInsert, NoPower>, mut commands: Commands| { commands.trigger_targets(RequestTechnicalStateUpdate, trigger.target()); })
+            .observe(|trigger: Trigger<OnInsert, DisabledByPlayer>, mut commands: Commands| { commands.trigger_targets(RequestTechnicalStateUpdate, trigger.target()); })
+            .observe(|trigger: Trigger<OnRemove, DisabledByPlayer>, mut commands: Commands| { commands.trigger_targets(RequestTechnicalStateUpdate, trigger.target()); })
+            .observe(RequestTechnicalStateUpdate::on_trigger)
             ;
+
+        commands.trigger_targets(RequestTechnicalStateUpdate, entity);
+    }
+}
+
+#[derive(Event)]
+struct RequestTechnicalStateUpdate;
+impl RequestTechnicalStateUpdate {
+    fn on_trigger(
+        trigger: Trigger<RequestTechnicalStateUpdate>,
+        mut commands: Commands,
+        relays: Query<(Has<DisabledByPlayer>, Has<NoPower>), With<EnergyRelay>>,
+    ) {
+        let entity = trigger.target();
+        let Ok((has_disabled_by_player, has_no_power)) = relays.get(entity) else { return; };
+        let mut entity_commands = commands.entity(entity);
+        if has_disabled_by_player {
+            entity_commands.remove::<SupplierEnergy>().remove::<EmitterEnergyEnabled>().remove::<ColorPulsation>();
+        }
+        else if has_no_power {
+            entity_commands.remove::<EmitterEnergyEnabled>().remove::<ColorPulsation>().try_insert(SupplierEnergy);
+        } else {
+            entity_commands.try_insert(SupplierEnergy).try_insert(EmitterEnergyEnabled).try_insert(ColorPulsation::new(1.0, 1.8, 3.0));
+        }
     }
 }

@@ -14,16 +14,37 @@ impl Plugin for EmissionsPlugin {
             .add_systems(PostUpdate, (
                 emissions_calculations_system,
             ))
-            .add_observer(EmitterEnergy::on_coords_replace)
-            .add_observer(EmitterEnergy::on_coords_insert);
+            .add_observer(EmitterEnergy::on_add)
+            .add_observer(EmitterEnergy::on_remove)
+            ;
     }
 }
 
+/// Companion component to EmitterEnergy. Use it to mark wheter Emitter is functional.
+#[derive(Component, Default)]
+pub struct EmitterEnergyEnabled;
 #[derive(Component)]
 pub struct EmitterEnergy(pub FloodEmissionsDetails);
 impl EmitterEnergy {
-    fn on_coords_insert(
-        trigger: Trigger<OnInsert, GridCoords>,
+    fn on_add(
+        trigger: Trigger<OnAdd, EmitterEnergy>,
+        mut commands: Commands,
+    ) {
+        let entity = trigger.target();
+        commands.entity(entity)
+            .observe(Self::on_enable_or_insert)
+            .observe(Self::on_disable_or_replace)
+            .insert(EmitterEnergyEnabled);
+    }
+    fn on_remove(
+        trigger: Trigger<OnRemove, EmitterEnergy>,
+        mut commands: Commands,
+    ) {
+        let observer = trigger.observer();
+        commands.entity(observer).despawn();
+    }
+    fn on_enable_or_insert(
+        trigger: Trigger<OnInsert, (GridCoords, GridImprint, EmitterEnergyEnabled)>,
         mut events: EventWriter<EmitterChangedEvent>,
         suppliers: Query<(&GridCoords, &GridImprint, &EmitterEnergy)>,
     ) {
@@ -35,10 +56,10 @@ impl EmitterEnergy {
             emissions_details: vec![emitter.0.clone()],
         });
     }
-    fn on_coords_replace(
-        trigger: Trigger<OnReplace, GridCoords>,
+    fn on_disable_or_replace(
+        trigger: Trigger<OnReplace, (GridCoords, GridImprint, EmitterEnergyEnabled)>,
         mut events: EventWriter<EmitterChangedEvent>,
-        suppliers: Query<(&GridCoords, &GridImprint, &EmitterEnergy)>,
+        suppliers: Query<(&GridCoords, &GridImprint, &EmitterEnergy), With<EmitterEnergyEnabled>>,
     ) {
         let entity = trigger.target();
         let Ok((grid_coords, grid_imprint, emitter)) = suppliers.get(entity) else { return; };

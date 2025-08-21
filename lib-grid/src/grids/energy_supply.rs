@@ -234,9 +234,9 @@ impl NeedsPower {
     fn set(&mut self, commands: &mut Commands, entity: Entity, has_power: bool) {
         if self.has_power != has_power {
             if has_power {
-                commands.entity(entity).insert(HasPower).remove::<NoPower>();
+                commands.entity(entity).remove::<NoPower>().insert(HasPower);
             } else {
-                commands.entity(entity).insert(NoPower).remove::<HasPower>();
+                commands.entity(entity).remove::<HasPower>().insert(NoPower);
             }
         }
         self.has_power = has_power;

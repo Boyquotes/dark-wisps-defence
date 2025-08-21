@@ -171,7 +171,7 @@ fn on_building_info_panel_enabled_for_towers_trigger(
     trigger: Trigger<BuildingInfoPanelEnabledTrigger>,
     mut commands: Commands,
     mut tower_subpanel_root: Query<&mut Node, With<BuildingInfoPanelTowerRoot>>,
-    towers: Query<&PotentialUpgrades, With<MarkerTower>>,
+    towers: Query<&PotentialUpgrades, With<Tower>>,
     upgrades_containers: Query<Entity, With<BuildingInfoPanelTowerUpgradesContainer>>,
 ){
     let focused_entity = trigger.target();

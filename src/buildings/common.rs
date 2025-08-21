@@ -1,9 +1,5 @@
 use crate::prelude::*;
 
-#[derive(Component, Default)]
-pub struct MarkerTower;
-
-
 // Building sub-parts markers
 #[derive(Component)]
 pub struct MarkerTowerRotationalTop(pub Entity);

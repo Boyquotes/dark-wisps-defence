@@ -118,7 +118,7 @@ fn onclick_building_spawn_system(
 fn targeting_system(
     obstacle_grid: Res<ObstacleGrid>,
     wisps_grid: Res<WispsGrid>,
-    mut towers: Query<(&GridCoords, &GridImprint, &AttackRange, &mut TowerWispTarget), (With<MarkerTower>, With<HasPower>, Without<DisabledByPlayer>)>,
+    mut towers: Query<(&GridCoords, &GridImprint, &AttackRange, &mut TowerWispTarget), (With<Tower>, With<HasPower>, Without<DisabledByPlayer>)>,
     wisps: Query<&GridCoords, With<Wisp>>,
 ) {
     for (coords, grid_imprint, range, mut target) in towers.iter_mut() {
@@ -176,7 +176,7 @@ fn damage_control_system(
 
 fn rotate_tower_top_system(
     mut tower_rotational_top: Query<(&MarkerTowerRotationalTop, &mut Transform)>,
-    towers: Query<&TowerTopRotation, With<MarkerTower>>,
+    towers: Query<&TowerTopRotation, With<Tower>>,
 ) {
     for (tower_rotational_top, mut tower_top_transform) in tower_rotational_top.iter_mut() {
         let parent_building = tower_rotational_top.0;

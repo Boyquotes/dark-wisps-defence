@@ -23,6 +23,8 @@ const outlineRatio: f32 = outlineThickness / blockSize; // Outline thickness rel
 // Use a period that divides 1.0 for perfect per-cell symmetry (e.g., 0.25, 0.5, 1.0)
 const DASH_PERIOD_CELLS: f32 = 0.5;
 const DASH_DUTY: f32 = 0.5;   // fraction of period that's visible
+// Fixed 3-gap pattern per cell edge; each gap half-width in [0..1] of the cell edge
+const GAP_HALF: f32 = 0.055;
 
 const BASE_COLOR: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0); // Transparent
 const OUTLINE_COLOR: vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 0.2); // White, dim
@@ -114,16 +116,14 @@ fn analyse_edge_boundaries(uv: vec2<f32>, blockPosition: vec2<f32>) -> EdgeInfo 
     return EdgeInfo(false, false, false);
 }
 
-fn dashed_mask_oriented(uv: vec2<f32>, blockPosition: vec2<f32>, vertical: bool) -> bool {
-    // Uniform segmentation with corner alignment using shared phase base across orientations
-    let grid_size = vec2<f32>(f32(uniforms.grid_width), f32(uniforms.grid_height));
-    let grid_pos_f = uv * grid_size; // continuous grid-space coords
-    let cell = floor(grid_pos_f);
-    let phase_base = cell.x + cell.y; // synchronize vertical/horizontal at corners
+fn dashed_mask_oriented(_uv: vec2<f32>, blockPosition: vec2<f32>, vertical: bool) -> bool {
+    // Static per-cell pattern: 3 evenly spaced gaps at 1/4, 1/2, 3/4 along the edge.
+    // Endpoints (0 and 1) are always ON for clean joins across cells and at corners.
     let along = select(blockPosition.x, blockPosition.y, vertical);
-    let phase = phase_base + along; // measured in cells
-    let t = fract(phase / DASH_PERIOD_CELLS);
-    return t < DASH_DUTY;
+    let gap1 = abs(along - 0.25) < GAP_HALF;
+    let gap2 = abs(along - 0.50) < GAP_HALF;
+    let gap3 = abs(along - 0.75) < GAP_HALF;
+    return !(gap1 || gap2 || gap3);
 }
 
 @fragment
@@ -193,7 +193,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
         var draw_selected_any  = ((draw_selected_v && dash_v) || (draw_selected_h && dash_h)) && !draw_preview_any;
         var draw_signature_any = ((draw_signature_v && dash_v) || (draw_signature_h && dash_h)) && !(draw_preview_any || draw_selected_any);
 
-        // Corner fix: if we are in both bands but only diagonal neighbor is outside, draw a single pixel
+        // Corner fix: always allow dash at corners; if only diagonal neighbor is outside, draw a single pixel
         if (in_vertical_band && in_horizontal_band && !(draw_preview_any || draw_selected_any || draw_signature_any)) {
             let is_right_band = blockPosition.x >= (1.0 - outlineRatio);
             let is_top_band = blockPosition.y >= (1.0 - outlineRatio);
@@ -203,7 +203,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let draw_preview_d   = (cell.preview   != 0u) && (neighbor_d.preview   == 0u);
             let draw_selected_d  = (cell.selected  != 0u) && (neighbor_d.selected  == 0u);
             let draw_signature_d = (cell.signature != 0u) && (neighbor_d.signature == 0u);
-            let dash_any_corner = dash_v || dash_h; // reuse either orientation's dash
+            let dash_any_corner = true; // force fill at corner junctions for symmetry
             if (dash_any_corner) {
                 if (draw_preview_d) {
                     draw_preview_any = true;

@@ -4,8 +4,7 @@
 // - TowerRangeCell channels:
 //   signature: u32    // XOR of tower entity indices covering this cell
 //   cover_count: u32  // number of towers covering this cell
-//   selected: u32     // 1 if covered by currently highlighted tower(s)
-//   preview: u32      // 1 if marked by placement preview flood
+//   highlight: u32    // 1 if highlighted (selected or preview), else 0
 //
 // Edge drawing policy:
 // - Highlight edges: draw when current cell is highlighted and neighbor is not.
@@ -22,8 +21,7 @@
 struct TowerRangeCell {
     signature: u32,
     cover_count: u32,
-    selected: u32,
-    preview: u32,
+    highlight: u32,
 }
 
 struct UniformData {
@@ -54,7 +52,7 @@ fn get_cell_data(uv: vec2<f32>) -> TowerRangeCell {
 
     // Additional safety check: ensure grid coordinates are within bounds
     if (grid_pos.x >= uniforms.grid_width || grid_pos.y >= uniforms.grid_height || index >= arrayLength(&cells)) {
-        return TowerRangeCell(0u, 0u, 0u, 0u); // Return empty cell if out of bounds
+        return TowerRangeCell(0u, 0u, 0u); // Return empty cell if out of bounds
     }
 
     return cells[index];
@@ -86,12 +84,12 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let cell = get_cell_data(uv);
 
     // Early out: empty cells contribute no edges (edges are drawn from the inside cell)
-    if (cell.cover_count == 0u && cell.preview == 0u) {
+    if (cell.cover_count == 0u && cell.highlight == 0u) {
         return BASE_COLOR;
     }
 
     // Reuse highlight flag
-    let curr_is_highlight = (cell.preview != 0u) || (cell.selected != 0u);
+    let curr_is_highlight = (cell.highlight != 0u);
 
     // Initialize output color as transparent; only outlines are drawn
     var color = BASE_COLOR;
@@ -113,7 +111,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let neighbor_uv_v = uv + vec2<f32>(select(-stepSize.x, stepSize.x, is_right_band), 0.0);
             let neighbor_v = get_cell_data(neighbor_uv_v);
             let curr_highlight_v = curr_is_highlight;
-            let neigh_highlight_v = (neighbor_v.preview != 0u) || (neighbor_v.selected != 0u);
+            let neigh_highlight_v = (neighbor_v.highlight != 0u);
             draw_highlight_v = curr_highlight_v && !neigh_highlight_v;
             // Draw signature edge when signatures differ. For outer edges (neighbor==0), this stays single-sided
             // because we require current cell to be inside (cell.signature != 0u). For inter-range edges (both non-zero),
@@ -141,7 +139,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let neighbor_uv_h = uv + vec2<f32>(0.0, select(-stepSize.y, stepSize.y, is_top_band));
             let neighbor_h = get_cell_data(neighbor_uv_h);
             let curr_highlight_h = curr_is_highlight;
-            let neigh_highlight_h = (neighbor_h.preview != 0u) || (neighbor_h.selected != 0u);
+            let neigh_highlight_h = (neighbor_h.highlight != 0u);
             draw_highlight_h  = curr_highlight_h && !neigh_highlight_h;
             // Same logic for horizontal edges
             draw_signature_h = (cell.signature != neighbor_h.signature)
@@ -167,7 +165,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
                                                select(-stepSize.y, stepSize.y, is_top_band));
             let neighbor_d = get_cell_data(neighbor_uv_d);
             let curr_highlight_d = curr_is_highlight;
-            let neigh_highlight_d = (neighbor_d.preview != 0u) || (neighbor_d.selected != 0u);
+            let neigh_highlight_d = (neighbor_d.highlight != 0u);
             let draw_highlight_d = curr_highlight_d && !neigh_highlight_d;
             let draw_signature_d = (cell.signature != neighbor_d.signature)
                                    && (cell.cover_count > 0u)

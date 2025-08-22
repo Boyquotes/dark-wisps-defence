@@ -214,7 +214,7 @@ fn refresh_display_system(
                     .copied()
                     .filter(|coords| coords.is_in_bounds(tower_ranges_grid.bounds()))
                     .collect::<Vec<_>>();
-                overlay_creator.flood_preview_to_overlay(&covered_coords, *range)
+                overlay_creator.flood_preview_to_overlay(covered_coords, *range)
             } else {
                 overlay_creator.generate_buffer_data(&HighlightMode::All)
             }
@@ -275,18 +275,15 @@ struct TowerRangeCell {
     signature: u32,
     /// Number of towers covering this cell
     cover_count: u32,
-    /// 1 if the cell is covered by the selected tower(s), otherwise 0
-    selected: u32,
-    /// 1 if the cell is covered by the placement preview, otherwise 0
-    preview: u32,
+    /// 1 if the cell is highlighted (either selected range or preview), otherwise 0
+    highlight: u32,
 }
 impl TowerRangeCell {
     fn empty() -> Self {
         Self {
             signature: 0,
             cover_count: 0,
-            selected: 0,
-            preview: 0,
+            highlight: 0,
         }
     }
 }
@@ -297,6 +294,9 @@ enum HighlightMode {
     Selected(Vec<Entity>),
 }
 
+/// Builds the tower range overlay buffer for the shader.
+/// Reuses a caller-provided `Vec<TowerRangeCell>` to avoid allocations and can
+/// optionally apply a preview flood to set the `highlight` bit.
 struct OverlayBufferCreator<'a> {
     grid: &'a TowersRangeGrid,
     local_buffer_data: Option<&'a mut Vec<TowerRangeCell>>,
@@ -328,20 +328,21 @@ impl<'a> OverlayBufferCreator<'a> {
             signature ^= entity.index();
         }
         let cover_count = set.len() as u32;
-        let selected = match highlight_mode {
+        let highlight = match highlight_mode {
             HighlightMode::All => 0u32,
             HighlightMode::Selected(selected_entities) => {
                 if selected_entities.iter().any(|e| set.contains(e)) { 1 } else { 0 }
             }
         };
-        TowerRangeCell { signature, cover_count, selected, preview: 0 }
+        TowerRangeCell { signature, cover_count, highlight }
     }
 
     /// Distance-limited BFS flood from all provided start cells (building footprint).
-    /// Only sets the `preview` bit; leaves `signature` and `selected` intact.
+    /// Accepts owned `GridCoords` so callers can pass a `Vec<GridCoords>` directly.
+    /// Only sets the `highlight` bit; leaves `signature` intact.
     fn flood_preview_to_overlay(
         &mut self,
-        start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
+        start_coords: impl IntoIterator<Item = GridCoords>,
         range: usize,
     ) {
         use std::collections::VecDeque;
@@ -357,13 +358,13 @@ impl<'a> OverlayBufferCreator<'a> {
 
             // Start flood from all cells to ensure even distance from buildings bigger than one cell
             start_coords.into_iter().for_each(|coords| {
-                let index = self.grid.index(*coords);
-                // Do not alter signature/selected; set preview flag
+                let index = self.grid.index(coords);
+                // Do not alter signature; set highlight flag
                 let mut cell = buffer_data[index];
-                cell.preview = 1;
+                cell.highlight = 1;
                 buffer_data[index] = cell;
-                queue.push_back((0, *coords));
-                visited_grid.set_visited(*coords);
+                queue.push_back((0, coords));
+                visited_grid.set_visited(coords);
             });
 
             while let Some((distance, coords)) = queue.pop_front() {
@@ -376,7 +377,7 @@ impl<'a> OverlayBufferCreator<'a> {
 
                     let buffer_index = self.grid.index(new_coords);
                     let mut cell = buffer_data[buffer_index];
-                    cell.preview = 1;
+                    cell.highlight = 1;
                     buffer_data[buffer_index] = cell;
 
                     let new_distance = distance + 1;

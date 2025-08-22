@@ -79,16 +79,16 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
         let in_horizontal_band = (blockPosition.y <= outlineRatio) || (blockPosition.y >= (1.0 - outlineRatio));
 
         // Vertical orientation: sample left/right neighbor
-        var draw_preview_v = false;
-        var draw_selected_v = false;
+        var draw_highlight_v = false;
         var draw_signature_v = false;
         var dash_v = false;
         if (in_vertical_band) {
             let is_right_band = blockPosition.x >= (1.0 - outlineRatio);
             let neighbor_uv_v = uv + vec2<f32>(select(-stepSize.x, stepSize.x, is_right_band), 0.0);
             let neighbor_v = get_cell_data(neighbor_uv_v);
-            draw_preview_v   = (cell.preview   != neighbor_v.preview)   && (cell.preview   != 0u) && (neighbor_v.preview   == 0u);
-            draw_selected_v  = (cell.selected  != neighbor_v.selected)  && (cell.selected  != 0u) && (neighbor_v.selected  == 0u);
+            let curr_highlight_v = (cell.preview != 0u) || (cell.selected != 0u);
+            let neigh_highlight_v = (neighbor_v.preview != 0u) || (neighbor_v.selected != 0u);
+            draw_highlight_v = curr_highlight_v && !neigh_highlight_v;
             // Draw signature edge when signatures differ. For outer edges (neighbor==0), this stays single-sided
             // because we require current cell to be inside (cell.signature != 0u). For inter-range edges (both non-zero),
             // each side draws its own half, which is acceptable and desired to show all ranges.
@@ -107,16 +107,16 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
         }
 
         // Horizontal orientation: sample below/above neighbor
-        var draw_preview_h = false;
-        var draw_selected_h = false;
+        var draw_highlight_h = false;
         var draw_signature_h = false;
         var dash_h = false;
         if (in_horizontal_band) {
             let is_top_band = blockPosition.y >= (1.0 - outlineRatio);
             let neighbor_uv_h = uv + vec2<f32>(0.0, select(-stepSize.y, stepSize.y, is_top_band));
             let neighbor_h = get_cell_data(neighbor_uv_h);
-            draw_preview_h   = (cell.preview   != neighbor_h.preview)   && (cell.preview   != 0u) && (neighbor_h.preview   == 0u);
-            draw_selected_h  = (cell.selected  != neighbor_h.selected)  && (cell.selected  != 0u) && (neighbor_h.selected  == 0u);
+            let curr_highlight_h = (cell.preview != 0u) || (cell.selected != 0u);
+            let neigh_highlight_h = (neighbor_h.preview != 0u) || (neighbor_h.selected != 0u);
+            draw_highlight_h  = curr_highlight_h && !neigh_highlight_h;
             // Same logic for horizontal edges
             draw_signature_h = (cell.signature != neighbor_h.signature)
                                && (cell.cover_count > 0u)
@@ -128,20 +128,20 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             dash_h = dashed_mask_oriented(uv, blockPosition, false);
         }
 
-        // Priority: preview > selected > signature. Combine vertical/horizontal (corners) with OR.
-        var draw_preview_any   = (draw_preview_v && dash_v) || (draw_preview_h && dash_h);
-        var draw_selected_any  = ((draw_selected_v && dash_v) || (draw_selected_h && dash_h)) && !draw_preview_any;
-        var draw_signature_any = ((draw_signature_v && dash_v) || (draw_signature_h && dash_h)) && !(draw_preview_any || draw_selected_any);
+        // Priority: highlight > signature. Combine vertical/horizontal (corners) with OR.
+        var draw_highlight_any = (draw_highlight_v && dash_v) || (draw_highlight_h && dash_h);
+        var draw_signature_any = ((draw_signature_v && dash_v) || (draw_signature_h && dash_h)) && !draw_highlight_any;
 
         // Corner fix: always allow dash at corners; if only diagonal neighbor is outside, draw a single pixel
-        if (in_vertical_band && in_horizontal_band && !(draw_preview_any || draw_selected_any || draw_signature_any)) {
+        if (in_vertical_band && in_horizontal_band && !(draw_highlight_any || draw_signature_any)) {
             let is_right_band = blockPosition.x >= (1.0 - outlineRatio);
             let is_top_band = blockPosition.y >= (1.0 - outlineRatio);
             let neighbor_uv_d = uv + vec2<f32>(select(-stepSize.x, stepSize.x, is_right_band),
                                                select(-stepSize.y, stepSize.y, is_top_band));
             let neighbor_d = get_cell_data(neighbor_uv_d);
-            let draw_preview_d   = (cell.preview   != 0u) && (neighbor_d.preview   == 0u);
-            let draw_selected_d  = (cell.selected  != 0u) && (neighbor_d.selected  == 0u);
+            let curr_highlight_d = (cell.preview != 0u) || (cell.selected != 0u);
+            let neigh_highlight_d = (neighbor_d.preview != 0u) || (neighbor_d.selected != 0u);
+            let draw_highlight_d = curr_highlight_d && !neigh_highlight_d;
             let draw_signature_d = (cell.signature != neighbor_d.signature)
                                    && (cell.cover_count > 0u)
                                    && (
@@ -151,21 +151,20 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
                                    );
             let dash_any_corner = true; // force fill at corner junctions for symmetry
             if (dash_any_corner) {
-                if (draw_preview_d) {
-                    draw_preview_any = true;
-                } else if (draw_selected_d) {
-                    draw_selected_any = true;
+                if (draw_highlight_d) {
+                    draw_highlight_any = true;
                 } else if (draw_signature_d) {
                     draw_signature_any = true;
                 }
             }
         }
 
-        if (draw_preview_any || draw_selected_any || draw_signature_any) {
-            color = OUTLINE_COLOR;
-            if (draw_preview_any || draw_selected_any) {
-                color = SELECTED_OUTLINE_COLOR; // preview uses selected color
+        if (draw_highlight_any || draw_signature_any) {
+            var outline = OUTLINE_COLOR;
+            if (draw_highlight_any) {
+                outline = SELECTED_OUTLINE_COLOR;
             }
+            color = outline;
         }
     }
 

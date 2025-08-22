@@ -20,19 +20,12 @@ const blockSize: f32 = 16.0; // Size of each block in pixels
 const outlineThickness: f32 = 2.0; // Size of the outline in pixels
 const outlineRatio: f32 = outlineThickness / blockSize; // Outline thickness relative to cell size
 
-// Dash (segmentation) parameters, measured in CELLS along the edge direction.
-// Use a period that divides 1.0 for perfect per-cell symmetry (e.g., 0.25, 0.5, 1.0)
-const DASH_PERIOD_CELLS: f32 = 0.5;
-const DASH_DUTY: f32 = 0.5;   // fraction of period that's visible
-// Fixed 3-gap pattern per cell edge; each gap half-width in [0..1] of the cell edge
+// Dash segmentation: fixed 3-gap pattern per cell edge; each gap half-width in [0..1] of the cell edge
 const GAP_HALF: f32 = 0.055;
 
 const BASE_COLOR: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0); // Transparent
-const OUTLINE_COLOR: vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 0.2); // White, dim
-const SELECTED_FILL_COLOR: vec4<f32> = vec4<f32>(0.0, 0.9, 1.0, 12.0/255.0); // Cyan fill
-const PREVIEW_FILL_COLOR: vec4<f32> = vec4<f32>(0.2, 1.0, 0.2, 15.0/255.0);  // Green fill
+const OUTLINE_COLOR: vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 0.03); // White, dim
 const SELECTED_OUTLINE_COLOR: vec4<f32> = vec4<f32>(0.0, 1.0, 1.0, 0.9); // Cyan bright outline
-const PREVIEW_OUTLINE_COLOR: vec4<f32> = vec4<f32>(0.2, 1.0, 0.2, 0.9);  // Green bright outline
 
 fn get_cell_data(uv: vec2<f32>) -> TowerRangeCell {
     // Clamp UV coordinates to valid range to prevent bleeding at edges
@@ -48,74 +41,7 @@ fn get_cell_data(uv: vec2<f32>) -> TowerRangeCell {
     return cells[index];
 }
 
-struct EdgeInfo {
-    signature_boundary: bool,
-    selected_boundary: bool,
-    preview_boundary: bool,
-}
-
-fn edge_info_between(a: TowerRangeCell, b: TowerRangeCell) -> EdgeInfo {
-    return EdgeInfo(
-        a.signature != b.signature,
-        a.selected != b.selected,
-        a.preview != b.preview,
-    );
-}
-
-fn check_neighbor(curr: TowerRangeCell, neighborUV: vec2<f32>) -> EdgeInfo {
-    if (neighborUV.x >= 0.0 && neighborUV.x < 1.0 && neighborUV.y >= 0.0 && neighborUV.y < 1.0) {
-        return edge_info_between(curr, get_cell_data(neighborUV));
-    }
-    return EdgeInfo(false, false, false);
-}
-
-fn analyse_edge_boundaries(uv: vec2<f32>, blockPosition: vec2<f32>) -> EdgeInfo {
-    let texDim = vec2<u32>(uniforms.grid_width, uniforms.grid_height);
-    let stepSize = vec2<f32>(1.0 / f32(texDim.x), 1.0 / f32(texDim.y));
-    let current = get_cell_data(uv);
-
-    if (blockPosition.x <= outlineRatio) {
-        // Check left neighbor
-        let edge_details = check_neighbor(current, uv + vec2<f32>(-stepSize.x, 0.0));
-        if (edge_details.signature_boundary || edge_details.selected_boundary || edge_details.preview_boundary) { return edge_details; }
-    } else if (blockPosition.x >= (1.0 - outlineRatio)) {
-        // Check right neighbor
-        let edge_details = check_neighbor(current, uv + vec2<f32>(stepSize.x, 0.0));
-        if (edge_details.signature_boundary || edge_details.selected_boundary || edge_details.preview_boundary) { return edge_details; }
-    }
-
-    if (blockPosition.y <= outlineRatio) {
-        // Check bottom neighbor
-        let edge_details = check_neighbor(current, uv + vec2<f32>(0.0, -stepSize.y));
-        if (edge_details.signature_boundary || edge_details.selected_boundary || edge_details.preview_boundary) { return edge_details; }
-    } else if (blockPosition.y >= (1.0 - outlineRatio)) {
-        // Check top neighbor
-        let edge_details = check_neighbor(current, uv + vec2<f32>(0.0, stepSize.y));
-        if (edge_details.signature_boundary || edge_details.selected_boundary || edge_details.preview_boundary) { return edge_details; }
-    }
-
-    // Corner pixels: if both x and y are within the outline band, also check diagonal neighbors.
-    // This fills inner/outer corners where axis-only checks miss a pixel.
-    if (blockPosition.x <= outlineRatio && blockPosition.y <= outlineRatio) {
-        // Bottom-left corner -> sample bottom-left diagonal
-        let edge_details = check_neighbor(current, uv + vec2<f32>(-stepSize.x, -stepSize.y));
-        if (edge_details.signature_boundary || edge_details.selected_boundary || edge_details.preview_boundary) { return edge_details; }
-    } else if (blockPosition.x <= outlineRatio && blockPosition.y >= (1.0 - outlineRatio)) {
-        // Top-left corner -> sample top-left diagonal
-        let edge_details = check_neighbor(current, uv + vec2<f32>(-stepSize.x, stepSize.y));
-        if (edge_details.signature_boundary || edge_details.selected_boundary || edge_details.preview_boundary) { return edge_details; }
-    } else if (blockPosition.x >= (1.0 - outlineRatio) && blockPosition.y <= outlineRatio) {
-        // Bottom-right corner -> sample bottom-right diagonal
-        let edge_details = check_neighbor(current, uv + vec2<f32>(stepSize.x, -stepSize.y));
-        if (edge_details.signature_boundary || edge_details.selected_boundary || edge_details.preview_boundary) { return edge_details; }
-    } else if (blockPosition.x >= (1.0 - outlineRatio) && blockPosition.y >= (1.0 - outlineRatio)) {
-        // Top-right corner -> sample top-right diagonal
-        let edge_details = check_neighbor(current, uv + vec2<f32>(stepSize.x, stepSize.y));
-        if (edge_details.signature_boundary || edge_details.selected_boundary || edge_details.preview_boundary) { return edge_details; }
-    }
-
-    return EdgeInfo(false, false, false);
-}
+// Removed unused EdgeInfo and helper functions; fragment() performs direct neighbor checks.
 
 fn dashed_mask_oriented(_uv: vec2<f32>, blockPosition: vec2<f32>, vertical: bool) -> bool {
     // Static per-cell pattern: 3 evenly spaced gaps at 1/4, 1/2, 3/4 along the edge.
@@ -141,15 +67,8 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     // Get cell data from buffer
     let cell = get_cell_data(uv);
 
-    // Fills
+    // Initialize output color as transparent; only outlines are drawn
     var color = BASE_COLOR;
-    if (cell.selected != 0u) {
-        color = SELECTED_FILL_COLOR;
-    }
-    if (cell.preview != 0u) {
-        // Preview overrides selected tint
-        color = PREVIEW_FILL_COLOR;
-    }
 
     // Outlines on boundaries (segmented) — draw ONLY on the inside (range) side
     if (atEdge) {
@@ -243,13 +162,10 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
         }
 
         if (draw_preview_any || draw_selected_any || draw_signature_any) {
-            var outline = OUTLINE_COLOR;
-            if (draw_preview_any) {
-                outline = PREVIEW_OUTLINE_COLOR;
-            } else if (draw_selected_any) {
-                outline = SELECTED_OUTLINE_COLOR;
+            color = OUTLINE_COLOR;
+            if (draw_preview_any || draw_selected_any) {
+                color = SELECTED_OUTLINE_COLOR; // preview uses selected color
             }
-            color = outline;
         }
     }
 

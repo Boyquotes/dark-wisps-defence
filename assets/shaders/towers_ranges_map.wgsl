@@ -20,8 +20,8 @@ const blockSize: f32 = 16.0; // Size of each block in pixels
 const outlineThickness: f32 = 2.0; // Size of the outline in pixels
 const outlineRatio: f32 = outlineThickness / blockSize; // Outline thickness relative to cell size
 
-// Dash segmentation: fixed 3-gap pattern per cell edge; each gap half-width in [0..1] of the cell edge
-const GAP_HALF: f32 = 0.055;
+// Dash segmentation: fixed 2-gap pattern per cell edge; each gap half-width in [0..1] of the cell edge
+const GAP_HALF: f32 = 0.070;
 
 const BASE_COLOR: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0); // Transparent
 const OUTLINE_COLOR: vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 0.03); // White, dim
@@ -44,13 +44,12 @@ fn get_cell_data(uv: vec2<f32>) -> TowerRangeCell {
 // Removed unused EdgeInfo and helper functions; fragment() performs direct neighbor checks.
 
 fn dashed_mask_oriented(_uv: vec2<f32>, blockPosition: vec2<f32>, vertical: bool) -> bool {
-    // Static per-cell pattern: 3 evenly spaced gaps at 1/4, 1/2, 3/4 along the edge.
+    // Static per-cell pattern: 2 evenly spaced gaps at 1/3 and 2/3 along the edge.
     // Endpoints (0 and 1) are always ON for clean joins across cells and at corners.
     let along = select(blockPosition.x, blockPosition.y, vertical);
-    let gap1 = abs(along - 0.25) < GAP_HALF;
-    let gap2 = abs(along - 0.50) < GAP_HALF;
-    let gap3 = abs(along - 0.75) < GAP_HALF;
-    return !(gap1 || gap2 || gap3);
+    let gap1 = abs(along - (1.0 / 3.0)) < GAP_HALF;
+    let gap2 = abs(along - (2.0 / 3.0)) < GAP_HALF;
+    return !(gap1 || gap2);
 }
 
 @fragment

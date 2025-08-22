@@ -2,6 +2,7 @@
 
 struct TowerRangeCell {
     signature: u32,
+    cover_count: u32,
     selected: u32,
     preview: u32,
 }
@@ -41,7 +42,7 @@ fn get_cell_data(uv: vec2<f32>) -> TowerRangeCell {
 
     // Additional safety check: ensure grid coordinates are within bounds
     if (grid_pos.x >= uniforms.grid_width || grid_pos.y >= uniforms.grid_height || index >= arrayLength(&cells)) {
-        return TowerRangeCell(0u, 0u, 0u); // Return empty cell if out of bounds
+        return TowerRangeCell(0u, 0u, 0u, 0u); // Return empty cell if out of bounds
     }
 
     return cells[index];
@@ -169,7 +170,20 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let neighbor_v = get_cell_data(neighbor_uv_v);
             draw_preview_v   = (cell.preview   != neighbor_v.preview)   && (cell.preview   != 0u) && (neighbor_v.preview   == 0u);
             draw_selected_v  = (cell.selected  != neighbor_v.selected)  && (cell.selected  != 0u) && (neighbor_v.selected  == 0u);
-            draw_signature_v = (cell.signature != neighbor_v.signature) && (cell.signature != 0u) && (neighbor_v.signature == 0u);
+            // Draw signature edge when signatures differ. For outer edges (neighbor==0), this stays single-sided
+            // because we require current cell to be inside (cell.signature != 0u). For inter-range edges (both non-zero),
+            // each side draws its own half, which is acceptable and desired to show all ranges.
+            // Signature edge policy:
+            // - If cover counts differ, draw from the higher-count side (single-sided in overlaps: 2 vs 1, etc.).
+            // - If counts are equal and == 1, allow both sides (two single ranges meeting -> acceptable double thickness).
+            // - If counts are equal and > 1, use deterministic tiebreaker to avoid double inside multi-overlaps.
+            draw_signature_v = (cell.signature != neighbor_v.signature)
+                               && (cell.cover_count > 0u)
+                               && (
+                                   (cell.cover_count > neighbor_v.cover_count)
+                                   || (cell.cover_count == neighbor_v.cover_count && cell.cover_count == 1u)
+                                   || (cell.cover_count == neighbor_v.cover_count && cell.cover_count > 1u && cell.signature > neighbor_v.signature)
+                               );
             dash_v = dashed_mask_oriented(uv, blockPosition, true);
         }
 
@@ -184,7 +198,14 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let neighbor_h = get_cell_data(neighbor_uv_h);
             draw_preview_h   = (cell.preview   != neighbor_h.preview)   && (cell.preview   != 0u) && (neighbor_h.preview   == 0u);
             draw_selected_h  = (cell.selected  != neighbor_h.selected)  && (cell.selected  != 0u) && (neighbor_h.selected  == 0u);
-            draw_signature_h = (cell.signature != neighbor_h.signature) && (cell.signature != 0u) && (neighbor_h.signature == 0u);
+            // Same logic for horizontal edges
+            draw_signature_h = (cell.signature != neighbor_h.signature)
+                               && (cell.cover_count > 0u)
+                               && (
+                                   (cell.cover_count > neighbor_h.cover_count)
+                                   || (cell.cover_count == neighbor_h.cover_count && cell.cover_count == 1u)
+                                   || (cell.cover_count == neighbor_h.cover_count && cell.cover_count > 1u && cell.signature > neighbor_h.signature)
+                               );
             dash_h = dashed_mask_oriented(uv, blockPosition, false);
         }
 
@@ -202,7 +223,13 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let neighbor_d = get_cell_data(neighbor_uv_d);
             let draw_preview_d   = (cell.preview   != 0u) && (neighbor_d.preview   == 0u);
             let draw_selected_d  = (cell.selected  != 0u) && (neighbor_d.selected  == 0u);
-            let draw_signature_d = (cell.signature != 0u) && (neighbor_d.signature == 0u);
+            let draw_signature_d = (cell.signature != neighbor_d.signature)
+                                   && (cell.cover_count > 0u)
+                                   && (
+                                       (cell.cover_count > neighbor_d.cover_count)
+                                       || (cell.cover_count == neighbor_d.cover_count && cell.cover_count == 1u)
+                                       || (cell.cover_count == neighbor_d.cover_count && cell.cover_count > 1u && cell.signature > neighbor_d.signature)
+                                   );
             let dash_any_corner = true; // force fill at corner junctions for symmetry
             if (dash_any_corner) {
                 if (draw_preview_d) {

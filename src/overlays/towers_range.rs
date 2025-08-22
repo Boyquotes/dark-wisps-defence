@@ -269,6 +269,8 @@ fn on_grid_placer_changed_system(
 struct TowerRangeCell {
     /// XOR signature of towers covering this cell
     signature: u32,
+    /// Number of towers covering this cell
+    cover_count: u32,
     /// 1 if the cell is covered by the selected tower(s), otherwise 0
     selected: u32,
     /// 1 if the cell is covered by the placement preview, otherwise 0
@@ -278,6 +280,7 @@ impl TowerRangeCell {
     fn empty() -> Self {
         Self {
             signature: 0,
+            cover_count: 0,
             selected: 0,
             preview: 0,
         }
@@ -317,13 +320,14 @@ impl<'a> OverlayBufferCreator<'a> {
         for &entity in set.iter() {
             signature ^= entity.index();
         }
+        let cover_count = set.len() as u32;
         let selected = match highlight_mode {
             HighlightMode::All => 0u32,
             HighlightMode::Selected(selected_entities) => {
                 if selected_entities.iter().any(|e| set.contains(e)) { 1 } else { 0 }
             }
         };
-        TowerRangeCell { signature, selected, preview: 0 }
+        TowerRangeCell { signature, cover_count, selected, preview: 0 }
     }
 
     /// Similar to energy overlay's preview flood, but only toggles preview bit

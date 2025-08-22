@@ -19,6 +19,11 @@ const blockSize: f32 = 16.0; // Size of each block in pixels
 const outlineThickness: f32 = 2.0; // Size of the outline in pixels
 const outlineRatio: f32 = outlineThickness / blockSize; // Outline thickness relative to cell size
 
+// Dash (segmentation) parameters, measured in CELLS along the edge direction.
+// Use a period that divides 1.0 for perfect per-cell symmetry (e.g., 0.25, 0.5, 1.0)
+const DASH_PERIOD_CELLS: f32 = 0.5;
+const DASH_DUTY: f32 = 0.5;   // fraction of period that's visible
+
 const BASE_COLOR: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0); // Transparent
 const OUTLINE_COLOR: vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 0.2); // White, dim
 const SELECTED_FILL_COLOR: vec4<f32> = vec4<f32>(0.0, 0.9, 1.0, 12.0/255.0); // Cyan fill
@@ -109,6 +114,18 @@ fn analyse_edge_boundaries(uv: vec2<f32>, blockPosition: vec2<f32>) -> EdgeInfo 
     return EdgeInfo(false, false, false);
 }
 
+fn dashed_mask_oriented(uv: vec2<f32>, blockPosition: vec2<f32>, vertical: bool) -> bool {
+    // Uniform segmentation with corner alignment using shared phase base across orientations
+    let grid_size = vec2<f32>(f32(uniforms.grid_width), f32(uniforms.grid_height));
+    let grid_pos_f = uv * grid_size; // continuous grid-space coords
+    let cell = floor(grid_pos_f);
+    let phase_base = cell.x + cell.y; // synchronize vertical/horizontal at corners
+    let along = select(blockPosition.x, blockPosition.y, vertical);
+    let phase = phase_base + along; // measured in cells
+    let t = fract(phase / DASH_PERIOD_CELLS);
+    return t < DASH_DUTY;
+}
+
 @fragment
 fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let uv = mesh.uv;
@@ -123,10 +140,8 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     // Get cell data from buffer
     let cell = get_cell_data(uv);
 
-    // Base color: transparent
-    var color = BASE_COLOR;
-
     // Fills
+    var color = BASE_COLOR;
     if (cell.selected != 0u) {
         color = SELECTED_FILL_COLOR;
     }
@@ -135,14 +150,76 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
         color = PREVIEW_FILL_COLOR;
     }
 
-    // Outlines on boundaries
+    // Outlines on boundaries (segmented) — draw ONLY on the inside (range) side
     if (atEdge) {
-        let edge_details = analyse_edge_boundaries(uv, blockPosition);
-        if (edge_details.signature_boundary || edge_details.selected_boundary || edge_details.preview_boundary) {
+        let texDim = vec2<u32>(uniforms.grid_width, uniforms.grid_height);
+        let stepSize = vec2<f32>(1.0 / f32(texDim.x), 1.0 / f32(texDim.y));
+
+        let in_vertical_band = (blockPosition.x <= outlineRatio) || (blockPosition.x >= (1.0 - outlineRatio));
+        let in_horizontal_band = (blockPosition.y <= outlineRatio) || (blockPosition.y >= (1.0 - outlineRatio));
+
+        // Vertical orientation: sample left/right neighbor
+        var draw_preview_v = false;
+        var draw_selected_v = false;
+        var draw_signature_v = false;
+        var dash_v = false;
+        if (in_vertical_band) {
+            let is_right_band = blockPosition.x >= (1.0 - outlineRatio);
+            let neighbor_uv_v = uv + vec2<f32>(select(-stepSize.x, stepSize.x, is_right_band), 0.0);
+            let neighbor_v = get_cell_data(neighbor_uv_v);
+            draw_preview_v   = (cell.preview   != neighbor_v.preview)   && (cell.preview   != 0u) && (neighbor_v.preview   == 0u);
+            draw_selected_v  = (cell.selected  != neighbor_v.selected)  && (cell.selected  != 0u) && (neighbor_v.selected  == 0u);
+            draw_signature_v = (cell.signature != neighbor_v.signature) && (cell.signature != 0u) && (neighbor_v.signature == 0u);
+            dash_v = dashed_mask_oriented(uv, blockPosition, true);
+        }
+
+        // Horizontal orientation: sample below/above neighbor
+        var draw_preview_h = false;
+        var draw_selected_h = false;
+        var draw_signature_h = false;
+        var dash_h = false;
+        if (in_horizontal_band) {
+            let is_top_band = blockPosition.y >= (1.0 - outlineRatio);
+            let neighbor_uv_h = uv + vec2<f32>(0.0, select(-stepSize.y, stepSize.y, is_top_band));
+            let neighbor_h = get_cell_data(neighbor_uv_h);
+            draw_preview_h   = (cell.preview   != neighbor_h.preview)   && (cell.preview   != 0u) && (neighbor_h.preview   == 0u);
+            draw_selected_h  = (cell.selected  != neighbor_h.selected)  && (cell.selected  != 0u) && (neighbor_h.selected  == 0u);
+            draw_signature_h = (cell.signature != neighbor_h.signature) && (cell.signature != 0u) && (neighbor_h.signature == 0u);
+            dash_h = dashed_mask_oriented(uv, blockPosition, false);
+        }
+
+        // Priority: preview > selected > signature. Combine vertical/horizontal (corners) with OR.
+        var draw_preview_any   = (draw_preview_v && dash_v) || (draw_preview_h && dash_h);
+        var draw_selected_any  = ((draw_selected_v && dash_v) || (draw_selected_h && dash_h)) && !draw_preview_any;
+        var draw_signature_any = ((draw_signature_v && dash_v) || (draw_signature_h && dash_h)) && !(draw_preview_any || draw_selected_any);
+
+        // Corner fix: if we are in both bands but only diagonal neighbor is outside, draw a single pixel
+        if (in_vertical_band && in_horizontal_band && !(draw_preview_any || draw_selected_any || draw_signature_any)) {
+            let is_right_band = blockPosition.x >= (1.0 - outlineRatio);
+            let is_top_band = blockPosition.y >= (1.0 - outlineRatio);
+            let neighbor_uv_d = uv + vec2<f32>(select(-stepSize.x, stepSize.x, is_right_band),
+                                               select(-stepSize.y, stepSize.y, is_top_band));
+            let neighbor_d = get_cell_data(neighbor_uv_d);
+            let draw_preview_d   = (cell.preview   != 0u) && (neighbor_d.preview   == 0u);
+            let draw_selected_d  = (cell.selected  != 0u) && (neighbor_d.selected  == 0u);
+            let draw_signature_d = (cell.signature != 0u) && (neighbor_d.signature == 0u);
+            let dash_any_corner = dash_v || dash_h; // reuse either orientation's dash
+            if (dash_any_corner) {
+                if (draw_preview_d) {
+                    draw_preview_any = true;
+                } else if (draw_selected_d) {
+                    draw_selected_any = true;
+                } else if (draw_signature_d) {
+                    draw_signature_any = true;
+                }
+            }
+        }
+
+        if (draw_preview_any || draw_selected_any || draw_signature_any) {
             var outline = OUTLINE_COLOR;
-            if (edge_details.preview_boundary) {
+            if (draw_preview_any) {
                 outline = PREVIEW_OUTLINE_COLOR;
-            } else if (edge_details.selected_boundary) {
+            } else if (draw_selected_any) {
                 outline = SELECTED_OUTLINE_COLOR;
             }
             color = outline;

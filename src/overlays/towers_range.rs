@@ -27,14 +27,14 @@ impl Plugin for TowersRangeOverlayPlugin {
             .add_systems(Startup, |mut commands: Commands| { commands.spawn(TowersRangeOverlay); })
             .add_systems(
                 OnEnter(TowersRangeOverlayState::Show),
-                |mut visiblitiy: Query<&mut Visibility, With<TowersRangeOverlay>>| {
-                    *visiblitiy.single_mut().unwrap() = Visibility::Inherited;
+                |mut visibility: Query<&mut Visibility, With<TowersRangeOverlay>>| {
+                    *visibility.single_mut().unwrap() = Visibility::Inherited;
                 },
             )
             .add_systems(
                 OnExit(TowersRangeOverlayState::Show),
-                |mut visiblitiy: Query<&mut Visibility, With<TowersRangeOverlay>>| {
-                    *visiblitiy.single_mut().unwrap() = Visibility::Hidden;
+                |mut visibility: Query<&mut Visibility, With<TowersRangeOverlay>>| {
+                    *visibility.single_mut().unwrap() = Visibility::Hidden;
                 },
             )
             .add_systems(
@@ -53,7 +53,7 @@ impl Plugin for TowersRangeOverlayPlugin {
             )
             .add_observer(TowersRangeOverlayConfig::on_building_ui_focused)
             .add_observer(TowersRangeOverlayConfig::on_building_ui_unfocused)
-            .add_observer(TowersRangeOverlay::on_add);
+            .add_observer(TowersRangeOverlay::on_add)
             ;
     }
 }
@@ -101,6 +101,10 @@ impl TowersRangeOverlayConfig {
     }
 }
 #[derive(Default, Clone, Debug, PartialEq)]
+/// Secondary mode determines what to show in addition to the base coverage overlay:
+/// - `None`: show all ranges without any emphasis
+/// - `Highlight { tower }`: emphasize the selected tower's range
+/// - `PlacingTower { .. }`: preview of the range flood from the planned building footprint
 pub enum TowersRangeOverlaySecondaryMode {
     #[default]
     None,
@@ -298,10 +302,13 @@ struct OverlayBufferCreator<'a> {
     local_buffer_data: Option<&'a mut Vec<TowerRangeCell>>,
 }
 impl<'a> OverlayBufferCreator<'a> {
+    /// Helper that produces the GPU buffer content for the shader.
+    /// Owns no memory; reuses a caller-provided `Vec<TowerRangeCell>` to avoid re-allocation.
     fn new(grid: &'a TowersRangeGrid, local_buffer_data: &'a mut Vec<TowerRangeCell>) -> Self {
         Self { grid, local_buffer_data: Some(local_buffer_data) }
     }
 
+    /// Rebuilds the entire buffer for the current grid and highlight mode in O(n) over cells.
     fn generate_buffer_data(&mut self, highlight_mode: &HighlightMode) {
         let buffer_data = self.local_buffer_data.take().unwrap(); // Avoid double mutable borrows
         buffer_data.clear();
@@ -330,7 +337,8 @@ impl<'a> OverlayBufferCreator<'a> {
         TowerRangeCell { signature, cover_count, selected, preview: 0 }
     }
 
-    /// Similar to energy overlay's preview flood, but only toggles preview bit
+    /// Distance-limited BFS flood from all provided start cells (building footprint).
+    /// Only sets the `preview` bit; leaves `signature` and `selected` intact.
     fn flood_preview_to_overlay(
         &mut self,
         start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
@@ -347,7 +355,7 @@ impl<'a> OverlayBufferCreator<'a> {
             visited_grid.resize_and_reset(bounds);
             let mut queue = VecDeque::new();
 
-            // Start Flood from all fields to ensure even distance from buildings bigger than one cell
+            // Start flood from all cells to ensure even distance from buildings bigger than one cell
             start_coords.into_iter().for_each(|coords| {
                 let index = self.grid.index(*coords);
                 // Do not alter signature/selected; set preview flag

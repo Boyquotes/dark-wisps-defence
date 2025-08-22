@@ -1,5 +1,24 @@
 #import bevy_sprite::mesh2d_vertex_output::VertexOutput
 
+// Tower Ranges Overlay Shader
+// - TowerRangeCell channels:
+//   signature: u32    // XOR of tower entity indices covering this cell
+//   cover_count: u32  // number of towers covering this cell
+//   selected: u32     // 1 if covered by currently highlighted tower(s)
+//   preview: u32      // 1 if marked by placement preview flood
+//
+// Edge drawing policy:
+// - Highlight edges: draw when current cell is highlighted and neighbor is not.
+// - Signature edges: draw when signatures differ and current cell has coverage (>0),
+//   with tie-breaking:
+//   * draw from the higher cover_count side
+//   * if equal and == 1, allow both sides (two single ranges meeting)
+//   * if equal and > 1, draw only from the side with greater signature (stable tiebreaker)
+//
+// Dash pattern:
+// - Two gaps per edge at 1/3 and 2/3. Endpoints remain on to keep corners clean.
+// - GAP_HALF controls the half-width of each gap.
+//
 struct TowerRangeCell {
     signature: u32,
     cover_count: u32,
@@ -43,7 +62,7 @@ fn get_cell_data(uv: vec2<f32>) -> TowerRangeCell {
 
 // Removed unused EdgeInfo and helper functions; fragment() performs direct neighbor checks.
 
-fn dashed_mask_oriented(_uv: vec2<f32>, blockPosition: vec2<f32>, vertical: bool) -> bool {
+fn dashed_mask_oriented(blockPosition: vec2<f32>, vertical: bool) -> bool {
     // Static per-cell pattern: 2 evenly spaced gaps at 1/3 and 2/3 along the edge.
     // Endpoints (0 and 1) are always ON for clean joins across cells and at corners.
     let along = select(blockPosition.x, blockPosition.y, vertical);
@@ -66,6 +85,14 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     // Get cell data from buffer
     let cell = get_cell_data(uv);
 
+    // Early out: empty cells contribute no edges (edges are drawn from the inside cell)
+    if (cell.cover_count == 0u && cell.preview == 0u) {
+        return BASE_COLOR;
+    }
+
+    // Reuse highlight flag
+    let curr_is_highlight = (cell.preview != 0u) || (cell.selected != 0u);
+
     // Initialize output color as transparent; only outlines are drawn
     var color = BASE_COLOR;
 
@@ -85,7 +112,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let is_right_band = blockPosition.x >= (1.0 - outlineRatio);
             let neighbor_uv_v = uv + vec2<f32>(select(-stepSize.x, stepSize.x, is_right_band), 0.0);
             let neighbor_v = get_cell_data(neighbor_uv_v);
-            let curr_highlight_v = (cell.preview != 0u) || (cell.selected != 0u);
+            let curr_highlight_v = curr_is_highlight;
             let neigh_highlight_v = (neighbor_v.preview != 0u) || (neighbor_v.selected != 0u);
             draw_highlight_v = curr_highlight_v && !neigh_highlight_v;
             // Draw signature edge when signatures differ. For outer edges (neighbor==0), this stays single-sided
@@ -102,7 +129,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
                                    || (cell.cover_count == neighbor_v.cover_count && cell.cover_count == 1u)
                                    || (cell.cover_count == neighbor_v.cover_count && cell.cover_count > 1u && cell.signature > neighbor_v.signature)
                                );
-            dash_v = dashed_mask_oriented(uv, blockPosition, true);
+            dash_v = dashed_mask_oriented(blockPosition, true);
         }
 
         // Horizontal orientation: sample below/above neighbor
@@ -113,7 +140,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             let is_top_band = blockPosition.y >= (1.0 - outlineRatio);
             let neighbor_uv_h = uv + vec2<f32>(0.0, select(-stepSize.y, stepSize.y, is_top_band));
             let neighbor_h = get_cell_data(neighbor_uv_h);
-            let curr_highlight_h = (cell.preview != 0u) || (cell.selected != 0u);
+            let curr_highlight_h = curr_is_highlight;
             let neigh_highlight_h = (neighbor_h.preview != 0u) || (neighbor_h.selected != 0u);
             draw_highlight_h  = curr_highlight_h && !neigh_highlight_h;
             // Same logic for horizontal edges
@@ -124,21 +151,22 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
                                    || (cell.cover_count == neighbor_h.cover_count && cell.cover_count == 1u)
                                    || (cell.cover_count == neighbor_h.cover_count && cell.cover_count > 1u && cell.signature > neighbor_h.signature)
                                );
-            dash_h = dashed_mask_oriented(uv, blockPosition, false);
+            dash_h = dashed_mask_oriented(blockPosition, false);
         }
 
         // Priority: highlight > signature. Combine vertical/horizontal (corners) with OR.
         var draw_highlight_any = (draw_highlight_v && dash_v) || (draw_highlight_h && dash_h);
         var draw_signature_any = ((draw_signature_v && dash_v) || (draw_signature_h && dash_h)) && !draw_highlight_any;
 
-        // Corner fix: always allow dash at corners; if only diagonal neighbor is outside, draw a single pixel
+        // Corner fix: force fill at corner junctions for symmetry; if only diagonal neighbor is inside,
+        // draw a single pixel so corners don't look hollow regardless of dash mask.
         if (in_vertical_band && in_horizontal_band && !(draw_highlight_any || draw_signature_any)) {
             let is_right_band = blockPosition.x >= (1.0 - outlineRatio);
             let is_top_band = blockPosition.y >= (1.0 - outlineRatio);
             let neighbor_uv_d = uv + vec2<f32>(select(-stepSize.x, stepSize.x, is_right_band),
                                                select(-stepSize.y, stepSize.y, is_top_band));
             let neighbor_d = get_cell_data(neighbor_uv_d);
-            let curr_highlight_d = (cell.preview != 0u) || (cell.selected != 0u);
+            let curr_highlight_d = curr_is_highlight;
             let neigh_highlight_d = (neighbor_d.preview != 0u) || (neighbor_d.selected != 0u);
             let draw_highlight_d = curr_highlight_d && !neigh_highlight_d;
             let draw_signature_d = (cell.signature != neighbor_d.signature)
@@ -148,13 +176,10 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
                                        || (cell.cover_count == neighbor_d.cover_count && cell.cover_count == 1u)
                                        || (cell.cover_count == neighbor_d.cover_count && cell.cover_count > 1u && cell.signature > neighbor_d.signature)
                                    );
-            let dash_any_corner = true; // force fill at corner junctions for symmetry
-            if (dash_any_corner) {
-                if (draw_highlight_d) {
-                    draw_highlight_any = true;
-                } else if (draw_signature_d) {
-                    draw_signature_any = true;
-                }
+            if (draw_highlight_d) {
+                draw_highlight_any = true;
+            } else if (draw_signature_d) {
+                draw_signature_any = true;
             }
         }
 

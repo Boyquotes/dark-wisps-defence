@@ -8,8 +8,8 @@ pub struct OverlaysPlugin;
 impl Plugin for OverlaysPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            energy_supply::EnergySupplyOverlayPlugin,
             towers_range::TowersRangeOverlayPlugin,
+            energy_supply::EnergySupplyOverlayPlugin,
             emissions::EmissionsPlugin,
         ));
     }

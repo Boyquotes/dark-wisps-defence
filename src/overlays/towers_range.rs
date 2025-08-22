@@ -46,8 +46,7 @@ impl Plugin for TowersRangeOverlayPlugin {
             .add_systems(
                 Update,
                 (
-                    TowersRangeOverlayConfig::on_config_change_system
-                        .run_if(resource_changed::<TowersRangeOverlayConfig>),
+                    TowersRangeOverlayConfig::on_config_change_system.run_if(resource_changed::<TowersRangeOverlayConfig>),
                     refresh_display_system.run_if(in_state(TowersRangeOverlayState::Show)),
                     on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 ),
@@ -55,6 +54,7 @@ impl Plugin for TowersRangeOverlayPlugin {
             .add_observer(TowersRangeOverlayConfig::on_building_ui_focused)
             .add_observer(TowersRangeOverlayConfig::on_building_ui_unfocused)
             .add_observer(TowersRangeOverlay::on_add);
+            ;
     }
 }
 

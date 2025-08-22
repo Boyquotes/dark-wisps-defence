@@ -13,7 +13,7 @@ impl Plugin for EmissionsPlugin {
         app
             .add_plugins(Material2dPlugin::<EmissionHeatmapMaterial>::default())
             .insert_resource(EmissionsOverlayMode::Energy(u32::MAX)) // u32::MAX to force redraw on first frame
-            .add_systems(Startup, create_emissions_overlay_startup_system)
+            .add_systems(PreStartup, create_emissions_overlay_startup_system)
             .add_systems(PreUpdate, update_emissions_overlay_system)
             .add_systems(Update, manage_emissions_overlay_mode_system);
     }

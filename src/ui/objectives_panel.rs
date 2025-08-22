@@ -7,7 +7,7 @@ impl Plugin for ObjectivesPanelPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_state::<ObjectivesPanelState>()
-            .add_systems(Startup, |mut commands: Commands| { commands.spawn(ObjectivesPanel); })
+            .add_systems(PreStartup, |mut commands: Commands| { commands.spawn(ObjectivesPanel); })
             .add_systems(Update, (
                 panel_transition_to_hidden_system.run_if(in_state(ObjectivesPanelState::TransitionToHidden)),
                 panel_transition_to_visible_system.run_if(in_state(ObjectivesPanelState::TransitionToVisible)),

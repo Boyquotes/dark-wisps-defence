@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+use crate::grids::towers_range::TowersRangeGrid;
 use crate::lib_prelude::*;
 use crate::grids::emissions::{EmissionsGrid, EmissionsType};
 use crate::grids::energy_supply::EnergySupplyGrid;
@@ -184,6 +185,54 @@ pub fn flood_power_coverage<'a>(
                 if energy_supply_grid[new_coords].has_supply() {
                     queue.push_back(new_coords);
                     energy_supply_grid[new_coords].set_power(true);
+                }
+            }
+        }
+    });
+}
+
+
+#[derive(Copy, Clone, Debug)]
+pub enum FloodTowerRangeMode {
+    Add,
+    Remove,
+}
+
+pub fn flood_tower_range<'a>(
+    tower_ranges_grid: &mut TowersRangeGrid,
+    start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
+    mode: FloodTowerRangeMode,
+    range: usize,
+    tower_entity: Entity,
+) {
+    VISITED_GRID.with_borrow_mut(|visited_grid| {
+        visited_grid.resize_and_reset(tower_ranges_grid.bounds());
+        let mut queue = VecDeque::new();
+        start_coords.into_iter().for_each(|coords| {
+            match mode {
+                FloodTowerRangeMode::Add => tower_ranges_grid.add_tower(*coords, tower_entity),
+                FloodTowerRangeMode::Remove => tower_ranges_grid.remove_tower(*coords, tower_entity),
+            }
+            queue.push_back((0, *coords));
+            visited_grid.set_visited(*coords);
+        });
+        while let Some((distance, coords)) = queue.pop_front() {
+            for (delta_x, delta_y) in CARDINAL_DIRECTIONS {
+                let new_coords = coords.shifted((delta_x, delta_y));
+                if !new_coords.is_in_bounds(tower_ranges_grid.bounds())
+                    || visited_grid.is_visited(new_coords)
+                {
+                    continue;
+                }
+
+                visited_grid.set_visited(new_coords);
+                match mode {
+                    FloodTowerRangeMode::Add => tower_ranges_grid.add_tower(new_coords, tower_entity),
+                    FloodTowerRangeMode::Remove => tower_ranges_grid.remove_tower(new_coords, tower_entity),
+                }
+                let new_distance = distance + 1;
+                if new_distance < range {
+                    queue.push_back((new_distance, new_coords));
                 }
             }
         }

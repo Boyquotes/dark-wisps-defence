@@ -47,7 +47,7 @@ impl BuilderTowerRocketLauncher {
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                MarkerTower,
+                Tower,
                 builder.grid_position,
                 grid_imprint,
                 TowerTopRotation { speed: 1.0, current_angle: 0. },

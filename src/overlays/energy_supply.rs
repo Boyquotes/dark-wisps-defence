@@ -25,7 +25,7 @@ impl Plugin for EnergySupplyOverlayPlugin {
             .add_plugins(Material2dPlugin::<EnergySupplyHeatmapMaterial>::default())
             .init_state::<EnergySupplyOverlayState>()
             .init_resource::<EnergySupplyOverlayConfig>()
-            .add_systems(Startup, |mut commands: Commands| { commands.spawn(EnergySupplyOverlay); })
+            .add_systems(PreStartup, |mut commands: Commands| { commands.spawn(EnergySupplyOverlay); })
             .add_systems(OnEnter(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Inherited; })
             .add_systems(OnExit(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Hidden; })
             .add_systems(OnExit(UiInteraction::PlaceGridObject), |mut config: ResMut<EnergySupplyOverlayConfig>| { config.secondary_mode = EnergySupplyOverlaySecondaryMode::None; })

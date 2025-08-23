@@ -47,7 +47,7 @@ impl BuilderTowerCannon {
                     custom_size: Some(grid_imprint.world_size()),
                     ..Default::default()
                 },
-                MarkerTower,
+                Tower,
                 builder.grid_position,
                 grid_imprint,
                 NeedsPower::default(),

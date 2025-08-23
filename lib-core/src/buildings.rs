@@ -60,6 +60,9 @@ pub struct MiningComplex;
 #[require(Building, BuildingType = BuildingType::ExplorationCenter)]
 pub struct ExplorationCenter;
 
+#[derive(Component, Default)]
+pub struct Tower;
+
 #[derive(Component)]
 #[require(Building, BuildingType = BuildingType::Tower(TowerType::Blaster), AttackRange, AttackSpeed, AttackDamage, TowerShootingTimer, TowerWispTarget)]
 pub struct TowerBlaster;

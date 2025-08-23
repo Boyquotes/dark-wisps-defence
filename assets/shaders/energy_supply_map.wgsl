@@ -6,13 +6,13 @@ struct EnergySupplyCell {
     highlight_level: u32,
 }
 
-struct UniformData {
+struct UniformGridData {
     grid_width: u32,
     grid_height: u32,
 }
 
 @group(2) @binding(0) var<storage, read> energy_cells: array<EnergySupplyCell>;
-@group(2) @binding(1) var<uniform> uniforms: UniformData;
+@group(2) @binding(1) var<uniform> uniforms: UniformGridData;
 
 // Rendering constants
 const blockSize: f32 = 16.; // Size of each block in pixels

@@ -99,19 +99,12 @@ impl EnergySupplyOverlaySecondaryMode {
     pub fn is_none(&self) -> bool { matches!(self, EnergySupplyOverlaySecondaryMode::None) }
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, ShaderType)]
-struct UniformData {
-    grid_width: u32,
-    grid_height: u32,
-}
-
-#[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
+#[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
 struct EnergySupplyHeatmapMaterial {
     #[storage(0, read_only)]
     pub energy_cells: Handle<ShaderStorageBuffer>,
     #[uniform(1)]
-    pub uniforms: UniformData,
+    pub grid_data: super::UniformGridData,
 }
 impl Material2d for EnergySupplyHeatmapMaterial {
     fn fragment_shader() -> ShaderRef {
@@ -137,13 +130,7 @@ impl EnergySupplyOverlay {
         let entity = trigger.target();
         commands.entity(entity).insert((
             Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
-            MeshMaterial2d(materials.add(EnergySupplyHeatmapMaterial {
-                energy_cells: Handle::default(),
-                uniforms: UniformData {
-                    grid_width: 0,
-                    grid_height: 0,
-                },
-            })),
+            MeshMaterial2d(materials.add(EnergySupplyHeatmapMaterial::default())),
             Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
                     .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
             Visibility::Hidden,
@@ -165,9 +152,9 @@ fn refresh_display_system(
     
     *last_secondary_mode = overlay_config.secondary_mode.clone();
     overlay_config.grid_version = energy_supply_grid.version;
-    let Ok(heatmap_material_handle) = energy_supply_overlay.single() else { return; };
+    let Ok(overlay_material_handle) = energy_supply_overlay.single() else { return; };
 
-    let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
+    let overlay_material = materials.get_mut(overlay_material_handle).unwrap();
     
     // Generate buffer data
     let mut overlay_creator = OverlayBufferCreator::new(&energy_supply_grid, &mut local_buffer_data);
@@ -202,20 +189,20 @@ fn refresh_display_system(
             }
         }
     };
-    let buffer_handle = &heatmap_material.energy_cells;
+    let buffer_handle = &overlay_material.energy_cells;
     if let Some(buffer) = buffers.get_mut(buffer_handle) {
         buffer.set_data(&*local_buffer_data);
     } else {
         // Create ShaderStorageBuffer
         let storage_buffer = ShaderStorageBuffer::from(local_buffer_data.as_slice());
         let buffer_handle = buffers.add(storage_buffer);
-        heatmap_material.energy_cells = buffer_handle;
+        overlay_material.energy_cells = buffer_handle;
     }
     
     // Update uniforms
     let bounds = energy_supply_grid.bounds();
-    heatmap_material.uniforms.grid_width = bounds.0 as u32; // width is first element
-    heatmap_material.uniforms.grid_height = bounds.1 as u32; // height is second element
+    overlay_material.grid_data.grid_width = bounds.0 as u32;
+    overlay_material.grid_data.grid_height = bounds.1 as u32;
 }
 
 fn on_grid_placer_changed_system(

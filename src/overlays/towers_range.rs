@@ -1,10 +1,8 @@
 use bevy::{
-    reflect::TypePath,
-    render::{
+    input::common_conditions::input_just_released, reflect::TypePath, render::{
         render_resource::{AsBindGroup, ShaderRef, ShaderType},
         storage::ShaderStorageBuffer,
-    },
-    sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d},
+    }, sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d}
 };
 use lib_grid::{
     grids::towers_range::TowersRangeGrid,
@@ -25,30 +23,16 @@ impl Plugin for TowersRangeOverlayPlugin {
             .init_state::<TowersRangeOverlayState>()
             .init_resource::<TowersRangeOverlayConfig>()
             .add_systems(Startup, |mut commands: Commands| { commands.spawn(TowersRangeOverlay); })
-            .add_systems(
-                OnEnter(TowersRangeOverlayState::Show),
-                |mut visibility: Query<&mut Visibility, With<TowersRangeOverlay>>| {
-                    *visibility.single_mut().unwrap() = Visibility::Inherited;
-                },
-            )
-            .add_systems(
-                OnExit(TowersRangeOverlayState::Show),
-                |mut visibility: Query<&mut Visibility, With<TowersRangeOverlay>>| {
-                    *visibility.single_mut().unwrap() = Visibility::Hidden;
-                },
-            )
-            .add_systems(
-                OnExit(UiInteraction::PlaceGridObject),
-                |mut config: ResMut<TowersRangeOverlayConfig>| {
-                    config.secondary_mode = TowersRangeOverlaySecondaryMode::None;
-                },
-            )
+            .add_systems(OnEnter(TowersRangeOverlayState::Show), |mut visibility: Query<&mut Visibility, With<TowersRangeOverlay>>| { *visibility.single_mut().unwrap() = Visibility::Inherited; },)
+            .add_systems(OnExit(TowersRangeOverlayState::Show),|mut visibility: Query<&mut Visibility, With<TowersRangeOverlay>>| { *visibility.single_mut().unwrap() = Visibility::Hidden; },)
+            .add_systems(OnExit(UiInteraction::PlaceGridObject),|mut config: ResMut<TowersRangeOverlayConfig>| { config.secondary_mode = TowersRangeOverlaySecondaryMode::None; },)
             .add_systems(
                 Update,
                 (
                     TowersRangeOverlayConfig::on_config_change_system.run_if(resource_changed::<TowersRangeOverlayConfig>),
                     refresh_display_system.run_if(in_state(TowersRangeOverlayState::Show)),
                     on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
+                    (|mut config: ResMut<TowersRangeOverlayConfig>| { config.is_overlay_globally_enabled ^= true; }).run_if(input_just_released(KeyCode::Digit8)),
                 ),
             )
             .add_observer(TowersRangeOverlayConfig::on_building_ui_focused)
@@ -66,6 +50,7 @@ pub enum TowersRangeOverlayState {
 }
 #[derive(Resource, Default)]
 pub struct TowersRangeOverlayConfig {
+    pub is_overlay_globally_enabled: bool,
     pub grid_version: GridVersion, // Grid version for which we show the overlay
     pub secondary_mode: TowersRangeOverlaySecondaryMode,
 }
@@ -74,7 +59,7 @@ impl TowersRangeOverlayConfig {
         overlay_config: Res<TowersRangeOverlayConfig>,
         mut overlay_state: ResMut<NextState<TowersRangeOverlayState>>,
     ) {
-        if !overlay_config.secondary_mode.is_none() {
+        if overlay_config.is_overlay_globally_enabled || !overlay_config.secondary_mode.is_none() {
             overlay_state.set(TowersRangeOverlayState::Show);
         } else {
             overlay_state.set(TowersRangeOverlayState::Hide);
@@ -101,7 +86,7 @@ impl TowersRangeOverlayConfig {
 }
 #[derive(Default, Clone, Debug, PartialEq)]
 /// Secondary mode is temporary override 
-/// - `None`: show all ranges without any emphasis
+/// - `None`: Mode not active
 /// - `Highlight { tower }`: emphasize the selected tower's range
 /// - `PlacingTower { .. }`: preview of the range flood from the planned building footprint
 pub enum TowersRangeOverlaySecondaryMode {
@@ -120,19 +105,12 @@ impl TowersRangeOverlaySecondaryMode {
     }
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, ShaderType)]
-struct UniformData {
-    grid_width: u32,
-    grid_height: u32,
-}
-
-#[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
+#[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
 struct TowersRangeMaterial {
     #[storage(0, read_only)]
     pub cells: Handle<ShaderStorageBuffer>,
     #[uniform(1)]
-    pub uniforms: UniformData,
+    pub grid_data: super::UniformGridData,
 }
 impl Material2d for TowersRangeMaterial {
     fn fragment_shader() -> ShaderRef {
@@ -158,13 +136,7 @@ impl TowersRangeOverlay {
         let entity = trigger.target();
         commands.entity(entity).insert((
             Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
-            MeshMaterial2d(materials.add(TowersRangeMaterial {
-                cells: Handle::default(),
-                uniforms: UniformData {
-                    grid_width: 0,
-                    grid_height: 0,
-                },
-            })),
+            MeshMaterial2d(materials.add(TowersRangeMaterial::default())),
             // Reuse the same overlay z-depth as energy supply for now
             Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
                 .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
@@ -178,26 +150,24 @@ fn refresh_display_system(
     mut materials: ResMut<Assets<TowersRangeMaterial>>,
     tower_ranges_grid: Res<TowersRangeGrid>,
     mut overlay_config: ResMut<TowersRangeOverlayConfig>,
-    overlay_query: Query<&MeshMaterial2d<TowersRangeMaterial>, With<TowersRangeOverlay>>,
+    towers_range_overlay: Query<&MeshMaterial2d<TowersRangeMaterial>, With<TowersRangeOverlay>>,
     mut last_secondary_mode: Local<TowersRangeOverlaySecondaryMode>,
     mut local_buffer_data: Local<Vec<TowerRangeCell>>, // To avoid re-allocations every frame
 ) {
-    if overlay_config.grid_version == tower_ranges_grid.version
-        && overlay_config.secondary_mode == *last_secondary_mode
-    {
+    if overlay_config.grid_version == tower_ranges_grid.version && overlay_config.secondary_mode == *last_secondary_mode {
         return;
     }
 
     *last_secondary_mode = overlay_config.secondary_mode.clone();
     overlay_config.grid_version = tower_ranges_grid.version;
-    let Ok(material_handle) = overlay_query.single() else { return; };
+    let Ok(overlay_material_handle) = towers_range_overlay.single() else { return; };
 
-    let material = materials.get_mut(material_handle).unwrap();
+    let overlay_material = materials.get_mut(overlay_material_handle).unwrap();
 
     // Generate buffer data
     let mut overlay_creator = OverlayBufferCreator::new(&tower_ranges_grid, &mut local_buffer_data);
     match &overlay_config.secondary_mode {
-        TowersRangeOverlaySecondaryMode::None => overlay_creator.generate_buffer_data(&HighlightMode::All),
+        TowersRangeOverlaySecondaryMode::None => overlay_creator.generate_buffer_data(&HighlightMode::None),
         TowersRangeOverlaySecondaryMode::Highlight { tower } => {
             overlay_creator.generate_buffer_data(&HighlightMode::Selected(vec![*tower]))
         }
@@ -215,25 +185,25 @@ fn refresh_display_system(
                     .collect::<Vec<_>>();
                 overlay_creator.flood_preview_to_overlay(covered_coords, *range)
             } else {
-                overlay_creator.generate_buffer_data(&HighlightMode::All)
+                overlay_creator.generate_buffer_data(&HighlightMode::None)
             }
         }
     };
 
-    let buffer_handle = &material.cells;
+    let buffer_handle = &overlay_material.cells;
     if let Some(buffer) = buffers.get_mut(buffer_handle) {
         buffer.set_data(&*local_buffer_data);
     } else {
         // Create ShaderStorageBuffer
         let storage_buffer = ShaderStorageBuffer::from(local_buffer_data.as_slice());
         let buffer_handle = buffers.add(storage_buffer);
-        material.cells = buffer_handle;
+        overlay_material.cells = buffer_handle;
     }
 
     // Update uniforms
     let bounds = tower_ranges_grid.bounds();
-    material.uniforms.grid_width = bounds.0 as u32; // width is first element
-    material.uniforms.grid_height = bounds.1 as u32; // height is second element
+    overlay_material.grid_data.grid_width = bounds.0 as u32;
+    overlay_material.grid_data.grid_height = bounds.1 as u32;
 }
 
 fn on_grid_placer_changed_system(
@@ -268,7 +238,7 @@ fn on_grid_placer_changed_system(
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable, ShaderType)]
+#[derive(Clone, Copy, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable, ShaderType, Default)]
 struct TowerRangeCell {
     /// XOR signature of towers covering this cell
     signature: u32,
@@ -277,19 +247,10 @@ struct TowerRangeCell {
     /// 1 if the cell is highlighted (either selected range or preview), otherwise 0
     highlight: u32,
 }
-impl TowerRangeCell {
-    fn empty() -> Self {
-        Self {
-            signature: 0,
-            cover_count: 0,
-            highlight: 0,
-        }
-    }
-}
 
 #[derive(PartialEq)]
 enum HighlightMode {
-    All,
+    None,
     Selected(Vec<Entity>),
 }
 
@@ -320,7 +281,7 @@ impl<'a> OverlayBufferCreator<'a> {
     fn create_cell_for_grid_index(&self, idx: usize, highlight_mode: &HighlightMode) -> TowerRangeCell {
         let set = &self.grid.grid[idx];
         if set.is_empty() {
-            return TowerRangeCell::empty();
+            return TowerRangeCell::default();
         }
         let mut signature: u32 = 0;
         for &entity in set.iter() {
@@ -328,7 +289,7 @@ impl<'a> OverlayBufferCreator<'a> {
         }
         let cover_count = set.len() as u32;
         let highlight = match highlight_mode {
-            HighlightMode::All => 0u32,
+            HighlightMode::None => 0u32,
             HighlightMode::Selected(selected_entities) => {
                 if selected_entities.iter().any(|e| set.contains(e)) { 1 } else { 0 }
             }
@@ -347,7 +308,7 @@ impl<'a> OverlayBufferCreator<'a> {
         use std::collections::VecDeque;
 
         // Start with base buffer data (all signatures + optional selection)
-        self.generate_buffer_data(&HighlightMode::All);
+        self.generate_buffer_data(&HighlightMode::None);
         let buffer_data = self.local_buffer_data.take().unwrap();
         let bounds = self.grid.bounds();
 

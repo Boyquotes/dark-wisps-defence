@@ -24,13 +24,13 @@ struct TowerRangeCell {
     highlight: u32,
 }
 
-struct UniformData {
+struct UniformGridData {
     grid_width: u32,
     grid_height: u32,
 }
 
 @group(2) @binding(0) var<storage, read> cells: array<TowerRangeCell>;
-@group(2) @binding(1) var<uniform> uniforms: UniformData;
+@group(2) @binding(1) var<uniform> uniforms: UniformGridData;
 
 // Rendering constants
 const blockSize: f32 = 16.0; // Size of each block in pixels

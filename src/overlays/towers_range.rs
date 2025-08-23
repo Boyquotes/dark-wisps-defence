@@ -87,8 +87,7 @@ impl TowersRangeOverlayConfig {
     ) {
         let focused_entity = trigger.target();
         if towers.contains(focused_entity) {
-            overlay_config.secondary_mode =
-                TowersRangeOverlaySecondaryMode::Highlight { tower: focused_entity };
+            overlay_config.secondary_mode = TowersRangeOverlaySecondaryMode::Highlight { tower: focused_entity };
         } else {
             overlay_config.secondary_mode = TowersRangeOverlaySecondaryMode::None;
         }
@@ -101,7 +100,7 @@ impl TowersRangeOverlayConfig {
     }
 }
 #[derive(Default, Clone, Debug, PartialEq)]
-/// Secondary mode determines what to show in addition to the base coverage overlay:
+/// Secondary mode is temporary override 
 /// - `None`: show all ranges without any emphasis
 /// - `Highlight { tower }`: emphasize the selected tower's range
 /// - `PlacingTower { .. }`: preview of the range flood from the planned building footprint

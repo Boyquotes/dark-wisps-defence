@@ -1,3 +1,4 @@
+use bevy::input::common_conditions::input_just_released;
 use bevy::reflect::TypePath;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, Extent3d, ShaderRef, TextureDimension, TextureFormat};
@@ -12,10 +13,12 @@ impl Plugin for EmissionsPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins(Material2dPlugin::<EmissionHeatmapMaterial>::default())
-            .insert_resource(EmissionsOverlayMode::Energy(u32::MAX)) // u32::MAX to force redraw on first frame
+            .insert_resource(EmissionsOverlayMode::Energy) 
             .add_systems(PreStartup, create_emissions_overlay_startup_system)
-            .add_systems(PreUpdate, update_emissions_overlay_system)
-            .add_systems(Update, manage_emissions_overlay_mode_system);
+            .add_systems(Update, (
+                update_emissions_overlay_system.run_if(resource_changed::<EmissionsOverlayMode>.or(resource_changed::<EmissionsGrid>)),
+                manage_emissions_overlay_mode_system.run_if(input_just_released(KeyCode::Digit6)), // Switch overlay on/off 
+            ));
     }
 }
 
@@ -52,7 +55,7 @@ pub fn create_emissions_overlay_startup_system(
                 depth_or_array_layers: 1,
             },
             TextureDimension::D2,
-            &[255, 0, 0, 127],
+            &[0, 0, 0, 0],
             TextureFormat::Rgba8Unorm,
             RenderAssetUsages::default()
         )
@@ -68,6 +71,7 @@ pub fn create_emissions_overlay_startup_system(
         Transform::from_xyz(full_world_size / 2., full_world_size / 2., 0.)
             .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
         EmissionsOverlay,
+        Visibility::Hidden,
     ));
 }
 
@@ -75,23 +79,16 @@ pub fn create_emissions_overlay_startup_system(
 #[derive(Resource)]
 pub enum EmissionsOverlayMode {
     None,
-    Energy(GridVersion),
+    Energy,
 }
 
 pub fn manage_emissions_overlay_mode_system(
     mut emissions_overlay_mode: ResMut<EmissionsOverlayMode>,
-    keys: Res<ButtonInput<KeyCode>>,
-    mut emission_material_visibility: Query<&mut Visibility, With<EmissionsOverlay>>,
 ) {
-    let Ok(mut visibility) = emission_material_visibility.single_mut() else { return; };
-    if keys.just_pressed(KeyCode::Digit6) {
+    if matches!(*emissions_overlay_mode, EmissionsOverlayMode::None) {
+        *emissions_overlay_mode = EmissionsOverlayMode::Energy;
+    } else {
         *emissions_overlay_mode = EmissionsOverlayMode::None;
-        *visibility = Visibility::Hidden;
-    } else if keys.just_pressed(KeyCode::Digit7) {
-        if !matches!(*emissions_overlay_mode, EmissionsOverlayMode::Energy(_)) {
-            *emissions_overlay_mode = EmissionsOverlayMode::Energy(GridVersion::default());
-        }
-        *visibility = Visibility::Inherited;
     }
 }
 
@@ -100,14 +97,18 @@ pub fn update_emissions_overlay_system(
     mut materials: ResMut<Assets<EmissionHeatmapMaterial>>,
     emissions_grid: Res<EmissionsGrid>,
     mut emissions_overlay_mode: ResMut<EmissionsOverlayMode>,
-    emissions_overlay: Query<&MeshMaterial2d<EmissionHeatmapMaterial>, With<EmissionsOverlay>>,
+    mut emissions_overlay: Query<(&mut Visibility, &MeshMaterial2d<EmissionHeatmapMaterial>), With<EmissionsOverlay>>,
+    mut last_grid_version: Local<GridVersion>,
 ) {
+    let Ok((mut visibility, heatmap_material_handle)) = emissions_overlay.single_mut() else { return; };
     match &mut *emissions_overlay_mode {
-        EmissionsOverlayMode::None => { return; },
-        EmissionsOverlayMode::Energy(version) => {
-            if *version != emissions_grid.version.energy {
-                *version = emissions_grid.version.energy;
-                let Ok(heatmap_material_handle) = emissions_overlay.single() else { return; };
+        EmissionsOverlayMode::None => { 
+            *visibility = Visibility::Hidden;
+        },
+        EmissionsOverlayMode::Energy => {
+            *visibility = Visibility::Inherited;
+            if *last_grid_version != emissions_grid.version.energy {
+                *last_grid_version = emissions_grid.version.energy;
                 let heatmap_material = materials.get_mut(heatmap_material_handle).unwrap();
                 let heatmap_image = images.get_mut(&heatmap_material.heatmap).unwrap();
                 emissions_grid.imprint_into_heatmap(&mut heatmap_image.data.as_mut().unwrap(), EmissionsType::Energy);

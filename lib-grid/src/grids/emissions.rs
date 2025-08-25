@@ -138,6 +138,7 @@ impl EmissionsGrid {
                     chunk[0] = 0;
                     chunk[1] = value;
                     chunk[2] = value;
+                    chunk[3] = 127;
                 }
             }
             idx += 1;
@@ -150,7 +151,7 @@ fn emissions_calculations_system(
     mut events: EventReader<EmitterChangedEvent>,
     mut emissions_grid: ResMut<EmissionsGrid>,
     obstacle_grid: Res<ObstacleGrid>,
-    emitters_buildings: Query<(&EmitterEnergy, &GridImprint, &GridCoords)>,
+    emitters_buildings: Query<(&EmitterEnergy, &GridImprint, &GridCoords), With<EmitterEnergyEnabled>>,
 ) {
     if recalculate_all.0 {
         recalculate_all.0 = false;

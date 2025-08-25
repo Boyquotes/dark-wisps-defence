@@ -32,7 +32,7 @@ impl Plugin for EnergySupplyOverlayPlugin {
             .add_systems(Update, (
                 EnergySupplyOverlayConfig::on_config_change_system.run_if(resource_changed::<EnergySupplyOverlayConfig>),
                 refresh_display_system.run_if(in_state(EnergySupplyOverlayState::Show)),
-                (|mut config: ResMut<EnergySupplyOverlayConfig>| { config.is_overlay_globally_enabled ^= true; }).run_if(input_just_released(KeyCode::KeyY)), // Switch overlay on/off on KeyY
+                (|mut config: ResMut<EnergySupplyOverlayConfig>| { config.is_overlay_globally_enabled ^= true; }).run_if(input_just_released(KeyCode::Digit7)), // Switch overlay on/off 
                 on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
             ))
             .add_observer(EnergySupplyOverlayConfig::on_building_ui_focused)

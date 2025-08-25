@@ -32,7 +32,7 @@ impl Plugin for TowersRangeOverlayPlugin {
                     TowersRangeOverlayConfig::on_config_change_system.run_if(resource_changed::<TowersRangeOverlayConfig>),
                     refresh_display_system.run_if(in_state(TowersRangeOverlayState::Show)),
                     on_grid_placer_changed_system.run_if(in_state(UiInteraction::PlaceGridObject)),
-                    (|mut config: ResMut<TowersRangeOverlayConfig>| { config.is_overlay_globally_enabled ^= true; }).run_if(input_just_released(KeyCode::Digit8)),
+                    (|mut config: ResMut<TowersRangeOverlayConfig>| { config.is_overlay_globally_enabled ^= true; }).run_if(input_just_released(KeyCode::Digit8)), // Switch overlay on/off 
                 ),
             )
             .add_observer(TowersRangeOverlayConfig::on_building_ui_focused)

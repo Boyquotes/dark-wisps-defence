@@ -37,9 +37,9 @@ Development preview: [Youtube video >>>](https://youtu.be/9lJq3Hm-R4I?si=J8USUYo
 
 ## Visual Overlays
 - **G**: Toggle grid display
-- **Y**: Toggle energy supply overlay (shows power grid coverage)
-- **6**: Hide emissions overlay
-- **7**: Show energy emissions overlay
+- **6**: Toggle emissions overlay (Wisps follow its gradient)
+- **7**: Toggle energy supply overlay (shows power grid coverage)
+- **8**: Toggle towers range overlay
 
 ## Mouse Controls
 - **Left Click**: Place selected building/tower or interact with objects

@@ -105,7 +105,6 @@ impl IndicatorType {
                     commands.entity(entity).remove::<Disabled>();
                 }
             }
-            _ => {}
         }
     }
 

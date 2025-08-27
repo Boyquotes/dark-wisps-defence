@@ -1,6 +1,7 @@
 mod construction_menu;
 mod objectives_panel;
 mod badges;
+mod main_menu;
 
 pub mod display_info_panel;
 pub mod grid_display;
@@ -20,6 +21,7 @@ impl Plugin for UiPlugin {
                 indicators::IndicatorsPlugin,
                 objectives_panel::ObjectivesPanelPlugin,
                 construction_menu::ConstructionMenuPlugin,
+                main_menu::MainMenuPlugin,
             ))
             .insert_resource(UiConfig::default())
             .add_systems(Update, (

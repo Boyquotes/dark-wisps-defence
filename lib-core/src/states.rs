@@ -13,7 +13,7 @@ impl Plugin for StatesPlugin {
             .init_state::<GameState>()
             .init_state::<UiInteraction>()
             .add_systems(PreUpdate, (
-                UiInteraction::free.run_if(input_just_pressed(KeyCode::Escape)),
+                UiInteraction::on_escape.run_if(input_just_pressed(KeyCode::Escape)),
             ))
             .add_systems(Update, (
                 GameState::pause_resume_game.run_if(input_just_pressed(KeyCode::Space)),
@@ -43,11 +43,23 @@ impl GameState {
 pub enum UiInteraction {
     #[default]
     Free, // No interaction
+    MainMenu,
     PlaceGridObject,
     DisplayInfoPanel,
 }
 impl UiInteraction {
     fn free(mut ui_interaction_state: ResMut<NextState<UiInteraction>>) {
         ui_interaction_state.set(UiInteraction::Free);
+    }
+
+    // On ESC: if UI is free, open Main Menu; otherwise, return to Free
+    fn on_escape(
+        current_ui_state: Res<State<UiInteraction>>, 
+        mut next_ui_state: ResMut<NextState<UiInteraction>>
+    ) {
+        match current_ui_state.get() {
+            UiInteraction::Free => next_ui_state.set(UiInteraction::MainMenu),
+            _ => next_ui_state.set(UiInteraction::Free),
+        }
     }
 }

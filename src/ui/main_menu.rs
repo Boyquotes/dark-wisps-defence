@@ -1,0 +1,187 @@
+use std::fs;
+
+use crate::prelude::*;
+
+pub struct MainMenuPlugin;
+impl Plugin for MainMenuPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_systems(Startup, initialize_main_menu_system)
+            .add_systems(OnEnter(UiInteraction::MainMenu), on_menu_enter_system)
+            .add_systems(OnExit(UiInteraction::MainMenu), on_menu_exit_system)
+            .add_observer(LoadMapButton::on_add)
+            .add_observer(MapListContainer::on_add)
+            .add_observer(MapEntryButton::on_add)
+            ;
+    }
+}
+
+#[derive(Component)]
+struct MainMenuRoot;
+
+#[derive(Component)]
+#[require(Button)]
+struct LoadMapButton;
+impl LoadMapButton {
+    fn on_add(trigger: Trigger<OnAdd, LoadMapButton>, mut commands: Commands) {
+        let entity = trigger.target();
+        commands.entity(entity)
+            .insert((
+                Node {
+                    width: Val::Px(220.0),
+                    height: Val::Px(40.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor::from(Color::linear_rgba(0.2, 0.2, 0.8, 1.0)),
+            ))
+            .with_children(|parent| {
+                parent.spawn((
+                    Text::new("Load Map"),
+                    TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                ));
+            })
+            .observe(Self::on_click);
+    }
+
+    fn on_click(
+        _trigger: Trigger<Pointer<Click>>,
+        mut commands: Commands,
+        mut container: Query<(Entity, &mut Node), With<MapListContainer>>,
+    ) {
+        let Ok((container_entity, mut node)) = container.single_mut() else { return; };
+
+        if node.display == Display::Flex { 
+            node.display = Display::None;
+            return;
+        }
+        
+        // Rebuild the list when showing
+        node.display = Display::Flex;
+        commands.entity(container_entity).despawn_related::<Children>();
+
+        // Enumerate maps/*.yaml and create entry buttons
+        let map_names = fs::read_dir("maps")
+            .ok()
+            .into_iter()
+            .flat_map(|rd| rd.filter_map(|e| e.ok()))
+            .filter_map(|e| {
+                let path = e.path();
+                if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("yaml") {
+                    path.file_stem().and_then(|s| s.to_str()).map(|s| s.to_string())
+                } else { None }
+            })
+            .collect::<Vec<_>>();
+
+        commands.entity(container_entity).with_children(|parent| {
+            for name in map_names {
+                parent.spawn(MapEntryButton { name });
+            }
+        });
+    }
+}
+
+#[derive(Component, Default)]
+#[require(Node)]
+struct MapListContainer;
+impl MapListContainer {
+    fn on_add(trigger: Trigger<OnAdd, MapListContainer>, mut commands: Commands) {
+        let entity = trigger.target();
+        commands.entity(entity).insert((
+            Node {
+                display: Display::None,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Stretch,
+                row_gap: Val::Px(6.0),
+                margin: UiRect { top: Val::Px(12.0), ..default() },
+                ..default()
+            },
+        ));
+    }
+}
+
+#[derive(Component)]
+#[require(Button)]
+struct MapEntryButton { name: String }
+impl MapEntryButton {
+    fn on_add(trigger: Trigger<OnAdd, MapEntryButton>, mut commands: Commands, entries: Query<&MapEntryButton>) {
+        let entity = trigger.target();
+        let name = &entries.get(entity).unwrap().name;
+
+        commands.entity(entity)
+            .insert((
+                Node {
+                    width: Val::Px(260.0),
+                    height: Val::Px(34.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor::from(Color::linear_rgba(0.3, 0.3, 0.3, 1.0)),
+            ))
+            .with_children(|parent| {
+                parent.spawn((
+                    Text::new(name.clone()),
+                    TextLayout::new_with_linebreak(LineBreak::NoWrap),
+                ));
+            })
+            .observe(Self::on_click);
+    }
+
+    fn on_click(trigger: Trigger<Pointer<Click>>, entries: Query<&MapEntryButton>) {
+        let entity = trigger.target();
+        if let Ok(entry) = entries.get(entity) {
+            // Placeholder for future map loading
+            println!("Map selected: {}", entry.name);
+        }
+    }
+}
+
+fn initialize_main_menu_system(mut commands: Commands) {
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(0.0),
+            left: Val::Px(0.0),
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        BackgroundColor::from(Color::linear_rgba(0.0, 0.0, 0.0, 0.7)),
+        Visibility::Hidden,
+        MainMenuRoot,
+        children![
+            (
+                Node {
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(10.0),
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                children![
+                    LoadMapButton,
+                    MapListContainer::default(),
+                ]
+            )
+        ]
+    ));
+}
+
+fn on_menu_enter_system(
+    mut menu: Query<&mut Visibility, With<MainMenuRoot>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    *menu.single_mut().unwrap() = Visibility::Inherited;
+    game_state.set(GameState::Paused);
+}
+
+fn on_menu_exit_system(
+    mut menu: Query<&mut Visibility, With<MainMenuRoot>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    *menu.single_mut().unwrap() = Visibility::Hidden;
+    game_state.set(GameState::Running);
+}

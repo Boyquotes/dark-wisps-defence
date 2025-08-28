@@ -48,10 +48,6 @@ pub enum UiInteraction {
     DisplayInfoPanel,
 }
 impl UiInteraction {
-    fn free(mut ui_interaction_state: ResMut<NextState<UiInteraction>>) {
-        ui_interaction_state.set(UiInteraction::Free);
-    }
-
     // On ESC: if UI is free, open Main Menu; otherwise, return to Free
     fn on_escape(
         current_ui_state: Res<State<UiInteraction>>, 

@@ -42,7 +42,8 @@ fn main() {
         .add_plugins((
             data_loader::DataLoaderPlugin,
             map_editor::MapEditorPlugin,
+            map_loader::MapLoaderPlugin,
         ))
-        .add_systems(Startup, |mut commands: Commands| commands.queue(map_loader::LoadMapCommand("test_map".to_string())))
+        .add_systems(Startup, |mut commands: Commands| commands.trigger(map_loader::LoadMapRequest("test_map".to_string())))
         .run();
 }

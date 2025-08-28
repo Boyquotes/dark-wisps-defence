@@ -6,9 +6,10 @@ pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, initialize_main_menu_system)
+            .add_systems(Startup, |mut commands: Commands| { commands.spawn(MainMenuRoot); })
             .add_systems(OnEnter(UiInteraction::MainMenu), on_menu_enter_system)
             .add_systems(OnExit(UiInteraction::MainMenu), on_menu_exit_system)
+            .add_observer(MainMenuRoot::on_add)
             .add_observer(LoadMapButton::on_add)
             .add_observer(MapListContainer::on_add)
             .add_observer(MapEntryButton::on_add)
@@ -18,6 +19,40 @@ impl Plugin for MainMenuPlugin {
 
 #[derive(Component)]
 struct MainMenuRoot;
+impl MainMenuRoot {
+    fn on_add(trigger: Trigger<OnAdd, MainMenuRoot>, mut commands: Commands) {
+        let entity = trigger.target();
+        commands.entity(entity)
+            .insert((
+                Node {
+                    position_type: PositionType::Absolute,
+                    top: Val::Px(0.0),
+                    left: Val::Px(0.0),
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor::from(Color::linear_rgba(0.0, 0.0, 0.0, 0.7)),
+                Visibility::Hidden,
+            ))
+            .with_children(|parent| {
+                parent.spawn((
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(10.0),
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    children![
+                        LoadMapButton,
+                        MapListContainer::default(),
+                    ]
+                ));
+            });
+    }
+}
 
 #[derive(Component)]
 #[require(Button)]
@@ -136,38 +171,6 @@ impl MapEntryButton {
             println!("Map selected: {}", entry.name);
         }
     }
-}
-
-fn initialize_main_menu_system(mut commands: Commands) {
-    commands.spawn((
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(0.0),
-            left: Val::Px(0.0),
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            ..default()
-        },
-        BackgroundColor::from(Color::linear_rgba(0.0, 0.0, 0.0, 0.7)),
-        Visibility::Hidden,
-        MainMenuRoot,
-        children![
-            (
-                Node {
-                    flex_direction: FlexDirection::Column,
-                    row_gap: Val::Px(10.0),
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                children![
-                    LoadMapButton,
-                    MapListContainer::default(),
-                ]
-            )
-        ]
-    ));
 }
 
 fn on_menu_enter_system(

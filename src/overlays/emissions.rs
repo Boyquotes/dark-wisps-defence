@@ -6,6 +6,7 @@ use bevy::sprite::{AlphaMode2d, Material2d, Material2dPlugin};
 
 use lib_grid::grids::emissions::{EmissionsGrid, EmissionsType};
 
+use crate::map_editor::MapInfo;
 use crate::prelude::*;
 
 pub struct EmissionsPlugin;
@@ -14,7 +15,7 @@ impl Plugin for EmissionsPlugin {
         app
             .add_plugins(Material2dPlugin::<EmissionHeatmapMaterial>::default())
             .insert_resource(EmissionsOverlayMode::Energy) 
-            .add_systems(PreStartup, create_emissions_overlay_startup_system)
+            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), EmissionsOverlay::create)
             .add_systems(Update, (
                 update_emissions_overlay_system.run_if(resource_changed::<EmissionsOverlayMode>.or(resource_changed::<EmissionsGrid>)),
                 manage_emissions_overlay_mode_system.run_if(input_just_released(KeyCode::Digit6)), // Switch overlay on/off 
@@ -40,39 +41,45 @@ impl Material2d for EmissionHeatmapMaterial {
 
 #[derive(Component)]
 pub struct EmissionsOverlay;
+impl EmissionsOverlay {
+    pub fn create(
+        mut commands: Commands,
+        map_info: Res<MapInfo>,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut images: ResMut<Assets<Image>>,
+        mut materials: ResMut<Assets<EmissionHeatmapMaterial>>,
+        overlay: Query<Entity, With<EmissionsOverlay>>,
+    ) {
+        // First remove old overlay if exists
+        if let Ok(overlay_entity) = overlay.single() {
+            commands.entity(overlay_entity).despawn();
+        };
 
-pub fn create_emissions_overlay_startup_system(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut images: ResMut<Assets<Image>>,
-    mut materials: ResMut<Assets<EmissionHeatmapMaterial>>,
-) {
-    let image = images.add(
-        Image::new_fill(
-            Extent3d{
-                width: 100,
-                height: 100,
-                depth_or_array_layers: 1,
-            },
-            TextureDimension::D2,
-            &[0, 0, 0, 0],
-            TextureFormat::Rgba8Unorm,
-            RenderAssetUsages::default()
-        )
-    );
-
-
-    let full_world_size = 100. * CELL_SIZE;
-    commands.spawn((
-        Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
-        MeshMaterial2d(materials.add(EmissionHeatmapMaterial {
-            heatmap: image,
-        })),
-        Transform::from_xyz(full_world_size / 2., full_world_size / 2., 0.)
-            .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
-        EmissionsOverlay,
-        Visibility::Hidden,
-    ));
+        let image = images.add(
+            Image::new_fill(
+                Extent3d{
+                    width: map_info.grid_width as u32,
+                    height: map_info.grid_height as u32,
+                    depth_or_array_layers: 1,
+                },
+                TextureDimension::D2,
+                &[0, 0, 0, 0],
+                TextureFormat::Rgba8Unorm,
+                RenderAssetUsages::default()
+            )
+        );
+    
+        commands.spawn((
+            Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
+            MeshMaterial2d(materials.add(EmissionHeatmapMaterial {
+                heatmap: image,
+            })),
+            Transform::from_xyz(map_info.world_width as f32 / 2., map_info.world_height as f32 / 2., 0.)
+                .with_scale(Vec3::new(map_info.world_width as f32, -map_info.world_height as f32, 1.)), // Flip vertically due to coordinate system
+            EmissionsOverlay,
+            Visibility::Hidden,
+        ));
+    }
 }
 
 /// Keep tracks of which version does the overlay use

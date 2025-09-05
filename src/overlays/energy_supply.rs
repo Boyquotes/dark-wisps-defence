@@ -25,7 +25,7 @@ impl Plugin for EnergySupplyOverlayPlugin {
             .add_plugins(Material2dPlugin::<EnergySupplyHeatmapMaterial>::default())
             .init_state::<EnergySupplyOverlayState>()
             .init_resource::<EnergySupplyOverlayConfig>()
-            .add_systems(PreStartup, |mut commands: Commands| { commands.spawn(EnergySupplyOverlay); })
+            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), EnergySupplyOverlay::create)
             .add_systems(OnEnter(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Inherited; })
             .add_systems(OnExit(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Hidden; })
             .add_systems(OnExit(UiInteraction::PlaceGridObject), |mut config: ResMut<EnergySupplyOverlayConfig>| { config.secondary_mode = EnergySupplyOverlaySecondaryMode::None; })
@@ -37,7 +37,7 @@ impl Plugin for EnergySupplyOverlayPlugin {
             ))
             .add_observer(EnergySupplyOverlayConfig::on_building_ui_focused)
             .add_observer(EnergySupplyOverlayConfig::on_building_ui_unfocused)
-            .add_observer(EnergySupplyOverlay::on_add);
+            ;
 
     }
 }
@@ -119,20 +119,24 @@ impl Material2d for EnergySupplyHeatmapMaterial {
 #[derive(Component)]
 pub struct EnergySupplyOverlay;
 impl EnergySupplyOverlay {
-    fn on_add(
-        trigger: Trigger<OnAdd, EnergySupplyOverlay>,
+    fn create(
         mut commands: Commands,
+        map_info: Res<crate::map_editor::MapInfo>,
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
+        overlay: Query<Entity, With<EnergySupplyOverlay>>,
     ) {
-        // TODO: React to map loading. At the startup MapInfo is not yet initialized so we can't just use it.
-        let full_world_size = 100. * CELL_SIZE;
-        let entity = trigger.target();
-        commands.entity(entity).insert((
+        // First remove old overlay if exists
+        if let Ok(overlay_entity) = overlay.single() {
+            commands.entity(overlay_entity).despawn();
+        };
+
+        commands.spawn((
             Mesh2d(meshes.add(Rectangle::new(1.0, 1.0))),
             MeshMaterial2d(materials.add(EnergySupplyHeatmapMaterial::default())),
-            Transform::from_xyz(full_world_size / 2., full_world_size / 2., Z_OVERLAY_ENERGY_SUPPLY)
-                    .with_scale(Vec3::new(full_world_size, -full_world_size, full_world_size)), // Flip vertically due to coordinate system
+            Transform::from_xyz(map_info.world_width as f32 / 2., map_info.world_height as f32 / 2., Z_OVERLAY_ENERGY_SUPPLY)
+                    .with_scale(Vec3::new(map_info.world_width as f32, -map_info.world_height as f32, 1.)), // Flip vertically due to coordinate system
+            EnergySupplyOverlay,
             Visibility::Hidden,
         ));
     }

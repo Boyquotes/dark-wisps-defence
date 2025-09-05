@@ -6,7 +6,7 @@ pub struct EnergySupplyPlugin;
 impl Plugin for EnergySupplyPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(EnergySupplyGrid::new_with_size(100, 100))
+            .insert_resource(EnergySupplyGrid::new_empty())
             .init_resource::<EnergySupplyRecalculatePower>()
             .add_event::<SupplierChangedEvent>()
             .add_systems(PostUpdate, (

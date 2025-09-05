@@ -23,6 +23,7 @@ pub const DARK_ORE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1
 pub const DARK_ORE_BASE_IMAGES: [&str; 2] = ["map_objects/dark_ore_1.png", "map_objects/dark_ore_2.png"];
 
 #[derive(Component)]
+#[require(MapBound)]
 pub struct DarkOre {
     pub amount: i32,
 }

@@ -164,27 +164,29 @@ impl MapEntryButton {
             .observe(Self::on_click);
     }
 
-    fn on_click(trigger: Trigger<Pointer<Click>>, entries: Query<&MapEntryButton>) {
+    fn on_click(trigger: Trigger<Pointer<Click>>, mut commands: Commands, entries: Query<&MapEntryButton>) {
         let entity = trigger.target();
-        if let Ok(entry) = entries.get(entity) {
-            // Placeholder for future map loading
-            println!("Map selected: {}", entry.name);
-        }
+        let Ok(entry) = entries.get(entity) else { return; };
+        println!("Map selected: {}", entry.name);
+        commands.trigger(crate::map_loader::LoadMapRequest(entry.name.clone()));
     }
 }
 
 fn on_menu_enter_system(
     mut menu: Query<&mut Visibility, With<MainMenuRoot>>,
-    mut game_state: ResMut<NextState<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
 ) {
     *menu.single_mut().unwrap() = Visibility::Inherited;
-    game_state.set(GameState::Paused);
+    next_game_state.set(GameState::Paused);
 }
 
 fn on_menu_exit_system(
     mut menu: Query<&mut Visibility, With<MainMenuRoot>>,
-    mut game_state: ResMut<NextState<GameState>>,
+    current_game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
 ) {
     *menu.single_mut().unwrap() = Visibility::Hidden;
-    game_state.set(GameState::Running);
+    if matches!(current_game_state.get(), GameState::Paused) {
+        next_game_state.set(GameState::Running);
+    }
 }

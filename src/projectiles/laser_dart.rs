@@ -9,8 +9,10 @@ impl Plugin for LaserDartPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Update, (
-                laser_dart_move_system,
-                laser_dart_hit_system,
+                (
+                    laser_dart_move_system,
+                    laser_dart_hit_system,
+                ).run_if(in_state(GameState::Running)),
             ))
             .add_observer(BuilderLaserDart::on_add);
     }

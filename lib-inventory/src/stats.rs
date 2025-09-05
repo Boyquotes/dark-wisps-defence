@@ -4,7 +4,7 @@ pub struct StatsPlugin;
 impl Plugin for StatsPlugin {
     fn build(&self, app: &mut App) {
         app
-            .init_resource::<StatsWispsKilled>();
+            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(StatsWispsKilled::default()); });
     }
 }
 

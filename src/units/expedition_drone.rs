@@ -15,6 +15,7 @@ impl Plugin for ExpeditionDronePlugin {
 pub const EXPEDITION_DRONE_BASE_IMAGE: &str = "units/expedition_drone.png";
 
 #[derive(Component)]
+#[require(MapBound)]
 pub struct ExpeditionDrone {
     target: Entity, // Entity having ExpeditionZone component
     target_world_position: Vec2,

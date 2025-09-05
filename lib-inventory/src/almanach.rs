@@ -8,7 +8,7 @@ pub struct AlmanachPlugin;
 impl Plugin for AlmanachPlugin {
     fn build(&self, app: &mut App) {
         app
-            .init_resource::<Almanach>()
+            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(Almanach::default()); })
             .add_observer(AlmanachRequestPotentialUpgradesInsertion::on_trigger);
     }
 }

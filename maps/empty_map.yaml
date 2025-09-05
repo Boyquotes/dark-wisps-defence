@@ -4,7 +4,7 @@ buildings:
   - building_type: MainBase
     coords: { x: 30, y: 30 }
 walls: []
-dark_ore: []
+dark_ores: []
 quantum_fields: []
 objectives: []
 

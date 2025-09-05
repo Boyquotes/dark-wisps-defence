@@ -24,6 +24,13 @@ pub trait Property {
     fn new(value: f32) -> Self;
 }
 
+// Component for entities that are bound to the map and shall be removed on its change
+#[derive(Component, Default)]
+pub struct MapBound; 
+
+// Marker for tasks to be performed during MapLoading. 
+#[derive(Component, Default)]
+pub struct MapLoadingTask;
 
 #[derive(Component, Default)]
 pub struct Health {

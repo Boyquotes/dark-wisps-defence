@@ -5,7 +5,7 @@ use crate::prelude::*;
 pub struct DataLoaderPlugin;
 impl Plugin for DataLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreStartup, load_data_system);
+        app.add_systems(OnEnter(MapLoadingStage::ApplyMap), load_data_system);
     }
 }
 

@@ -4,7 +4,7 @@ pub mod wisps;
 pub mod visited;
 pub mod emissions;
 pub mod energy_supply;
-pub mod towers_range;
+pub mod tower_ranges;
 
 use crate::lib_prelude::*;
 
@@ -17,7 +17,7 @@ impl Plugin for GridsPlugin {
                 energy_supply::EnergySupplyPlugin,
                 obstacles::ObstaclesGridPlugin,
                 wisps::WispsGridPlugin,
-                towers_range::TowerRangesPlugin,
+                tower_ranges::TowerRangesPlugin,
             ));
     }
 }

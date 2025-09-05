@@ -5,7 +5,7 @@ use bevy::{
     }, sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d}
 };
 use lib_grid::{
-    grids::towers_range::TowersRangeGrid,
+    grids::tower_ranges::TowerRangesGrid,
     search::common::{CARDINAL_DIRECTIONS, VISITED_GRID},
 };
 
@@ -148,7 +148,7 @@ impl TowersRangeOverlay {
 fn refresh_display_system(
     mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
     mut materials: ResMut<Assets<TowersRangeMaterial>>,
-    tower_ranges_grid: Res<TowersRangeGrid>,
+    tower_ranges_grid: Res<TowerRangesGrid>,
     mut overlay_config: ResMut<TowersRangeOverlayConfig>,
     towers_range_overlay: Query<&MeshMaterial2d<TowersRangeMaterial>, With<TowersRangeOverlay>>,
     mut last_secondary_mode: Local<TowersRangeOverlaySecondaryMode>,
@@ -258,13 +258,13 @@ enum HighlightMode {
 /// Reuses a caller-provided `Vec<TowerRangeCell>` to avoid allocations and can
 /// optionally apply a preview flood to set the `highlight` bit.
 struct OverlayBufferCreator<'a> {
-    grid: &'a TowersRangeGrid,
+    grid: &'a TowerRangesGrid,
     local_buffer_data: Option<&'a mut Vec<TowerRangeCell>>,
 }
 impl<'a> OverlayBufferCreator<'a> {
     /// Helper that produces the GPU buffer content for the shader.
     /// Owns no memory; reuses a caller-provided `Vec<TowerRangeCell>` to avoid re-allocation.
-    fn new(grid: &'a TowersRangeGrid, local_buffer_data: &'a mut Vec<TowerRangeCell>) -> Self {
+    fn new(grid: &'a TowerRangesGrid, local_buffer_data: &'a mut Vec<TowerRangeCell>) -> Self {
         Self { grid, local_buffer_data: Some(local_buffer_data) }
     }
 

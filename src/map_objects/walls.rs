@@ -21,6 +21,7 @@ impl Plugin for WallPlugin {
 pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
 #[derive(Component)]
+#[require(MapBound)]
 pub struct Wall;
 
 #[derive(Component)]

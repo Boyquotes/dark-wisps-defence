@@ -9,49 +9,63 @@ impl Plugin for BadgesPlugin {
         app
             .add_systems(Startup, initialize_badges_system)
             .add_systems(Update, (
-                sync_resource_display_system.run_if(resource_changed::<Stock>),
-                show_hide_essence_badges_system.run_if(on_event::<StockChangedEvent>),
-            ));
+                ResourceBadgeText::sync_text_with_stock.run_if(resource_changed::<Stock>),
+                EssencesContainer::manage_essence_badges_visibility.run_if(on_event::<StockChangedEvent>),
+            ))
+            .add_systems(OnEnter(GameState::Loading), EssencesContainer::hide_all_essence_badges)
+            ;
     }
 }
-
-fn sync_resource_display_system(
-    mut resource_text: Query<(&mut Text, &ResourceBadgeText)>,
-    stock: Res<Stock>,
-) {
-    for (mut text, badge) in resource_text.iter_mut() {
-        text.0 = stock.get(badge.0).to_string();
-    }
-}
-
 
 #[derive(Component)]
 pub struct ResourceBadgeText(ResourceType);
+impl ResourceBadgeText {
+    fn sync_text_with_stock(    
+        mut resource_text: Query<(&mut Text, &ResourceBadgeText)>,
+        stock: Res<Stock>,
+    ) {
+        for (mut text, badge) in resource_text.iter_mut() {
+            text.0 = stock.get(badge.0).to_string();
+        }
+    }
+}
 
 #[derive(Component, Default)]
 pub struct EssencesContainer {
     badges: HashMap<EssenceType, Entity>,
 }
-#[derive(Component)]
-pub struct EssenceBadge;
-
-fn show_hide_essence_badges_system(
-    mut event_reader: EventReader<StockChangedEvent>,
-    essences_container: Query<&EssencesContainer>,
-    mut nodes: Query<&mut Node, With<EssenceBadge>>,
-) {
-    let Ok(essences_container) = essences_container.single() else { return; };
-    for event in event_reader.read() {
-        let ResourceType::Essence(essence_type) = event.resource_type else { continue; };
-        let essence_badge_entity = *essences_container.badges.get(&essence_type).expect("Essence badge entity not found");    
-        let Ok(mut node) = nodes.get_mut(essence_badge_entity) else { return; };
-        if event.new_amount > 0 {
-            node.display = Display::Flex;
-        } else {
-            node.display = Display::None;
+impl EssencesContainer {
+    fn manage_essence_badges_visibility(
+        mut event_reader: EventReader<StockChangedEvent>,
+        essences_container: Query<&EssencesContainer>,
+        mut nodes: Query<&mut Node, With<EssenceBadge>>,
+    ) {
+        let Ok(essences_container) = essences_container.single() else { return; };
+        for event in event_reader.read() {
+            let ResourceType::Essence(essence_type) = event.resource_type else { continue; };
+            let essence_badge_entity = *essences_container.badges.get(&essence_type).expect("Essence badge entity not found");    
+            let Ok(mut node) = nodes.get_mut(essence_badge_entity) else { return; };
+            if event.new_amount > 0 {
+                node.display = Display::Flex;
+            } else {
+                node.display = Display::None;
+            }
         }
     }
+    fn hide_all_essence_badges(
+        essences_container: Query<&EssencesContainer>,
+        mut nodes: Query<&mut Node, With<EssenceBadge>>,
+    ) {
+        let Ok(essences_container) = essences_container.single() else { return; };
+        for essence_badge_entity in essences_container.badges.values() {
+            let Ok(mut node) = nodes.get_mut(*essence_badge_entity) else { continue; };
+            node.display = Display::None;
+        }
+
+    }
 }
+#[derive(Component)]
+pub struct EssenceBadge;
 
 fn initialize_badges_system(
     mut commands: Commands,

@@ -8,7 +8,7 @@ pub struct EmissionsPlugin;
 impl Plugin for EmissionsPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(EmissionsGrid::new_with_size(100, 100))
+            .insert_resource(EmissionsGrid::new_empty())
             .init_resource::<EmissionsEnergyRecalculateAll>()
             .add_event::<EmitterChangedEvent>()
             .add_systems(PostUpdate, (

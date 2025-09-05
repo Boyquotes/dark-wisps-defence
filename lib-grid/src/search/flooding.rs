@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::grids::towers_range::TowersRangeGrid;
+use crate::grids::tower_ranges::TowerRangesGrid;
 use crate::lib_prelude::*;
 use crate::grids::emissions::{EmissionsGrid, EmissionsType};
 use crate::grids::energy_supply::EnergySupplyGrid;
@@ -199,7 +199,7 @@ pub enum FloodTowerRangeMode {
 }
 
 pub fn flood_tower_range<'a>(
-    tower_ranges_grid: &mut TowersRangeGrid,
+    tower_ranges_grid: &mut TowerRangesGrid,
     start_coords: impl IntoIterator<Item = &'a GridCoords> + Copy,
     mode: FloodTowerRangeMode,
     range: usize,

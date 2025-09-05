@@ -9,13 +9,17 @@ impl Plugin for ObjectivesPlugin {
         app
             .init_resource::<ObjectivesReassesInactiveFlag>()
             .add_systems(PreUpdate, (
-                reassess_inactive_objectives_system,
+                (
+                    reassess_inactive_objectives_system,
+                ).run_if(in_state(GameState::Running)),
             ))
             .add_systems(Update, (
-                on_objective_completed_system,
-                on_objective_failed_system,
-                update_clear_all_quantum_fields_system,
-                update_kill_wisps_system,
+                (
+                    on_objective_completed_system,
+                    on_objective_failed_system,
+                    update_clear_all_quantum_fields_system,
+                    update_kill_wisps_system,
+                ).run_if(in_state(GameState::Running)),
             ))
             .add_observer(Objective::on_add)
             .add_observer(ObjectiveDetails::on_add);
@@ -87,7 +91,7 @@ pub struct ObjectiveText;
 
 
 #[derive(Component)]
-#[require(ObjectiveMarkerInactive)]
+#[require(ObjectiveMarkerInactive, MapBound)]
 pub struct Objective {
     pub checkmark: Entity,
     pub text: Entity,

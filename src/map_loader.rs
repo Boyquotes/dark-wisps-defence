@@ -1,6 +1,10 @@
 use std::fs::File;
 
+use lib_grid::grids::emissions::EmissionsGrid;
+use lib_grid::grids::energy_supply::EnergySupplyGrid;
 use lib_grid::grids::obstacles::{Field, ObstacleGrid};
+use lib_grid::grids::tower_ranges::TowerRangesGrid;
+use lib_grid::grids::wisps::WispsGrid;
 
 use crate::map_editor::MapInfo;
 use crate::prelude::*;
@@ -19,7 +23,22 @@ use crate::map_objects::walls::{BuilderWall, WALL_GRID_IMPRINT};
 pub struct MapLoaderPlugin;
 impl Plugin for MapLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(LoadMapRequest::on_trigger);
+        app
+            .add_systems(OnEnter(MapLoadingStage::LoadMapFile), spawn_load_map_file_stage_tasks)
+            .add_systems(OnEnter(MapLoadingStage::DespawnExisting), spawn_despawn_existing_stage_tasks)
+            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), spawn_reset_grids_and_resources_stage_tasks)
+            .add_systems(OnEnter(MapLoadingStage::ApplyMap), spawn_apply_map_stage_tasks)
+            .add_systems(OnEnter(MapLoadingStage::Loaded), |mut next_game_state: ResMut<NextState<GameState>>| { next_game_state.set(GameState::Running); })
+            .add_systems(Update, (
+                (
+                    progress_map_loading_state,
+                    DespawnExisistngMapLoadingTask::update.run_if(in_state(MapLoadingStage::DespawnExisting)),
+                    ResetGridsAndResourcesMapLoadingTask::update.run_if(in_state(MapLoadingStage::ResetGridsAndResources)),
+                    LoadMapFileMapLoadingTask::update.run_if(in_state(MapLoadingStage::LoadMapFile)),
+                    ApplyMapMapLoadingTask::update.run_if(in_state(MapLoadingStage::ApplyMap)),
+                ).run_if(in_state(GameState::Loading)),
+            ))
+            .add_observer(LoadMapRequest::on_trigger);
     }
 }
 
@@ -28,25 +47,106 @@ pub struct LoadMapRequest(pub String);
 impl LoadMapRequest {
     fn on_trigger(
         trigger: Trigger<LoadMapRequest>,
-        mut commands: Commands,
-        mut obstacles_grid: ResMut<ObstacleGrid>,
+        mut next_game_state: ResMut<NextState<GameState>>,
+        mut next_ui_state: ResMut<NextState<UiInteraction>>,
+        mut next_map_loading_stage: ResMut<NextState<MapLoadingStage>>,
         mut map_info: ResMut<MapInfo>,
+    ) {
+        map_info.name = trigger.event().0.clone(); // Set the map name so the next steps can retrieve it. It desyncs the data, as now the rest of the map info is not yet loaded or contains old data. Not ideal solution.
+        next_game_state.set(GameState::Loading);
+        next_map_loading_stage.set(MapLoadingStage::Init);
+        next_ui_state.set(UiInteraction::Free);
+    }
+}
+
+/// Check if there are any MapLoadingTasks left. If not, move to the next stage. Repeat until `Loaded` state is reached.
+fn progress_map_loading_state(
+    stage: ResMut<State<MapLoadingStage>>,
+    mut next_stage: ResMut<NextState<MapLoadingStage>>,
+    tasks: Query<(), With<MapLoadingTask>>,
+) {
+    if !tasks.is_empty() { return; }
+    next_stage.set(stage.get().next());
+}
+
+fn spawn_load_map_file_stage_tasks(mut commands: Commands) { commands.spawn(LoadMapFileMapLoadingTask); }
+fn spawn_despawn_existing_stage_tasks(mut commands: Commands) { commands.spawn(DespawnExisistngMapLoadingTask); }
+fn spawn_reset_grids_and_resources_stage_tasks(mut commands: Commands) { commands.spawn(ResetGridsAndResourcesMapLoadingTask); }
+fn spawn_apply_map_stage_tasks(mut commands: Commands) { commands.spawn(ApplyMapMapLoadingTask); }
+
+#[derive(Component)]
+#[require(MapLoadingTask)]
+struct DespawnExisistngMapLoadingTask;
+impl DespawnExisistngMapLoadingTask {
+    fn update(
+        mut commands: Commands,
+        task: Query<Entity, With<DespawnExisistngMapLoadingTask>>,
+        map_bound_entities: Query<Entity, With<MapBound>>,
+    ) {
+        let Ok(task_entity) =  task.single() else {return; };
+        map_bound_entities.iter().for_each(|entity| commands.entity(entity).despawn());
+        commands.entity(task_entity).despawn();
+    }
+}
+#[derive(Component)]
+#[require(MapLoadingTask)]
+struct ResetGridsAndResourcesMapLoadingTask;
+impl ResetGridsAndResourcesMapLoadingTask {
+    fn update(
+        mut commands: Commands,
+        map_info: Res<MapInfo>,
+        mut obstacles_grid: ResMut<ObstacleGrid>,
+        mut emissions_grid: ResMut<EmissionsGrid>,
+        mut energy_supply_grid: ResMut<EnergySupplyGrid>,
+        mut wisps_grid: ResMut<WispsGrid>,
+        mut tower_ranges_grid: ResMut<TowerRangesGrid>,
+        tasks: Query<Entity, With<ResetGridsAndResourcesMapLoadingTask>>,
+    ) {
+        let Ok(task_entity) = tasks.single() else {return; };
+        obstacles_grid.resize_and_reset(map_info.bounds());
+        emissions_grid.resize_and_reset(map_info.bounds());
+        energy_supply_grid.resize_and_reset(map_info.bounds());
+        wisps_grid.resize_and_reset(map_info.bounds());
+        tower_ranges_grid.resize_and_reset(map_info.bounds());
+        commands.entity(task_entity).despawn();
+    }
+}
+#[derive(Component)]
+#[require(MapLoadingTask)]
+struct LoadMapFileMapLoadingTask;
+impl LoadMapFileMapLoadingTask {
+    fn update(
+        mut commands: Commands,
+        mut map_info: ResMut<MapInfo>,
+        tasks: Query<Entity, With<LoadMapFileMapLoadingTask>>,
+    ) {
+        let Ok(task_entity) = tasks.single() else {return; };
+        let map_file = MapFile::load(&map_info.name);
+        map_info.set(map_file);
+        commands.entity(task_entity).despawn();
+    }
+}
+
+#[derive(Component)]
+#[require(MapLoadingTask)]
+struct ApplyMapMapLoadingTask;
+impl ApplyMapMapLoadingTask {
+    fn update(
+        mut commands: Commands,
+        mut map_info: ResMut<MapInfo>,
+        task: Query<Entity, With<ApplyMapMapLoadingTask>>,
+        mut obstacles_grid: ResMut<ObstacleGrid>,
         almanach: Res<Almanach>,
     ) {
-        let map_name = &trigger.event().0;
-        let mut map = Map::load(map_name);
-        map_info.name = map_name.clone();
-        map_info.grid_width = map.width;
-        map_info.grid_height = map.height;
-        map_info.world_width = map.width as f32 * CELL_SIZE;
-        map_info.world_height = map.height as f32 * CELL_SIZE;
-        map.apply(&mut commands, &mut obstacles_grid, &almanach);
+        let Ok(task_entity) = task.single() else { return; };
+        map_info.map_file.apply(&mut commands, &mut obstacles_grid, &almanach);
+        commands.entity(task_entity).despawn();
     }
 }
 
 /// Represents yaml content for a map
 #[derive(Debug, Deserialize, Serialize, Default)]
-pub struct Map {
+pub struct MapFile {
     pub width: i32,
     pub height: i32,
     pub buildings: Vec<MapBuilding>,
@@ -55,7 +155,7 @@ pub struct Map {
     pub quantum_fields: Vec<MapQuantumField>,
     pub objectives: Vec<ObjectiveDetails>,
 }
-impl Map {
+impl MapFile {
     /// Load a map from a yaml file in the maps directory into a Map struct.
     fn load(map_name: &str) -> Self {
         serde_yaml::from_reader(File::open(format!("maps/{}.yaml", map_name)).unwrap()).unwrap()

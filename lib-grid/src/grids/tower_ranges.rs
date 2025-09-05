@@ -6,16 +6,16 @@ pub struct TowerRangesPlugin;
 impl Plugin for TowerRangesPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(TowersRangeGrid::new_with_size(100, 100))
-            .add_observer(TowersRangeGrid::on_tower_added)
-            .add_observer(TowersRangeGrid::on_tower_removed)
+            .insert_resource(TowerRangesGrid::new_empty())
+            .add_observer(TowerRangesGrid::on_tower_added)
+            .add_observer(TowerRangesGrid::on_tower_removed)
             ;
     }
 }
 
 
-pub type TowersRangeGrid = BaseGrid<HashSet<Entity>, GridVersion>;
-impl TowersRangeGrid {
+pub type TowerRangesGrid = BaseGrid<HashSet<Entity>, GridVersion>;
+impl TowerRangesGrid {
     pub fn add_tower(&mut self, coords: GridCoords, tower: Entity) {
         self[coords].insert(tower);
         self.version = self.version.wrapping_add(1);
@@ -26,7 +26,7 @@ impl TowersRangeGrid {
     }
     fn on_tower_added(
         trigger: Trigger<OnInsert, AttackRange>,
-        mut tower_ranges_grid: ResMut<TowersRangeGrid>,
+        mut tower_ranges_grid: ResMut<TowerRangesGrid>,
         towers: Query<(&GridCoords, &GridImprint, &AttackRange), With<Tower>>,
     ) {
         let entity = trigger.target();
@@ -35,7 +35,7 @@ impl TowersRangeGrid {
     }
     fn on_tower_removed(
         trigger: Trigger<OnReplace, AttackRange>,
-        mut tower_ranges_grid: ResMut<TowersRangeGrid>,
+        mut tower_ranges_grid: ResMut<TowerRangesGrid>,
         towers: Query<(&GridCoords, &GridImprint, &AttackRange), With<Tower>>,
     ) {
         let entity = trigger.target();

@@ -11,7 +11,8 @@ impl Plugin for ResourcesPlugin {
         app
             .init_resource::<Stock>()
             .add_event::<StockChangedEvent>()
-            .add_systems(PostUpdate, emit_delta_events_system.run_if(resource_changed::<Stock>));
+            .add_systems(PostUpdate, emit_delta_events_system.run_if(resource_changed::<Stock>))
+            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(Stock::default()); });
     }
 }
 

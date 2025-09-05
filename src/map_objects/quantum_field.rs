@@ -74,6 +74,7 @@ impl Default for QuantumFieldImprintSelector {
 struct Solved;
 
 #[derive(Component)]
+#[require(MapBound)]
 pub struct QuantumField {
     pub layers: Vec<QuantumFieldLayer>,
     pub current_layer: usize,

@@ -41,6 +41,7 @@ impl FromWorld for WispAttackEffectAtlas {
 }
 
 #[derive(Component)]
+#[require(MapBound)]
 pub struct WispAttackEffect;
 
 #[derive(Component)]

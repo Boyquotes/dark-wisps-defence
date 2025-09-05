@@ -84,6 +84,7 @@ impl Material2d for RippleMaterial {
 }
 
 #[derive(Component)]
+#[require(MapBound)]
 pub struct Ripple {
     max_radius: f32, // Must be half the mesh size
     current_radius: f32,

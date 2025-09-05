@@ -25,6 +25,19 @@ pub struct MapInfo {
     pub world_width: f32,
     pub world_height: f32,
     pub name: String,
+    pub map_file: map_loader::MapFile,
+}
+impl MapInfo {
+    pub fn set(&mut self, map_file: map_loader::MapFile) {
+        self.grid_width = map_file.width;
+        self.grid_height = map_file.height;
+        self.world_width = map_file.width as f32 * CELL_SIZE;
+        self.world_height = map_file.height as f32 * CELL_SIZE;
+        self.map_file = map_file;
+    }
+    pub fn bounds(&self) -> (i32, i32) {
+        (self.grid_width, self.grid_height)
+    }
 }
 
 // Save current map to yaml file after 'S' is pressed
@@ -83,7 +96,7 @@ pub fn save_map_system(
         }
     }
 
-    let map = map_loader::Map {
+    let map = map_loader::MapFile {
         width: map_info.grid_width,
         height: map_info.grid_height,
         buildings,

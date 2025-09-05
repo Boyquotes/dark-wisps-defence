@@ -40,6 +40,7 @@ impl FromWorld for ExplosionAtlas {
 }
 
 #[derive(Component)]
+#[require(MapBound)]
 pub struct Explosion;
 
 #[derive(Component)]

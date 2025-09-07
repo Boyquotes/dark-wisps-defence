@@ -1,3 +1,5 @@
+use lib_grid::grids::wisps::WispsGrid;
+
 use crate::prelude::*;
 
 use super::components::{Wisp, WispElectricType, WispFireType, WispLightType, WispType, WispWaterType};
@@ -19,6 +21,7 @@ impl BuilderWisp {
     pub fn on_add(
         trigger: Trigger<OnAdd, BuilderWisp>,
         mut commands: Commands,
+        mut wisps_grid: ResMut<WispsGrid>,
         builders: Query<&BuilderWisp>,
     ) {
         let entity = trigger.target();
@@ -49,6 +52,7 @@ impl BuilderWisp {
             WispType::Light => entity_commands.insert((WispLightType, EssencesContainer::from(EssenceContainer::new(EssenceType::Light, 1)))),
             WispType::Electric => entity_commands.insert((WispElectricType, EssencesContainer::from(EssenceContainer::new(EssenceType::Electric, 1)))),
         };
+        wisps_grid.wisp_add(builder.grid_coords, entity);
     }
 }
 

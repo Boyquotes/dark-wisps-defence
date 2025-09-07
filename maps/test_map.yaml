@@ -1353,3 +1353,12 @@ objectives:
 - id_name: kill_wisps
   objective_type: !KillWisps 100
   prerequisites: None
+summonings:
+  - id_name: edges_all_10ps
+    wisp_types:
+      - Fire
+      - Water
+      - Light
+      - Electric
+    area: { kind: edges_all }
+    tempo: { kind: continuous, seconds: 0.2, jitter: 0.1}

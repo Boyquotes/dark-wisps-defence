@@ -19,6 +19,7 @@ use crate::objectives::ObjectiveDetails;
 use crate::map_objects::dark_ore::{BuilderDarkOre, DARK_ORE_GRID_IMPRINT};
 use crate::map_objects::quantum_field::BuilderQuantumField;
 use crate::map_objects::walls::{BuilderWall, WALL_GRID_IMPRINT};
+use crate::wisps::summoning::Summoning;
 
 pub struct MapLoaderPlugin;
 impl Plugin for MapLoaderPlugin {
@@ -153,7 +154,8 @@ pub struct MapFile {
     pub walls: Vec<GridCoords>,
     pub dark_ores: Vec<GridCoords>,
     pub quantum_fields: Vec<MapQuantumField>,
-    pub objectives: Vec<ObjectiveDetails>,
+    #[serde(skip_serializing)] pub objectives: Vec<ObjectiveDetails>,
+    #[serde(skip_serializing)] pub summonings: Vec<Summoning>,
 }
 impl MapFile {
     /// Load a map from a yaml file in the maps directory into a Map struct.
@@ -204,8 +206,11 @@ impl MapFile {
             let quantum_field_entity = commands.spawn(BuilderQuantumField::new(quantum_field.coords, grid_imprint)).id();
             obstacle_grid.imprint(quantum_field.coords, Field::QuantumField(quantum_field_entity), grid_imprint);
         });
-        self.objectives.drain(..).for_each(|objective_details| {
+        self.objectives.iter().cloned().for_each(|objective_details| {
             commands.spawn(objective_details);
+        });
+        self.summonings.iter().cloned().for_each(|summoning| {
+            commands.spawn(summoning);
         });
     }
 }

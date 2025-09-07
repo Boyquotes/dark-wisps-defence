@@ -7,4 +7,12 @@ walls: []
 dark_ores: []
 quantum_fields: []
 objectives: []
-
+summonings:
+  - id_name: edges_all_10ps
+    wisp_types:
+      - Fire
+      - Water
+      - Light
+      - Electric
+    area: { kind: edges_all }
+    tempo: { kind: continuous, seconds: 10., jitter: 0.1, bulk_count: 50 }

@@ -2,6 +2,7 @@ pub mod components;
 mod materials;
 pub mod spawning;
 pub mod systems;
+pub mod summoning;
 
 use bevy::sprite::Material2dPlugin;
 
@@ -18,6 +19,7 @@ impl Plugin for WispsPlugin {
                 Material2dPlugin::<materials::WispElectricMaterial>::default(),
                 
             ))
+            .add_plugins(summoning::SummoningPlugin)
             .add_systems(Update, (
                 (
                     systems::move_wisps,
@@ -25,7 +27,6 @@ impl Plugin for WispsPlugin {
                     systems::wisp_charge_attack,
                     systems::collide_wisps,
                     systems::remove_dead_wisps,
-                    systems::spawn_wisps,
                 ).run_if(in_state(GameState::Running)),
             ))
             .add_observer(spawning::BuilderWisp::on_add)

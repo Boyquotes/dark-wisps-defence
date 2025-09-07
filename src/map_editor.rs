@@ -45,7 +45,6 @@ pub fn save_map_system(
     map_info: Res<MapInfo>,
     grid: Res<ObstacleGrid>,
     keys: Res<ButtonInput<KeyCode>>,
-    objectives: Query<&ObjectiveDetails>,
     buildings_query: Query<(&BuildingType, &GridCoords), With<Building>>,
     dark_ores_query: Query<(&DarkOre, &GridCoords)>,
     quantum_fields_query: Query<(&GridCoords, &GridImprint), With<QuantumField>>,
@@ -103,7 +102,8 @@ pub fn save_map_system(
         walls,
         dark_ores,
         quantum_fields,
-        objectives: objectives.iter().map(|objective| objective.clone()).collect(),
+        objectives: vec![],
+        summonings: vec![],
     };
     // Save yaml file
     serde_yaml::to_writer(File::create(format!("maps/{}.yaml", map_info.name)).unwrap(), &map).unwrap();

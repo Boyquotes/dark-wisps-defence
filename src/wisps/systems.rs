@@ -7,8 +7,7 @@ use lib_inventory::stats::StatsWispsKilled;
 use crate::effects::wisp_attack::BuilderWispAttackEffect;
 use crate::prelude::*;
 
-use super::components::{Wisp, WispChargeAttack, WispState, WispType};
-use super::spawning::BuilderWisp;
+use super::components::{Wisp, WispChargeAttack, WispState};
 
 pub fn move_wisps(
     time: Res<Time>,
@@ -191,30 +190,5 @@ pub fn collide_wisps(
         wisps_grid.wisp_remove(*coords, wisp_entity.into());
         commands.entity(wisp_entity).despawn();
         commands.spawn(BuilderWispAttackEffect(transform.translation.xy()));
-    }
-}
-
-
-pub fn spawn_wisps(
-    mut commands: Commands,
-    obstacle_grid: Res<ObstacleGrid>,
-    mut wisps_grid: ResMut<WispsGrid>,
-) {
-    let mut rng = nanorand::tls_rng();
-    if rng.generate::<f32>() < 0.01 {
-        let grid_coords = {
-            let chance = rng.generate::<f32>();
-            if chance < 0.25 {
-                GridCoords{x: rng.generate_range(1..=obstacle_grid.width), y: 0} // Nano-rand is off by 1! this is (0..grid.width)
-            } else if chance < 0.5 {
-                GridCoords{x: 0, y: rng.generate_range(1..=obstacle_grid.height)}
-            } else if chance < 0.75 {
-                GridCoords{x: rng.generate_range(1..=obstacle_grid.width), y: obstacle_grid.height - 1}
-            } else {
-                GridCoords{x: obstacle_grid.width - 1, y: rng.generate_range(1..=obstacle_grid.height)}
-            }
-        };
-        let wisp_entity = commands.spawn(BuilderWisp::new(WispType::random(), grid_coords)).id();
-        wisps_grid.wisp_add(grid_coords, wisp_entity.into());
     }
 }

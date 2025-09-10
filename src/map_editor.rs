@@ -3,7 +3,6 @@ use std::fs::File;
 use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
 use crate::prelude::*;
-use crate::objectives::ObjectiveDetails;
 use crate::map_loader;
 use crate::map_loader::{MapBuilding, MapQuantumField};
 use crate::map_objects::dark_ore::DarkOre;

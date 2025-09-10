@@ -7,12 +7,6 @@ pub struct ObjectivesPlugin;
 impl Plugin for ObjectivesPlugin {
     fn build(&self, app: &mut App) {
         app
-            .init_resource::<ObjectivesReassesInactiveFlag>()
-            .add_systems(PreUpdate, (
-                (
-                    reassess_inactive_objectives_system,
-                ).run_if(in_state(GameState::Running)),
-            ))
             .add_systems(Update, (
                 (
                     on_objective_completed_system,
@@ -22,14 +16,10 @@ impl Plugin for ObjectivesPlugin {
                 ).run_if(in_state(GameState::Running)),
             ))
             .add_observer(Objective::on_add)
-            .add_observer(ObjectiveDetails::on_add);
+            .add_observer(ObjectiveDetails::on_add)
+            .add_observer(on_reassess_inactive_objectives_event)
+            ;
     }
-}
-
-/// Defines what must happen for an objective to become active
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum ObjectivePrerequisities {
-    None,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -43,7 +33,7 @@ pub enum ObjectiveType {
 pub struct ObjectiveDetails {
     pub id_name: String,
     pub objective_type: ObjectiveType,
-    pub prerequisites: ObjectivePrerequisities,
+    pub activation_event: String,
 }
 impl ObjectiveDetails {
     fn on_add(
@@ -62,16 +52,6 @@ impl ObjectiveDetails {
                 commands.entity(entity).insert(ObjectiveKillWisps{target_amount, started_amount: stats_wisps_killed.0});
             }
         }
-    }
-}
-
-// When true, assess prerequisities of inactive objectives to see if they should become active
-// You can use it as a command to change its value
-#[derive(Resource, Default)]
-pub struct ObjectivesReassesInactiveFlag(bool);
-impl Command for ObjectivesReassesInactiveFlag {
-    fn apply(self, world: &mut World) {
-        world.resource_mut::<ObjectivesReassesInactiveFlag>().0 = self.0
     }
 }
 
@@ -110,15 +90,11 @@ impl Objective {
         mut commands: Commands,
         mut objectives: Query<(&mut Objective, &ObjectiveDetails)>,
         asset_server: Res<AssetServer>,
-        mut objectives_check_inactive_flag: ResMut<ObjectivesReassesInactiveFlag>,
     ) {
         let entity = trigger.target();
         let Ok((mut objective, objective_details)) = objectives.get_mut(entity) else { 
             panic!("Objective is missing ObjectiveDetails!");
          };
-        
-        // Order re-checking objectives state
-        objectives_check_inactive_flag.0 = true;
 
         // Create UI children
         objective.checkmark = commands.spawn((
@@ -155,21 +131,18 @@ impl Objective {
     }
 }
 
-fn reassess_inactive_objectives_system(
+fn on_reassess_inactive_objectives_event(
+    trigger: Trigger<DynamicGameEvent>,
     mut commands: Commands,
-    mut reassesion_flag: ResMut<ObjectivesReassesInactiveFlag>,
     objectives: Query<(Entity, &ObjectiveDetails), With<ObjectiveMarkerInactive>>,
 ) {
-    if !reassesion_flag.0 { return; }
-    for (objective_entity, objective_details) in &objectives {
-        match objective_details.prerequisites {
-            ObjectivePrerequisities::None => (),
-        }
+    let event = &trigger.event().0;
+    for (objective_entity, objective_details) in objectives.iter() {
+        if event != &objective_details.activation_event { continue; }
         commands.entity(objective_entity)
-            .insert(ObjectiveMarkerInProgress)
-            .remove::<ObjectiveMarkerInactive>();
+            .remove::<ObjectiveMarkerInactive>()
+            .insert(ObjectiveMarkerInProgress);
     }
-    reassesion_flag.0 = false;
 }
 
 fn on_objective_completed_system(
@@ -223,7 +196,6 @@ fn update_clear_all_quantum_fields_system(
             commands.entity(objective_entity)
                 .remove::<ObjectiveMarkerInProgress>()
                 .insert(ObjectiveMarkerCompleted);
-            commands.queue(ObjectivesReassesInactiveFlag(true));
         }
     }
 }
@@ -249,7 +221,6 @@ fn update_kill_wisps_system(
             commands.entity(objective_entity)
                 .remove::<ObjectiveMarkerInProgress>()
                 .insert(ObjectiveMarkerCompleted);
-            commands.queue(ObjectivesReassesInactiveFlag(true));
         }
 
     }

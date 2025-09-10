@@ -16,3 +16,4 @@ summonings:
       - Electric
     area: { kind: edges_all }
     tempo: { kind: continuous, seconds: 10., jitter: 0.1, bulk_count: 50 }
+    activation_event: game-started

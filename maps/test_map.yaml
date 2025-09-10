@@ -1349,10 +1349,10 @@ quantum_fields:
 objectives:
 - id_name: clear_quantum_fields
   objective_type: ClearAllQuantumFields
-  prerequisites: None
+  activation_event: game-started
 - id_name: kill_wisps
   objective_type: !KillWisps 100
-  prerequisites: None
+  activation_event: game-started
 summonings:
   - id_name: edges_all_10ps
     wisp_types:
@@ -1362,3 +1362,4 @@ summonings:
       - Electric
     area: { kind: edges_all }
     tempo: { kind: continuous, seconds: 0.2, jitter: 0.1}
+    activation_event: game-started

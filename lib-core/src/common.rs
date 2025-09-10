@@ -24,6 +24,13 @@ pub trait Property {
     fn new(value: f32) -> Self;
 }
 
+// Event that carries yaml-define or constant events 
+#[derive(Event)]
+pub struct DynamicGameEvent(pub String);
+impl DynamicGameEvent {
+    pub fn game_started() -> Self { DynamicGameEvent("game-started".to_string()) }
+}
+
 // Component for entities that are bound to the map and shall be removed on its change
 #[derive(Component, Default)]
 pub struct MapBound; 

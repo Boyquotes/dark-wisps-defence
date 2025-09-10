@@ -29,7 +29,10 @@ impl Plugin for MapLoaderPlugin {
             .add_systems(OnEnter(MapLoadingStage::DespawnExisting), spawn_despawn_existing_stage_tasks)
             .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), spawn_reset_grids_and_resources_stage_tasks)
             .add_systems(OnEnter(MapLoadingStage::ApplyMap), spawn_apply_map_stage_tasks)
-            .add_systems(OnEnter(MapLoadingStage::Loaded), |mut next_game_state: ResMut<NextState<GameState>>| { next_game_state.set(GameState::Running); })
+            .add_systems(OnEnter(MapLoadingStage::Loaded), |mut commands: Commands, mut next_game_state: ResMut<NextState<GameState>>| { 
+                commands.trigger(DynamicGameEvent::game_started());
+                next_game_state.set(GameState::Running); 
+            })
             .add_systems(Update, (
                 (
                     progress_map_loading_state,

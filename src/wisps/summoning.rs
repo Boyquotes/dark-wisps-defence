@@ -11,6 +11,7 @@ impl Plugin for SummoningPlugin {
         app
             .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(SummoningClock::default());})
             .add_systems(Update, tick_active_summoning_system.run_if(in_state(GameState::Running)))
+            .add_observer(on_summoning_activation_event)
             ;
     }
 }
@@ -18,13 +19,14 @@ impl Plugin for SummoningPlugin {
 // --------------- SUMMONING DEFINITIONS (YAML) ---------------
 
 #[derive(Component, Clone, Debug, Serialize, Deserialize)]
-#[require(MapBound, SummoningRuntime, SummoningMarkerActive)]
+#[require(MapBound, SummoningRuntime)]
 pub struct Summoning {
     pub id_name: String,
     pub wisp_types: Vec<WispType>,
     pub area: SpawnArea,
     pub tempo: SpawnTempo,
     pub limit_count: Option<i32>,
+    pub activation_event: String,
 }
 impl Summoning {
     fn get_random_wisp_type(&self, rng: &mut nanorand::tls::TlsWyRand) -> WispType {
@@ -102,8 +104,6 @@ fn default_one() -> i32 { 1 }
 // --------------- SUMMONING ENTITIES AND RUNTIME ---------------
 #[derive(Component, Default)]
 pub struct SummoningMarkerActive;
-#[derive(Component, Default)]
-pub struct SummoningMarkerInactive;
 
 #[derive(Component, Default)]
 struct SummoningRuntime {
@@ -148,5 +148,17 @@ fn tick_active_summoning_system(
                 runtime.next_spawn_time = now + (seconds + j);
             }
         }
+    }
+}
+
+fn on_summoning_activation_event(
+    trigger: Trigger<DynamicGameEvent>,
+    mut commands: Commands,
+    summonings: Query<(Entity, &Summoning), Without<SummoningMarkerActive>>,
+) {
+    let event = &trigger.event().0;
+    for (entity, summoning) in summonings.iter() {
+        if event != &summoning.activation_event { continue; }
+        commands.entity(entity).insert(SummoningMarkerActive);
     }
 }

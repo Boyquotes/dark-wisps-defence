@@ -48,20 +48,20 @@ pub struct UiMapObjectFocusedTrigger;
 pub struct UiMapObjectUnfocusedTrigger;
 
 fn on_display_enter_system(
-    mut display_info_panel: Query<&mut Visibility, With<DisplayInfoPanel>>,
-    mut info_panel_camera: Query<&mut Camera, With<DisplayInfoPanelCamera>>,
+    display_info_panel: Single<&mut Visibility, With<DisplayInfoPanel>>,
+    info_panel_camera: Single<&mut Camera, With<DisplayInfoPanelCamera>>,
 ) {
-    *display_info_panel.single_mut().unwrap() = Visibility::Inherited;
-    info_panel_camera.single_mut().unwrap().is_active = true;
+    *display_info_panel.into_inner() = Visibility::Inherited;
+    info_panel_camera.into_inner().is_active = true;
 }
 
 fn on_display_exit_system(
     mut commands: Commands,
-    mut display_info_panel: Query<&mut Visibility, With<DisplayInfoPanel>>,
-    mut info_panel_camera: Query<&mut Camera, With<DisplayInfoPanelCamera>>,
+    display_info_panel: Single<&mut Visibility, With<DisplayInfoPanel>>,
+    info_panel_camera: Single<&mut Camera, With<DisplayInfoPanelCamera>>,
 ) {
-    *display_info_panel.single_mut().unwrap() = Visibility::Hidden;
-    info_panel_camera.single_mut().unwrap().is_active = false;
+    *display_info_panel.into_inner() = Visibility::Hidden;
+    info_panel_camera.into_inner().is_active = false;
     commands.trigger(UiMapObjectUnfocusedTrigger);
 }
 
@@ -80,8 +80,8 @@ fn show_on_click_system(
     mouse_info: Res<MouseInfo>,
     obstacle_grid: Res<ObstacleGrid>,
     mut next_ui_interaction_state: ResMut<NextState<UiInteraction>>,
-    mut display_info_panel: Query<&mut DisplayInfoPanel>,
-    mut info_panel_camera: Query<&mut Transform, With<DisplayInfoPanelCamera>>,
+    display_info_panel: Single<&mut DisplayInfoPanel>,
+    info_panel_camera: Single<&mut Transform, With<DisplayInfoPanelCamera>>,
     grid_positions: Query<(&GridCoords, &GridImprint)>,
 ) {
     if !mouse.just_pressed(MouseButton::Left) || !mouse_info.grid_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
@@ -95,11 +95,11 @@ fn show_on_click_system(
     // Center the camera on the focused structure
     let Ok((grid_coords, grid_imprint)) = grid_positions.get(focused_structure) else { return; };
     let world_position = grid_coords.to_world_position_centered(*grid_imprint);
-    let Ok(mut camera_transform) = info_panel_camera.single_mut() else { return; };
+    let mut camera_transform = info_panel_camera.into_inner();
     camera_transform.translation.x = world_position.x;
     camera_transform.translation.y = world_position.y;
 
-    display_info_panel.single_mut().unwrap().current_focus = focused_structure;
+    display_info_panel.into_inner().current_focus = focused_structure;
     commands.trigger_targets(UiMapObjectFocusedTrigger, [focused_structure]);
     next_ui_interaction_state.set(UiInteraction::DisplayInfoPanel);
 }
@@ -107,9 +107,9 @@ fn show_on_click_system(
 fn on_building_destroyed_system(
     mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
     mut events: EventReader<BuildingDestroyedEvent>,
-    display_info_panel: Query<&DisplayInfoPanel>,
+    display_info_panel: Single<&DisplayInfoPanel>,
 ) {
-    let current_display_entity = display_info_panel.single().unwrap().current_focus;
+    let current_display_entity = display_info_panel.into_inner().current_focus;
     for event in events.read() {
         if event.0 == current_display_entity {
             ui_interaction_state.set(UiInteraction::Free);

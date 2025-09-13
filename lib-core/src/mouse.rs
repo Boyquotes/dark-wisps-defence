@@ -26,15 +26,14 @@ pub struct MouseInfo {
 }
 
 pub fn update_mouse_info_system(
-    window: Query<&Window, With<PrimaryWindow>>,
-    camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-    ui_nodes: Query<&Interaction, With<ComputedNode>>,
     mut mouse_info: ResMut<MouseInfo>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    camera: Single<(&Camera, &GlobalTransform), With<MainCamera>>,
+    ui_nodes: Query<&Interaction, With<ComputedNode>>,
 ) {
-    let Ok(window) = window.single() else { return; };
-    let Ok((camera, camera_transform)) = camera.single() else { return; };
+    let (camera, camera_transform) = camera.into_inner();
 
-    if let Some(screen_position) = window.cursor_position() {
+    if let Some(screen_position) = window.into_inner().cursor_position() {
         let world_position = camera.viewport_to_world_2d(camera_transform, screen_position).unwrap();
         let grid_coords = GridCoords::from_world_vec2(world_position);
         // Update mouse info

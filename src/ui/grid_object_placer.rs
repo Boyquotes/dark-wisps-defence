@@ -64,10 +64,9 @@ impl GridObjectPlacer {
     fn follow_mouse_system(
         mut commands: Commands,
         mouse_info: Res<MouseInfo>,
-        placer: Query<Entity, With<GridObjectPlacer>>,
+        placer: Single<Entity, With<GridObjectPlacer>>,
     ) {
-        let placer_entity = placer.single().unwrap();
-        commands.entity(placer_entity).insert(mouse_info.grid_coords);
+        commands.entity(placer.into_inner()).insert(mouse_info.grid_coords);
     }
 
     fn on_coords_changed(
@@ -75,9 +74,9 @@ impl GridObjectPlacer {
         obstacle_grid: Res<ObstacleGrid>,
         energy_supply_grid: Res<EnergySupplyGrid>,
         mouse_info: Res<MouseInfo>,
-        mut placer: Query<(&mut Sprite, &GridObjectPlacer, &GridImprint, &GridCoords)>,
+        placer: Single<(&mut Sprite, &GridObjectPlacer, &GridImprint, &GridCoords)>,
     ) {
-        let Ok((mut sprite, grid_object_placer, grid_imprint, grid_coords)) = placer.single_mut() else { return; };
+        let (mut sprite, grid_object_placer, grid_imprint, grid_coords) = placer.into_inner();
         let is_imprint_in_bounds = mouse_info.grid_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds());
         let is_imprint_placable = match &*grid_object_placer {
             GridObjectPlacer::None => false,
@@ -112,15 +111,15 @@ impl From<BuildingType> for GridObjectPlacer {
 
 
 fn on_placing_enter_system(
-    mut placer: Query<&mut Visibility, With<GridObjectPlacer>>,
+    placer: Single<&mut Visibility, With<GridObjectPlacer>>,
 ) {
-    *placer.single_mut().unwrap() = Visibility::Inherited;
+    *placer.into_inner() = Visibility::Inherited;
 }
 
 fn on_placing_exit_system(
-    mut placer: Query<(&mut Visibility, &mut GridObjectPlacer)>,
+    placer: Single<(&mut Visibility, &mut GridObjectPlacer)>,
 ) {
-    let Ok((mut visibility, mut placer)) = placer.single_mut() else { return; };
+    let (mut visibility, mut placer) = placer.into_inner();
     *visibility = Visibility::Hidden;
     *placer = GridObjectPlacer::None;
 }
@@ -158,11 +157,11 @@ fn keyboard_input_system(
 fn on_request_grid_object_placer_system(
     almanach: Res<Almanach>,
     mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
-    mut placer: Query<(&mut Sprite, &mut GridObjectPlacer, &mut GridImprint)>,
+    placer: Single<(&mut Sprite, &mut GridObjectPlacer, &mut GridImprint)>,
     mut placer_request: ResMut<GridObjectPlacerRequest>,
 ) {
     let Some(placer_request) = placer_request.take() else { return; };
-    let Ok((mut sprite, mut grid_object_placer, mut grid_imprint)) = placer.single_mut() else { return; };
+    let (mut sprite, mut grid_object_placer, mut grid_imprint) = placer.into_inner();
     *grid_object_placer = placer_request;
     match &*grid_object_placer {
         GridObjectPlacer::None => panic!("GridObjectPlacer::None should not be possible here"),

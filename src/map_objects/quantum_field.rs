@@ -184,10 +184,10 @@ fn onclick_spawn_system(
     mut obstacles_grid: ResMut<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
-    grid_object_placer: Query<&GridObjectPlacer>,
+    grid_object_placer: Single<&GridObjectPlacer>,
     quantum_fields_query: Query<&GridCoords, With<QuantumField>>,
 ) {
-    let GridObjectPlacer::QuantumField(imprint_selector) = grid_object_placer.single().unwrap() else { return; };
+    let GridObjectPlacer::QuantumField(imprint_selector) = grid_object_placer.into_inner() else { return; };
     let grid_imprint = imprint_selector.get();
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacles_grid.bounds()) { return; }
@@ -240,10 +240,10 @@ impl GridPlacerUiForQuantumField {
     fn on_add(
         trigger: Trigger<OnAdd, GridPlacerUiForQuantumField>,
         mut commands: Commands,
-        grid_placer_ui_for_quantum_field: Query<&GridPlacerUiForQuantumField>,
+        grid_placer_ui_for_quantum_field: Single<&GridPlacerUiForQuantumField>,
     ) {
         let entity = trigger.target();
-        let ui_text = grid_placer_ui_for_quantum_field.single().unwrap().imprint_str();
+        let ui_text = grid_placer_ui_for_quantum_field.into_inner().imprint_str();
         commands.entity(entity).insert((
             Node {
                 position_type: PositionType::Absolute,
@@ -296,13 +296,13 @@ impl ArrowButton {
 
     fn on_click(
         trigger: Trigger<Pointer<Click>>,
-        mut ui: Query<(&Children, &mut GridPlacerUiForQuantumField)>,
+        ui: Single<(&Children, &mut GridPlacerUiForQuantumField)>,
         arrows: Query<&ArrowButton>,
         mut texts: Query<&mut Text>,
         mut placer_request: ResMut<GridObjectPlacerRequest>,
     ) {
         let entity = trigger.target();
-        let (ui_children, mut grid_placer_ui) = ui.single_mut().unwrap();
+        let (ui_children, mut grid_placer_ui) = ui.into_inner();
     
         let arrow_button = arrows.get(entity).unwrap();
         match arrow_button {
@@ -317,15 +317,15 @@ impl ArrowButton {
 }
 
 pub fn operate_arrows_for_grid_placer_ui_for_quantum_field_system(
-    mut ui: Query<&mut Visibility, With<GridPlacerUiForQuantumField>>,
-    grid_object_placer: Query<&GridObjectPlacer>,
+    ui: Single<&mut Visibility, With<GridPlacerUiForQuantumField>>,
+    grid_object_placer: Single<&GridObjectPlacer>,
 ) {
-    let Ok(mut visibility) = ui.single_mut() else { return; };
-    let GridObjectPlacer::QuantumField(_) = grid_object_placer.single().unwrap() else {
-        *visibility = Visibility::Hidden;
-        return;
+    let mut visibility = ui.into_inner();
+    *visibility = if let GridObjectPlacer::QuantumField(_) = grid_object_placer.into_inner() {
+        Visibility::Inherited
+    } else {
+        Visibility::Hidden
     };
-    *visibility = Visibility::Inherited;
 }
 
 ////////////////////////////////////////////
@@ -377,12 +377,12 @@ impl QuantumFieldActionButton {
         _trigger: Trigger<Pointer<Click>>,
         mut commands: Commands,
         mut stock: ResMut<Stock>,
-        display_info_panel: Query<&DisplayInfoPanel>,
-        mut action_button: Query<&mut QuantumFieldActionButton>,
+        display_info_panel: Single<&DisplayInfoPanel>,
+        action_button: Single<&mut QuantumFieldActionButton>,
         mut quantum_fields: Query<&mut QuantumField>,
     ) {
-        let focused_entity = display_info_panel.single().unwrap().current_focus;
-        let mut action_button = action_button.single_mut().unwrap();
+        let focused_entity = display_info_panel.into_inner().current_focus;
+        let mut action_button = action_button.into_inner();
         match *action_button {
             QuantumFieldActionButton::SendExpeditions => {
                 commands.entity(focused_entity).insert(ExpeditionTargetMarker);
@@ -408,27 +408,26 @@ struct QuantumFieldActionButtonText;
 
 fn update_quantum_field_info_panel_system(
     quantum_fields: Query<(&QuantumField, Has<ExpeditionTargetMarker>)>,
-    display_info_panel: Query<&DisplayInfoPanel>,
-    mut action_button: Query<&mut QuantumFieldActionButton>,
-    mut healthbars: Query<&mut Healthbar, With<QuantumFieldLayerHealthbar>>,
-    mut texts: Query<&mut Text, With<QuantumFieldLayerText>>,
+    display_info_panel: Single<&DisplayInfoPanel>,
+    action_button: Single<&mut QuantumFieldActionButton>,
+    healthbar: Single<&mut Healthbar, With<QuantumFieldLayerHealthbar>>,
+    text: Single<&mut Text, With<QuantumFieldLayerText>>,
 ) {
-    let focused_entity = display_info_panel.single().unwrap().current_focus;
+    let focused_entity = display_info_panel.into_inner().current_focus;
     let Ok((quantum_field, has_expedition_target_marker)) = quantum_fields.get(focused_entity) else { return; };
-    let Ok(mut healthbar) = healthbars.single_mut() else { return; };
     // Update the layer text
-    let Ok(mut text) = texts.single_mut() else { return; };
-    text.0 = if quantum_field.is_solved() {
+    text.into_inner().0 = if quantum_field.is_solved() {
         "All Quantum Layers Solved".to_string()
     } else {
         format!("Quantum Layer {}/{}", quantum_field.current_layer + 1, quantum_field.layers.len())
     };
     // Update the layer progress
     let (current_layer_progress, current_layer_target) = quantum_field.get_progress_details();
+    let mut healthbar = healthbar.into_inner();
     healthbar.value = current_layer_progress as f32;
     healthbar.max_value = current_layer_target as f32;
     // Update the action button
-    *action_button.single_mut().unwrap() = {
+    *action_button.into_inner() = {
         if quantum_field.is_solved() {
             QuantumFieldActionButton::Hidden
         } else if quantum_field.is_current_layer_solved() {
@@ -445,24 +444,24 @@ fn on_ui_map_object_focus_changed_trigger(
     trigger: Trigger<UiMapObjectFocusedTrigger>,
     mut commands: Commands,
     quantum_fields: Query<&QuantumField>,
-    mut quantum_field_panel: Query<&mut Node, With<QuantumFieldPanel>>,
-    costs_container: Query<Entity, With<QuantumFieldLayerCostsContainer>>,
+    quantum_field_panel: Single<&mut Node, With<QuantumFieldPanel>>,
+    costs_container: Single<Entity, With<QuantumFieldLayerCostsContainer>>,
     costs_panels: Query<Entity, With<QuantumFieldLayerCostPanel>>,
 ) {
     let focused_entity = trigger.target();
     let Ok(quantum_field) = quantum_fields.get(focused_entity) else { 
-        quantum_field_panel.single_mut().unwrap().display = Display::None;
+        quantum_field_panel.into_inner().display = Display::None;
         return;
      };
-    quantum_field_panel.single_mut().unwrap().display = Display::Flex;
+    quantum_field_panel.into_inner().display = Display::Flex;
 
     // Remove the old panels
     costs_panels.iter().for_each(|entity| commands.entity(entity).despawn());
 
     // Create the new panels
-    let Ok(costs_container_entity) = costs_container.single() else { return; };
+    let mut costs_container_commands = commands.entity(costs_container.into_inner());
     for cost in quantum_field.get_current_layer_costs() {
-        commands.entity(costs_container_entity).with_children(|parent| {
+        costs_container_commands.with_children(|parent| {
             parent.spawn((
                 Node {
                     margin: UiRect{ top: Val::Px(4.), bottom: Val::Px(4.), ..default() },
@@ -476,11 +475,11 @@ fn on_ui_map_object_focus_changed_trigger(
 }
 
 fn update_quantum_field_action_button_system(
-    mut action_button: Query<(&QuantumFieldActionButton, &mut Node)>,
-    mut action_button_text: Query<&mut Text, With<QuantumFieldActionButtonText>>,
+    action_button: Single<(&QuantumFieldActionButton, &mut Node)>,
+    action_button_text: Single<&mut Text, With<QuantumFieldActionButtonText>>,
 ) {
-    let Ok((action_button, mut style)) = action_button.single_mut() else { return; };
-    let Ok(mut text) = action_button_text.single_mut() else { return; };
+    let (action_button, mut style) = action_button.into_inner();
+    let mut text = action_button_text.into_inner();
     match action_button {
         QuantumFieldActionButton::SendExpeditions => {
             text.0 = "Send Expeditions".to_string();
@@ -503,10 +502,9 @@ fn update_quantum_field_action_button_system(
 
 fn initialize_quantum_field_panel_content_system(
     mut commands: Commands,
-    display_info_panel_main_content_root: Query<Entity, With<DisplayPanelMainContentRoot>>,
+    display_info_panel_main_content_root: Single<Entity, With<DisplayPanelMainContentRoot>>,
 ) {
-    let Ok(display_info_panel_main_content_root) = display_info_panel_main_content_root.single() else { return; };
-    commands.entity(display_info_panel_main_content_root).with_children(|parent| {
+    commands.entity(display_info_panel_main_content_root.into_inner()).with_children(|parent| {
         parent.spawn((
             Node {
                 display: Display::None,

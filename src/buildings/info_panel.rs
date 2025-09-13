@@ -37,16 +37,16 @@ struct BuildingInfoPanelTowerUpgradeCountText;
 impl BuildingInfoPanelTowerUpgradeCountText {
     fn refresh_upgrade_count_on<T: Event, B: Bundle> (
         _trigger: Trigger<T, B>,
-        display_info_panel: Query<&DisplayInfoPanel>,
+        display_info_panel: Single<&DisplayInfoPanel>,
         modifiers: Query<&Modifiers>,
         upgrades: Query<(), With<ModifierSourceUpgrade>>,
-        mut upgrade_count_text: Query<&mut Text, With<BuildingInfoPanelTowerUpgradeCountText>>,
+        upgrade_count_text: Single<&mut Text, With<BuildingInfoPanelTowerUpgradeCountText>>,
     ) {
-        let focused_entity = display_info_panel.single().unwrap().current_focus;
+        let focused_entity = display_info_panel.into_inner().current_focus;
         let Ok(modifiers) = modifiers.get(focused_entity) else { return; };
         let upgrade_count = modifiers.iter().filter(|upgrade_entity| upgrades.contains(*upgrade_entity)).count();
 
-        upgrade_count_text.single_mut().unwrap().0 = format!("--- Upgrades {} / 3 ---", upgrade_count);
+        upgrade_count_text.into_inner().0 = format!("--- Upgrades {} / 3 ---", upgrade_count);
     }
 }
 #[derive(Component)]
@@ -54,13 +54,13 @@ struct BuildingInfoPanelTowerUpgradesContainer;
 
 fn update_building_info_panel_system(
     buildings: Query<&Health, With<Building>>,
-    display_info_panel: Query<&DisplayInfoPanel>,
-    mut healthbars: Query<&mut Healthbar, With<BuildingInfoPanelHealthbar>>,
+    display_info_panel: Single<&DisplayInfoPanel>,
+    healthbar: Single<&mut Healthbar, With<BuildingInfoPanelHealthbar>>,
 ) {
-    let focused_entity = display_info_panel.single().unwrap().current_focus;
+    let focused_entity = display_info_panel.into_inner().current_focus;
     let Ok(health) = buildings.get(focused_entity) else { return; };
     // Update the healthbar
-    let Ok(mut healthbar) = healthbars.single_mut() else { return; };
+    let mut healthbar = healthbar.into_inner();
     healthbar.value = health.get_current() as f32;
     healthbar.max_value = health.get_max() as f32;
     let health_percentage = health.get_percent();
@@ -71,32 +71,31 @@ fn on_ui_map_object_focus_changed_trigger(
     trigger: Trigger<UiMapObjectFocusedTrigger>,
     mut commands: Commands,
     almanach: Res<Almanach>,
-    mut building_name_text: Query<&mut Text, With<BuildingInfoPanelNameText>>,
-    mut building_panel: Query<&mut Node, (With<BuildingInfoPanel>, Without<BuildingInfoPanelDisableButton>)>,
+    building_name_text: Single<&mut Text, With<BuildingInfoPanelNameText>>,
+    building_panel: Single<&mut Node, (With<BuildingInfoPanel>, Without<BuildingInfoPanelDisableButton>)>,
     buildings: Query<&BuildingType>,
     disabled_by_player: Query<(), With<DisabledByPlayer>>,
-    mut disable_button_node: Query<&mut Node, (With<BuildingInfoPanelDisableButton>, Without<BuildingInfoPanel>)>,
-    mut disable_button_icon: Query<&mut ImageNode, With<BuildingInfoPanelDisableButtonIcon>>,
+    disable_button_node: Single<&mut Node, (With<BuildingInfoPanelDisableButton>, Without<BuildingInfoPanel>)>,
+    disable_button_icon: Single<&mut ImageNode, With<BuildingInfoPanelDisableButtonIcon>>,
 ) {
     let focused_entity = trigger.target();
     let Ok(building_type) = buildings.get(focused_entity) else { 
-        building_panel.single_mut().unwrap().display = Display::None;
+        building_panel.into_inner().display = Display::None;
         return; 
     };
-    building_panel.single_mut().unwrap().display = Display::Flex;
+    building_panel.into_inner().display = Display::Flex;
     commands.trigger_targets(BuildingInfoPanelEnabledTrigger, [focused_entity]);
 
     // Update the building name
-    building_name_text.single_mut().unwrap().0 = almanach.get_building_info(*building_type).name.to_string();
+    building_name_text.into_inner().0 = almanach.get_building_info(*building_type).name.to_string();
 
     // Manage the Disable button
     let is_main_base = matches!(building_type, &BuildingType::MainBase);
-    let mut node = disable_button_node.single_mut().unwrap();
-    node.display = if is_main_base { 
+    disable_button_node.into_inner().display = if is_main_base { 
         // MainBase cannot be disabled
         Display::None 
     } else { 
-        let mut icon = disable_button_icon.single_mut().unwrap();
+        let mut icon = disable_button_icon.into_inner();
         let is_disabled = disabled_by_player.contains(focused_entity);
         icon.color.set_alpha(if is_disabled { 1.0 } else { 0.35 });
         Display::Flex 
@@ -105,10 +104,9 @@ fn on_ui_map_object_focus_changed_trigger(
 
 fn initialize_building_panel_content_system(
     mut commands: Commands,
-    display_info_panel_main_content_root: Query<Entity, With<DisplayPanelMainContentRoot>>,
+    display_info_panel_main_content_root: Single<Entity, With<DisplayPanelMainContentRoot>>,
 ) {
-    let display_info_panel_main_content_root = display_info_panel_main_content_root.single().unwrap();
-    commands.entity(display_info_panel_main_content_root).with_children(|parent| {
+    commands.entity(display_info_panel_main_content_root.into_inner()).with_children(|parent| {
         parent.spawn((
             Node {
                 display: Display::None,
@@ -170,29 +168,27 @@ fn initialize_building_panel_content_system(
 fn on_building_info_panel_enabled_for_towers_trigger(
     trigger: Trigger<BuildingInfoPanelEnabledTrigger>,
     mut commands: Commands,
-    mut tower_subpanel_root: Query<&mut Node, With<BuildingInfoPanelTowerRoot>>,
+    tower_subpanel_root: Single<&mut Node, With<BuildingInfoPanelTowerRoot>>,
     towers: Query<&PotentialUpgrades, With<Tower>>,
-    upgrades_containers: Query<Entity, With<BuildingInfoPanelTowerUpgradesContainer>>,
+    upgrades_container: Single<Entity, With<BuildingInfoPanelTowerUpgradesContainer>>,
 ){
     let focused_entity = trigger.target();
     let Ok(potential_upgrades) = towers.get(focused_entity) else {
-        tower_subpanel_root.single_mut().unwrap().display = Display::None;
+        tower_subpanel_root.into_inner().display = Display::None;
         return;
     };
-    tower_subpanel_root.single_mut().unwrap().display = Display::Flex;
+    tower_subpanel_root.into_inner().display = Display::Flex;
 
     // Rebuild the upgrades container
-    let upgrades_container = upgrades_containers.single().unwrap();
-    
-    // Clear all existing children
-    commands.entity(upgrades_container).despawn_related::<Children>();
-
-    // Create upgrade buttons for each available upgrade
-    commands.entity(upgrades_container).with_children(|parent| {
-        potential_upgrades.iter().for_each(|potential_upgrade_entity| {
-            parent.spawn(UpgradeLineBuilder { potential_upgrade_entity });
+    commands.entity(upgrades_container.into_inner())
+        // Clear all existing children
+        .despawn_related::<Children>()
+        // Create upgrade buttons for each available upgrade
+        .with_children(|parent| {
+            potential_upgrades.iter().for_each(|potential_upgrade_entity| {
+                parent.spawn(UpgradeLineBuilder { potential_upgrade_entity });
+            });
         });
-    });
 }
 
 fn tower_subpanel_content_bundle() -> impl Bundle {
@@ -269,11 +265,11 @@ impl BuildingInfoPanelDisableButton {
     fn on_click(
         _trigger: Trigger<Pointer<Click>>,
         mut commands: Commands,
-        display_info_panel: Query<&DisplayInfoPanel>,
+        display_info_panel: Single<&DisplayInfoPanel>,
         disabled_by_player: Query<(), With<DisabledByPlayer>>,
-        mut icons: Query<&mut ImageNode, With<BuildingInfoPanelDisableButtonIcon>>,
+        icon: Single<&mut ImageNode, With<BuildingInfoPanelDisableButtonIcon>>,
     ) {
-        let focused_entity = display_info_panel.single().unwrap().current_focus;
+        let focused_entity = display_info_panel.into_inner().current_focus;
         let is_disabled = disabled_by_player.contains(focused_entity);
         if is_disabled {
             commands.entity(focused_entity).remove::<DisabledByPlayer>();
@@ -282,7 +278,6 @@ impl BuildingInfoPanelDisableButton {
         }
 
         // Update icon alpha to reflect state after toggle
-        let mut icon = icons.single_mut().unwrap();
-        icon.color.set_alpha(if is_disabled { 0.35 } else { 1.0 });
+        icon.into_inner().color.set_alpha(if is_disabled { 0.35 } else { 1.0 });
     }
 }

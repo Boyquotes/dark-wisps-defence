@@ -37,10 +37,10 @@ pub struct EssencesContainer {
 impl EssencesContainer {
     fn manage_essence_badges_visibility(
         mut event_reader: EventReader<StockChangedEvent>,
-        essences_container: Query<&EssencesContainer>,
+        essences_container: Single<&EssencesContainer>,
         mut nodes: Query<&mut Node, With<EssenceBadge>>,
     ) {
-        let Ok(essences_container) = essences_container.single() else { return; };
+        let essences_container = essences_container.into_inner();
         for event in event_reader.read() {
             let ResourceType::Essence(essence_type) = event.resource_type else { continue; };
             let essence_badge_entity = *essences_container.badges.get(&essence_type).expect("Essence badge entity not found");    
@@ -53,10 +53,10 @@ impl EssencesContainer {
         }
     }
     fn hide_all_essence_badges(
-        essences_container: Query<&EssencesContainer>,
+        essences_container: Single<&EssencesContainer>,
         mut nodes: Query<&mut Node, With<EssenceBadge>>,
     ) {
-        let Ok(essences_container) = essences_container.single() else { return; };
+        let essences_container = essences_container.into_inner();
         for essence_badge_entity in essences_container.badges.values() {
             let Ok(mut node) = nodes.get_mut(*essence_badge_entity) else { continue; };
             node.display = Display::None;

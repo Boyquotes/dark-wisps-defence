@@ -23,8 +23,8 @@ impl Plugin for TowersRangeOverlayPlugin {
             .init_state::<TowersRangeOverlayState>()
             .init_resource::<TowersRangeOverlayConfig>()
             .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), TowersRangeOverlay::create)
-            .add_systems(OnEnter(TowersRangeOverlayState::Show), |mut visibility: Query<&mut Visibility, With<TowersRangeOverlay>>| { *visibility.single_mut().unwrap() = Visibility::Inherited; },)
-            .add_systems(OnExit(TowersRangeOverlayState::Show),|mut visibility: Query<&mut Visibility, With<TowersRangeOverlay>>| { *visibility.single_mut().unwrap() = Visibility::Hidden; },)
+            .add_systems(OnEnter(TowersRangeOverlayState::Show), |visibility: Single<&mut Visibility, With<TowersRangeOverlay>>| { *visibility.into_inner() = Visibility::Inherited; },)
+            .add_systems(OnExit(TowersRangeOverlayState::Show),|visibility: Single<&mut Visibility, With<TowersRangeOverlay>>| { *visibility.into_inner() = Visibility::Hidden; },)
             .add_systems(OnExit(UiInteraction::PlaceGridObject),|mut config: ResMut<TowersRangeOverlayConfig>| { config.secondary_mode = TowersRangeOverlaySecondaryMode::None; },)
             .add_systems(
                 Update,
@@ -153,7 +153,7 @@ fn refresh_display_system(
     mut materials: ResMut<Assets<TowersRangeMaterial>>,
     tower_ranges_grid: Res<TowerRangesGrid>,
     mut overlay_config: ResMut<TowersRangeOverlayConfig>,
-    towers_range_overlay: Query<&MeshMaterial2d<TowersRangeMaterial>, With<TowersRangeOverlay>>,
+    towers_range_overlay: Single<&MeshMaterial2d<TowersRangeMaterial>, With<TowersRangeOverlay>>,
     mut last_secondary_mode: Local<TowersRangeOverlaySecondaryMode>,
     mut local_buffer_data: Local<Vec<TowerRangeCell>>, // To avoid re-allocations every frame
 ) {
@@ -163,9 +163,7 @@ fn refresh_display_system(
 
     *last_secondary_mode = overlay_config.secondary_mode.clone();
     overlay_config.grid_version = tower_ranges_grid.version;
-    let Ok(overlay_material_handle) = towers_range_overlay.single() else { return; };
-
-    let overlay_material = materials.get_mut(overlay_material_handle).unwrap();
+    let overlay_material = materials.get_mut(towers_range_overlay.into_inner()).unwrap();
 
     // Generate buffer data
     let mut overlay_creator = OverlayBufferCreator::new(&tower_ranges_grid, &mut local_buffer_data);
@@ -212,13 +210,12 @@ fn refresh_display_system(
 fn on_grid_placer_changed_system(
     almanach: Res<Almanach>,
     mut overlay_config: ResMut<TowersRangeOverlayConfig>,
-    grid_object_placer: Query<(&GridObjectPlacer, &GridCoords)>,
+    grid_object_placer: Single<(&GridObjectPlacer, &GridCoords)>,
     mut last_grid_object_placer: Local<(GridObjectPlacer, GridCoords)>,
 ) {
-    let Ok((grid_object_placer, grid_coords)) = grid_object_placer.single() else { return; };
+    let (grid_object_placer, grid_coords) = grid_object_placer.into_inner();
     if grid_object_placer != &last_grid_object_placer.0 || grid_coords != &last_grid_object_placer.1 {
         *last_grid_object_placer = (grid_object_placer.clone(), *grid_coords);
-        let (grid_object_placer, grid_coords) = (grid_object_placer, grid_coords);
         match grid_object_placer {
             GridObjectPlacer::Building(building_type) => match building_type {
                 BuildingType::Tower(_) => {

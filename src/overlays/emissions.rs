@@ -104,10 +104,10 @@ pub fn update_emissions_overlay_system(
     mut materials: ResMut<Assets<EmissionHeatmapMaterial>>,
     emissions_grid: Res<EmissionsGrid>,
     mut emissions_overlay_mode: ResMut<EmissionsOverlayMode>,
-    mut emissions_overlay: Query<(&mut Visibility, &MeshMaterial2d<EmissionHeatmapMaterial>), With<EmissionsOverlay>>,
+    emissions_overlay: Single<(&mut Visibility, &MeshMaterial2d<EmissionHeatmapMaterial>), With<EmissionsOverlay>>,
     mut last_grid_version: Local<GridVersion>,
 ) {
-    let Ok((mut visibility, heatmap_material_handle)) = emissions_overlay.single_mut() else { return; };
+    let (mut visibility, heatmap_material_handle) = emissions_overlay.into_inner();
     match &mut *emissions_overlay_mode {
         EmissionsOverlayMode::None => { 
             *visibility = Visibility::Hidden;

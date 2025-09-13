@@ -34,7 +34,7 @@ fn startup(mut commands: Commands) {
 }
 
 fn camera_zoom(
-    mut camera: Query<&mut Projection, With<MainCamera>>,
+    camera: Single<&mut Projection, With<MainCamera>>,
     time: Res<Time>,
     mut mouse_wheel_events: EventReader<MouseWheel>
 ) {
@@ -43,7 +43,7 @@ fn camera_zoom(
         scroll += event.y;
     }
 
-    let Ok(mut projection) = camera.single_mut() else { return; };
+    let mut projection = camera.into_inner();
     match &mut *projection {
         Projection::Orthographic(orthographic) => {
             let mut log_scale = orthographic.scale.ln();
@@ -57,7 +57,7 @@ fn camera_zoom(
 
 fn camera_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query_camera: Query<&mut Transform, With<MainCamera>>,
+    camera: Single<&mut Transform, With<MainCamera>>,
     time: Res<Time>
 ) {
     let mut translation = Vec3::ZERO;
@@ -83,7 +83,6 @@ fn camera_movement(
     }
 
     // Apply the camera movement
-    for mut transform in query_camera.iter_mut() {
-        transform.translation += SLIDE_SPEED * time.delta_secs() * translation;
-    }
+    let mut transform = camera.into_inner();
+    transform.translation += SLIDE_SPEED * time.delta_secs() * translation;
 }

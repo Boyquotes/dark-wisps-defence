@@ -41,12 +41,12 @@ fn onclick_building_spawn_system(
     mouse_info: Res<MouseInfo>,
     almanach: Res<Almanach>,
     mut stock: ResMut<Stock>,
-    grid_object_placer: Query<(&GridObjectPlacer, &GridImprint)>,
+    grid_object_placer: Single<(&GridObjectPlacer, &GridImprint)>,
     main_base: Query<(Entity, &GridCoords), With<MainBase>>,
 ) {
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) { return; }
-    let Ok((grid_object_placer, grid_imprint)) = grid_object_placer.single() else { return; };
+    let (grid_object_placer, grid_imprint) = grid_object_placer.into_inner();
     let GridObjectPlacer::Building(building_type) = grid_object_placer else { return; };
     // Grid Placement Validation
     if !mouse_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds())

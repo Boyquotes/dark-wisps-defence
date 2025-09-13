@@ -57,7 +57,6 @@ impl BuilderExplorationCenter {
                 related![Modifiers[
                     (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
                 ]],
-                DisabledByPlayer,
                 related![Indicators[
                     IndicatorType::NoPower,
                     IndicatorType::DisabledByPlayer,

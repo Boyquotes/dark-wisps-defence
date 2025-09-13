@@ -99,29 +99,28 @@ impl ObjectivesPanel {
     fn on_objective_added(
         trigger: Trigger<OnAdd, Objective>,
         mut commands: Commands,
-        objectives_panel: Query<Entity, With<ObjectivesPanel>>,
+        objectives_panel: Single<Entity, With<ObjectivesPanel>>,
     ) {
-        let Ok(objectives_panel) = objectives_panel.single() else { return; };
         let objective_entity = trigger.target();
-        commands.entity(objectives_panel).add_child(objective_entity);
+        commands.entity(objectives_panel.into_inner()).add_child(objective_entity);
     }
 }
 
 fn panel_transition_to_visible_system(
     time: Res<Time>,
     mut next_state: ResMut<NextState<ObjectivesPanelState>>,
-    mut objectives_panel: Query<&mut Node, With<ObjectivesPanel>>,
+    objectives_panel: Single<&mut Node, With<ObjectivesPanel>>,
 ) {
-    let Ok(mut style) = objectives_panel.single_mut() else { return; };
-    let current_top = match style.top {
+    let mut node = objectives_panel.into_inner();
+    let current_top = match node.top {
         Val::Px(top) => top,
         _ => unreachable!(),
     };
     let new_top = current_top + time.delta_secs() * SLIDING_SPEED;
     if new_top < VISIBLE_TOP_POSITION {
-        style.top = Val::Px(new_top);
+        node.top = Val::Px(new_top);
     } else {
-        style.top = Val::Px(VISIBLE_TOP_POSITION);
+        node.top = Val::Px(VISIBLE_TOP_POSITION);
         next_state.set(ObjectivesPanelState::Visible);
     }
 }
@@ -129,18 +128,18 @@ fn panel_transition_to_visible_system(
 fn panel_transition_to_hidden_system(
     time: Res<Time>,
     mut next_state: ResMut<NextState<ObjectivesPanelState>>,
-    mut objectives_panel: Query<(&ComputedNode, &mut Node), With<ObjectivesPanel>>,
+    objectives_panel: Single<(&ComputedNode, &mut Node), With<ObjectivesPanel>>,
 ) {
-    let Ok((node, mut style)) = objectives_panel.single_mut() else { return; };
-    let current_top = match style.top {
+    let (computed_node, mut node) = objectives_panel.into_inner();
+    let current_top = match node.top {
         Val::Px(top) => top,
         _ => unreachable!(),
     };
     let new_top = current_top - time.delta_secs() * SLIDING_SPEED;
-    if new_top > -node.size().y {
-        style.top = Val::Px(new_top);
+    if new_top > -computed_node.size().y {
+        node.top = Val::Px(new_top);
     } else {
-        style.top = Val::Px(-node.size().y);
+        node.top = Val::Px(-computed_node.size().y);
         next_state.set(ObjectivesPanelState::Hidden);
     }
 }

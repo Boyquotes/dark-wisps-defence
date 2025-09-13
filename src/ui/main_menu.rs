@@ -83,9 +83,9 @@ impl LoadMapButton {
     fn on_click(
         _trigger: Trigger<Pointer<Click>>,
         mut commands: Commands,
-        mut container: Query<(Entity, &mut Node), With<MapListContainer>>,
+        map_list_container: Single<(Entity, &mut Node), With<MapListContainer>>,
     ) {
-        let Ok((container_entity, mut node)) = container.single_mut() else { return; };
+        let (container_entity, mut node) = map_list_container.into_inner();
 
         if node.display == Display::Flex { 
             node.display = Display::None;
@@ -173,19 +173,19 @@ impl MapEntryButton {
 }
 
 fn on_menu_enter_system(
-    mut menu: Query<&mut Visibility, With<MainMenuRoot>>,
+    menu: Single<&mut Visibility, With<MainMenuRoot>>,
     mut next_game_state: ResMut<NextState<GameState>>,
 ) {
-    *menu.single_mut().unwrap() = Visibility::Inherited;
+    *menu.into_inner() = Visibility::Inherited;
     next_game_state.set(GameState::Paused);
 }
 
 fn on_menu_exit_system(
-    mut menu: Query<&mut Visibility, With<MainMenuRoot>>,
+    menu: Single<&mut Visibility, With<MainMenuRoot>>,
     current_game_state: Res<State<GameState>>,
     mut next_game_state: ResMut<NextState<GameState>>,
 ) {
-    *menu.single_mut().unwrap() = Visibility::Hidden;
+    *menu.into_inner() = Visibility::Hidden;
     if matches!(current_game_state.get(), GameState::Paused) {
         next_game_state.set(GameState::Running);
     }

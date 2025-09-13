@@ -88,10 +88,10 @@ fn onclick_spawn_system(
     mut obstacle_grid: ResMut<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
-    grid_object_placer: Query<&GridObjectPlacer>,
+    grid_object_placer: Single<&GridObjectPlacer>,
     dark_ores_query: Query<&GridCoords, With<DarkOre>>,
 ) {
-    if !matches!(*grid_object_placer.single().unwrap(), GridObjectPlacer::DarkOre) { return; }
+    if !matches!(*grid_object_placer.into_inner(), GridObjectPlacer::DarkOre) { return; }
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {

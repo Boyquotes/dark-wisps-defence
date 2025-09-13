@@ -26,8 +26,8 @@ impl Plugin for EnergySupplyOverlayPlugin {
             .init_state::<EnergySupplyOverlayState>()
             .init_resource::<EnergySupplyOverlayConfig>()
             .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), EnergySupplyOverlay::create)
-            .add_systems(OnEnter(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Inherited; })
-            .add_systems(OnExit(EnergySupplyOverlayState::Show), |mut visiblitiy: Query<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.single_mut().unwrap() = Visibility::Hidden; })
+            .add_systems(OnEnter(EnergySupplyOverlayState::Show), |visiblitiy: Single<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.into_inner() = Visibility::Inherited; })
+            .add_systems(OnExit(EnergySupplyOverlayState::Show), |visiblitiy: Single<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.into_inner() = Visibility::Hidden; })
             .add_systems(OnExit(UiInteraction::PlaceGridObject), |mut config: ResMut<EnergySupplyOverlayConfig>| { config.secondary_mode = EnergySupplyOverlaySecondaryMode::None; })
             .add_systems(Update, (
                 EnergySupplyOverlayConfig::on_config_change_system.run_if(resource_changed::<EnergySupplyOverlayConfig>),
@@ -148,7 +148,7 @@ fn refresh_display_system(
     mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
     energy_supply_grid: Res<EnergySupplyGrid>,
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
-    energy_supply_overlay: Query<&MeshMaterial2d<EnergySupplyHeatmapMaterial>, With<EnergySupplyOverlay>>,
+    energy_supply_overlay: Single<&MeshMaterial2d<EnergySupplyHeatmapMaterial>, With<EnergySupplyOverlay>>,
     mut last_secondary_mode: Local<EnergySupplyOverlaySecondaryMode>,
     mut local_buffer_data: Local<Vec<EnergySupplyCell>>, // To avoid re-allocations every frame
 ) {
@@ -156,9 +156,8 @@ fn refresh_display_system(
     
     *last_secondary_mode = overlay_config.secondary_mode.clone();
     overlay_config.grid_version = energy_supply_grid.version;
-    let Ok(overlay_material_handle) = energy_supply_overlay.single() else { return; };
 
-    let overlay_material = materials.get_mut(overlay_material_handle).unwrap();
+    let overlay_material = materials.get_mut(energy_supply_overlay.into_inner()).unwrap();
     
     // Generate buffer data
     let mut overlay_creator = OverlayBufferCreator::new(&energy_supply_grid, &mut local_buffer_data);
@@ -212,13 +211,12 @@ fn refresh_display_system(
 fn on_grid_placer_changed_system(
     almanach: Res<Almanach>,
     mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
-    grid_object_placer: Query<(&GridObjectPlacer, &GridCoords)>,
+    grid_object_placer: Single<(&GridObjectPlacer, &GridCoords)>,
     mut last_grid_object_placer: Local<(GridObjectPlacer, GridCoords)>,
 ) {
-    let Ok((grid_object_placer, grid_coords)) = grid_object_placer.single() else { return; };
+    let (grid_object_placer, grid_coords) = grid_object_placer.into_inner();
     if grid_object_placer != &last_grid_object_placer.0 || grid_coords != &last_grid_object_placer.1 {
         *last_grid_object_placer = (grid_object_placer.clone(), *grid_coords);
-        let (grid_object_placer, grid_coords) = (grid_object_placer, grid_coords);
         match grid_object_placer {
             GridObjectPlacer::Building(building_type) => {
                 let building_info = almanach.get_building_info(*building_type);

@@ -47,12 +47,12 @@ pub struct Explosion;
 pub struct BuilderExplosion(pub GridCoords);
 impl BuilderExplosion {
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderExplosion>,
+        trigger: On<Add, BuilderExplosion>,
         mut commands: Commands,
         explosion_atlas: Res<ExplosionAtlas>,
         builders: Query<&BuilderExplosion>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         commands.entity(entity)

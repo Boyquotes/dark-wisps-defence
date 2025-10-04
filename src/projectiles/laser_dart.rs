@@ -43,11 +43,11 @@ impl BuilderLaserDart {
     }
 
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderLaserDart>,
+        trigger: On<Add, BuilderLaserDart>,
         mut commands: Commands,
         builders: Query<&BuilderLaserDart>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         commands.entity(entity)

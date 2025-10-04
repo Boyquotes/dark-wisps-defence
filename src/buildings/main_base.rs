@@ -26,13 +26,13 @@ impl BuilderMainBase {
      }
 
     pub fn on_add(
-        trigger: Trigger<OnAdd, BuilderMainBase>,
+        trigger: On<Add, BuilderMainBase>,
         mut commands: Commands,
         builders: Query<&BuilderMainBase>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
 
         let building_info = almanach.get_building_info(BuildingType::MainBase);

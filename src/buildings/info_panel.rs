@@ -12,7 +12,7 @@ impl Plugin for InfoPanelPlugin {
             .add_systems(Update, update_building_info_panel_system.run_if(in_state(UiInteraction::DisplayInfoPanel)))
             .add_observer(on_ui_map_object_focus_changed_trigger)
             .add_observer(on_building_info_panel_enabled_for_towers_trigger)
-            .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<OnInsert, ModifierSourceUpgrade>) // Refresh upgrade text on new upgrade
+            .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<Insert, ModifierSourceUpgrade>) // Refresh upgrade text on new upgrade
             .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<BuildingInfoPanelEnabledTrigger, ()>) // Refresh upgrade text on panel enabled
             .add_observer(BuildingInfoPanelDisableButton::on_add)
             ;
@@ -26,8 +26,8 @@ pub struct BuildingInfoPanel;
 pub struct BuildingInfoPanelNameText;
 #[derive(Component)]
 pub struct BuildingInfoPanelHealthbar;
-#[derive(Event)]
-pub struct BuildingInfoPanelEnabledTrigger;
+#[derive(EntityEvent)]
+pub struct BuildingInfoPanelEnabledTrigger { entity: Entity }
 
 // Tower Subpanel
 #[derive(Component)]
@@ -36,7 +36,7 @@ struct BuildingInfoPanelTowerRoot;
 struct BuildingInfoPanelTowerUpgradeCountText;
 impl BuildingInfoPanelTowerUpgradeCountText {
     fn refresh_upgrade_count_on<T: Event, B: Bundle> (
-        _trigger: Trigger<T, B>,
+        _trigger: On<T, B>,
         display_info_panel: Single<&DisplayInfoPanel>,
         modifiers: Query<&Modifiers>,
         upgrades: Query<(), With<ModifierSourceUpgrade>>,
@@ -68,7 +68,7 @@ fn update_building_info_panel_system(
 }
 
 fn on_ui_map_object_focus_changed_trigger(
-    trigger: Trigger<UiMapObjectFocusedTrigger>,
+    trigger: On<UiMapObjectFocusedTrigger>,
     mut commands: Commands,
     almanach: Res<Almanach>,
     building_name_text: Single<&mut Text, With<BuildingInfoPanelNameText>>,
@@ -78,13 +78,13 @@ fn on_ui_map_object_focus_changed_trigger(
     disable_button_node: Single<&mut Node, (With<BuildingInfoPanelDisableButton>, Without<BuildingInfoPanel>)>,
     disable_button_icon: Single<&mut ImageNode, With<BuildingInfoPanelDisableButtonIcon>>,
 ) {
-    let focused_entity = trigger.target();
+    let focused_entity = trigger.entity;
     let Ok(building_type) = buildings.get(focused_entity) else { 
         building_panel.into_inner().display = Display::None;
         return; 
     };
     building_panel.into_inner().display = Display::Flex;
-    commands.trigger_targets(BuildingInfoPanelEnabledTrigger, [focused_entity]);
+    commands.trigger(BuildingInfoPanelEnabledTrigger { entity: focused_entity });
 
     // Update the building name
     building_name_text.into_inner().0 = almanach.get_building_info(*building_type).name.to_string();
@@ -166,13 +166,13 @@ fn initialize_building_panel_content_system(
 
 // Tower subpanel section
 fn on_building_info_panel_enabled_for_towers_trigger(
-    trigger: Trigger<BuildingInfoPanelEnabledTrigger>,
+    trigger: On<BuildingInfoPanelEnabledTrigger>,
     mut commands: Commands,
     tower_subpanel_root: Single<&mut Node, With<BuildingInfoPanelTowerRoot>>,
     towers: Query<&PotentialUpgrades, With<Tower>>,
     upgrades_container: Single<Entity, With<BuildingInfoPanelTowerUpgradesContainer>>,
 ){
-    let focused_entity = trigger.target();
+    let focused_entity = trigger.entity;
     let Ok(potential_upgrades) = towers.get(focused_entity) else {
         tower_subpanel_root.into_inner().display = Display::None;
         return;
@@ -234,11 +234,11 @@ struct BuildingInfoPanelDisableButton;
 struct BuildingInfoPanelDisableButtonIcon;
 impl BuildingInfoPanelDisableButton {
     fn on_add(
-        trigger: Trigger<OnAdd, BuildingInfoPanelDisableButton>,
+        trigger: On<Add, BuildingInfoPanelDisableButton>,
         mut commands: Commands,
         asset_server: Res<AssetServer>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         // Style the button and attach click handler
         commands
             .entity(entity)
@@ -263,7 +263,7 @@ impl BuildingInfoPanelDisableButton {
     }
 
     fn on_click(
-        _trigger: Trigger<Pointer<Click>>,
+        _trigger: On<Pointer<Click>>,
         mut commands: Commands,
         display_info_panel: Single<&DisplayInfoPanel>,
         disabled_by_player: Query<(), With<DisabledByPlayer>>,

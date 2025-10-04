@@ -35,12 +35,12 @@ impl BuilderWall {
     }
     
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderWall>,
+        trigger: On<Add, BuilderWall>,
         mut commands: Commands,
         mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
         builders: Query<&BuilderWall>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         commands.entity(entity)

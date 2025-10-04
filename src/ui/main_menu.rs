@@ -20,8 +20,8 @@ impl Plugin for MainMenuPlugin {
 #[derive(Component)]
 struct MainMenuRoot;
 impl MainMenuRoot {
-    fn on_add(trigger: Trigger<OnAdd, MainMenuRoot>, mut commands: Commands) {
-        let entity = trigger.target();
+    fn on_add(trigger: On<Add, MainMenuRoot>, mut commands: Commands) {
+        let entity = trigger.entity;
         commands.entity(entity)
             .insert((
                 Node {
@@ -58,8 +58,8 @@ impl MainMenuRoot {
 #[require(Button)]
 struct LoadMapButton;
 impl LoadMapButton {
-    fn on_add(trigger: Trigger<OnAdd, LoadMapButton>, mut commands: Commands) {
-        let entity = trigger.target();
+    fn on_add(trigger: On<Add, LoadMapButton>, mut commands: Commands) {
+        let entity = trigger.entity;
         commands.entity(entity)
             .insert((
                 Node {
@@ -81,7 +81,7 @@ impl LoadMapButton {
     }
 
     fn on_click(
-        _trigger: Trigger<Pointer<Click>>,
+        _trigger: On<Pointer<Click>>,
         mut commands: Commands,
         map_list_container: Single<(Entity, &mut Node), With<MapListContainer>>,
     ) {
@@ -121,8 +121,8 @@ impl LoadMapButton {
 #[require(Node)]
 struct MapListContainer;
 impl MapListContainer {
-    fn on_add(trigger: Trigger<OnAdd, MapListContainer>, mut commands: Commands) {
-        let entity = trigger.target();
+    fn on_add(trigger: On<Add, MapListContainer>, mut commands: Commands) {
+        let entity = trigger.entity;
         commands.entity(entity).insert((
             Node {
                 display: Display::None,
@@ -140,8 +140,8 @@ impl MapListContainer {
 #[require(Button)]
 struct MapEntryButton { name: String }
 impl MapEntryButton {
-    fn on_add(trigger: Trigger<OnAdd, MapEntryButton>, mut commands: Commands, entries: Query<&MapEntryButton>) {
-        let entity = trigger.target();
+    fn on_add(trigger: On<Add, MapEntryButton>, mut commands: Commands, entries: Query<&MapEntryButton>) {
+        let entity = trigger.entity;
         let name = &entries.get(entity).unwrap().name;
 
         commands.entity(entity)
@@ -164,8 +164,8 @@ impl MapEntryButton {
             .observe(Self::on_click);
     }
 
-    fn on_click(trigger: Trigger<Pointer<Click>>, mut commands: Commands, entries: Query<&MapEntryButton>) {
-        let entity = trigger.target();
+    fn on_click(trigger: On<Pointer<Click>>, mut commands: Commands, entries: Query<&MapEntryButton>) {
+        let entity = trigger.entity;
         let Ok(entry) = entries.get(entity) else { return; };
         println!("Map selected: {}", entry.name);
         commands.trigger(crate::map_loader::LoadMapRequest(entry.name.clone()));

@@ -152,7 +152,7 @@ fn tick_active_summoning_system(
 }
 
 fn on_summoning_activation_event(
-    trigger: Trigger<DynamicGameEvent>,
+    trigger: On<DynamicGameEvent>,
     mut commands: Commands,
     summonings: Query<(Entity, &Summoning), Without<SummoningMarkerActive>>,
 ) {

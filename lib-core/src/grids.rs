@@ -156,10 +156,10 @@ impl GridPath {
 pub struct AutoGridTransformSync;
 impl AutoGridTransformSync {
     pub fn on_grid_coords_insert(
-        trigger: Trigger<OnInsert, GridCoords>,
+        trigger: On<Insert, GridCoords>,
         mut transforms: Query<(&mut Transform, &GridCoords, &GridImprint)>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((mut transform, grid_coords, grid_imprint)) = transforms.get_mut(entity) else { return; };
         let world_centered = grid_coords.to_world_position_centered(grid_imprint);
         transform.translation.x = world_centered.x;

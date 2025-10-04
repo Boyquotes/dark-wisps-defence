@@ -26,13 +26,13 @@ impl BuilderTowerEmitter {
     }
 
     pub fn on_add(
-        trigger: Trigger<OnAdd, BuilderTowerEmitter>,
+        trigger: On<Add, BuilderTowerEmitter>,
         mut commands: Commands,
         builders: Query<&BuilderTowerEmitter>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         let building_info = almanach.get_building_info(BuildingType::Tower(TowerType::Emitter));
@@ -64,7 +64,7 @@ impl BuilderTowerEmitter {
                     IndicatorDisplay::default(),
                 ],
             ));
-        commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);
+        commands.trigger(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion { entity });
     }
 }
 
@@ -75,7 +75,7 @@ pub fn shooting_system(
 ) {
     for (transform, range, mut timer, mut target) in tower_emitters.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
-        if !timer.0.finished() { continue; }
+        if !timer.0.is_finished() { continue; }
 
         if !wisps.contains(target_wisp) {
             // Target wisp does not exist anymore

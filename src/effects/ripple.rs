@@ -1,7 +1,8 @@
 use bevy::{
     color::palettes::css::RED, 
-    render::render_resource::{AsBindGroup, ShaderRef},
-    sprite::{AlphaMode2d, Material2d, Material2dPlugin}
+    render::render_resource::AsBindGroup, 
+    shader::ShaderRef,
+    sprite_render::{AlphaMode2d, Material2d, Material2dPlugin}
 };
 
 use lib_grid::grids::wisps::WispsGrid;
@@ -38,13 +39,13 @@ impl BuilderRipple {
     }
     
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderRipple>,
+        trigger: On<Add, BuilderRipple>,
         mut commands: Commands,
         mut ripple_materials: ResMut<Assets<RippleMaterial>>,
         mut meshes: ResMut<Assets<Mesh>>,
         builders: Query<&BuilderRipple>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         commands.entity(entity)

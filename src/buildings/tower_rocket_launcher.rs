@@ -27,13 +27,13 @@ impl BuilderTowerRocketLauncher {
     pub fn new(grid_position: GridCoords) -> Self { Self { grid_position } }
 
     pub fn on_add(
-        trigger: Trigger<OnAdd, BuilderTowerRocketLauncher>,
+        trigger: On<Add, BuilderTowerRocketLauncher>,
         mut commands: Commands,
         builders: Query<&BuilderTowerRocketLauncher>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         let building_info = almanach.get_building_info(BuildingType::Tower(TowerType::RocketLauncher));
@@ -71,14 +71,14 @@ impl BuilderTowerRocketLauncher {
             Sprite {
                 image: asset_server.load("buildings/tower_rocket_launcher_top.png"),
                 custom_size: Some(Vec2::new(world_size.x * 1.52 * 0.5, world_size.y * 0.5)),
-                anchor: Anchor::Custom(Vec2::new(-0.20, 0.0)),
                 ..Default::default()
             },
+            Anchor(Vec2::new(-0.20, 0.0)),
             ZDepth(Z_TOWER_TOP),
             MarkerTowerRotationalTop(tower_base_entity),
         )).id();
         commands.entity(entity).add_child(tower_top);
-        commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);
+        commands.trigger(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion { entity });
     }
 }
 
@@ -89,7 +89,7 @@ pub fn shooting_system(
 ) {
     for (grid_imprint, transform, mut timer, mut target, top_rotation, attack_damage) in tower_rocket_launchers.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
-        if !timer.0.finished() { continue; }
+        if !timer.0.is_finished() { continue; }
 
         let Ok(wisp_position) = wisps.get(target_wisp).map(|target| target.translation.xy()) else {
             // Target wisp does not exist anymore

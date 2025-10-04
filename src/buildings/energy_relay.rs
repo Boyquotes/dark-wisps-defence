@@ -25,13 +25,13 @@ impl BuilderEnergyRelay {
     }
 
     pub fn on_add(
-        trigger: Trigger<OnAdd, BuilderEnergyRelay>,
+        trigger: On<Add, BuilderEnergyRelay>,
         mut commands: Commands,
         builders: Query<&BuilderEnergyRelay>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         let building_info = almanach.get_building_info(BuildingType::EnergyRelay);
@@ -67,26 +67,26 @@ impl BuilderEnergyRelay {
                     IndicatorDisplay::default(),
                 ],
             ))
-            .observe(|trigger: Trigger<OnInsert, HasPower>, mut commands: Commands| { commands.trigger_targets(RequestTechnicalStateUpdate, trigger.target()); })
-            .observe(|trigger: Trigger<OnInsert, NoPower>, mut commands: Commands| { commands.trigger_targets(RequestTechnicalStateUpdate, trigger.target()); })
-            .observe(|trigger: Trigger<OnInsert, DisabledByPlayer>, mut commands: Commands| { commands.trigger_targets(RequestTechnicalStateUpdate, trigger.target()); })
-            .observe(|trigger: Trigger<OnRemove, DisabledByPlayer>, mut commands: Commands| { commands.trigger_targets(RequestTechnicalStateUpdate, trigger.target()); })
+            .observe(|trigger: On<Insert, HasPower>, mut commands: Commands| { commands.trigger(RequestTechnicalStateUpdate{ entity: trigger.entity }); })
+            .observe(|trigger: On<Insert, NoPower>, mut commands: Commands| { commands.trigger(RequestTechnicalStateUpdate{ entity: trigger.entity }); })
+            .observe(|trigger: On<Insert, DisabledByPlayer>, mut commands: Commands| { commands.trigger(RequestTechnicalStateUpdate{ entity: trigger.entity }); })
+            .observe(|trigger: On<Remove, DisabledByPlayer>, mut commands: Commands| { commands.trigger(RequestTechnicalStateUpdate{ entity: trigger.entity }); })
             .observe(RequestTechnicalStateUpdate::on_trigger)
             ;
 
-        commands.trigger_targets(RequestTechnicalStateUpdate, entity);
+        commands.trigger(RequestTechnicalStateUpdate{ entity });
     }
 }
 
-#[derive(Event)]
-struct RequestTechnicalStateUpdate;
+#[derive(EntityEvent)]
+struct RequestTechnicalStateUpdate { entity: Entity }
 impl RequestTechnicalStateUpdate {
     fn on_trigger(
-        trigger: Trigger<RequestTechnicalStateUpdate>,
+        trigger: On<RequestTechnicalStateUpdate>,
         mut commands: Commands,
         relays: Query<(Has<DisabledByPlayer>, Has<NoPower>), With<EnergyRelay>>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((has_disabled_by_player, has_no_power)) = relays.get(entity) else { return; };
         let mut entity_commands = commands.entity(entity);
         if has_disabled_by_player {

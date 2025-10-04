@@ -35,11 +35,11 @@ impl Healthbar {
     }
 
     fn on_add(
-        trigger: Trigger<OnAdd, Healthbar>,
+        trigger: On<Add, Healthbar>,
         mut commands: Commands,
         healthbars: Query<&Healthbar>,
     ) {
-        let healthbar_entity = trigger.target();
+        let healthbar_entity = trigger.entity;
         let Ok(healthbar) = healthbars.get(healthbar_entity) else { return; };
         let mut healthbar_children = HealthbarChildren {
             value_rectangle: Entity::PLACEHOLDER,

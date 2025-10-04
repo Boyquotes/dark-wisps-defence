@@ -60,7 +60,7 @@ pub enum IndicatorType {
 }
 impl IndicatorType {
     fn on_insert_update_sprite_handle(
-        trigger: Trigger<OnInsert, IndicatorType>,
+        trigger: On<Insert, IndicatorType>,
         mut commands: Commands,
         asset_server: Res<AssetServer>,
         mut indicators: Query<(&IndicatorType, &mut IndicatorSpriteHandle, &IndicatorOf, Has<Disabled>)>,
@@ -68,7 +68,7 @@ impl IndicatorType {
         parents_with_no_ore: Query<(), With<NoOreInScannerRange>>,
         parents_disabled_by_player: Query<(), With<DisabledByPlayer>>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let (indicator_type, mut sprite_handle, indicator_of, _) = indicators.get_mut(entity).unwrap();
         let path = match indicator_type {
             IndicatorType::NoPower => "indicators/no_power.png",
@@ -110,7 +110,7 @@ impl IndicatorType {
 
     // TODO: Condolidate when Bevy supports multiple different triggers in one expression
     fn on_parent_looses_power(
-        trigger: Trigger<OnInsert, NoPower>,
+        trigger: On<Insert, NoPower>,
         mut commands: Commands,
         observers_for_changes: Query<&IndicatorObserverForChanges>,
         indicators: Query<(&IndicatorType, Has<Disabled>)>,
@@ -126,7 +126,7 @@ impl IndicatorType {
     }
 
     fn on_parent_gains_power(
-        trigger: Trigger<OnInsert, HasPower>,
+        trigger: On<Insert, HasPower>,
         mut commands: Commands,
         observers_for_changes: Query<&IndicatorObserverForChanges>,
         indicators: Query<&IndicatorType>,
@@ -142,7 +142,7 @@ impl IndicatorType {
     }
 
     fn on_parent_looses_ore(
-        trigger: Trigger<OnInsert, NoOreInScannerRange>,
+        trigger: On<Insert, NoOreInScannerRange>,
         mut commands: Commands,
         observers_for_changes: Query<&IndicatorObserverForChanges>,
         indicators: Query<(&IndicatorType, Has<Disabled>)>,
@@ -158,7 +158,7 @@ impl IndicatorType {
     }
 
     fn on_parent_gains_ore(
-        trigger: Trigger<OnInsert, HasOreInScannerRange>,
+        trigger: On<Insert, HasOreInScannerRange>,
         mut commands: Commands,
         observers_for_changes: Query<&IndicatorObserverForChanges>,
         indicators: Query<&IndicatorType>,
@@ -174,7 +174,7 @@ impl IndicatorType {
     }
 
     fn on_parent_disabled_by_player(
-        trigger: Trigger<OnInsert, DisabledByPlayer>,
+        trigger: On<Insert, DisabledByPlayer>,
         mut commands: Commands,
         observers_for_changes: Query<&IndicatorObserverForChanges>,
         indicators: Query<&IndicatorType, With<Disabled>>,
@@ -190,7 +190,7 @@ impl IndicatorType {
     }
 
     fn on_parent_enabled_by_player(
-        trigger: Trigger<OnRemove, DisabledByPlayer>,
+        trigger: On<Remove, DisabledByPlayer>,
         mut commands: Commands,
         observers_for_changes: Query<&IndicatorObserverForChanges>,
         indicators: Query<&IndicatorType>,

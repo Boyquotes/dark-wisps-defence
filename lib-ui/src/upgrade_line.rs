@@ -20,12 +20,12 @@ pub struct UpgradeLineBuilder {
 }
 impl UpgradeLineBuilder {
     fn on_add_sanity_check(
-        trigger: Trigger<OnAdd, UpgradeLineBuilder>,
+        trigger: On<Add, UpgradeLineBuilder>,
         mut commands: Commands,
         upgrade_lines: Query<&UpgradeLineBuilder>,
         all_potential_upgrades: Query<(), With<PotentialUpgradeOf>>,
     ) {
-        let upgrade_line_entity = trigger.target();
+        let upgrade_line_entity = trigger.entity;
         let upgrade_line = upgrade_lines.get(upgrade_line_entity).unwrap();
         if !all_potential_upgrades.contains(upgrade_line.potential_upgrade_entity) {
             // Upgrade was removed, remove the line as well
@@ -34,13 +34,13 @@ impl UpgradeLineBuilder {
         }
     }
     fn on_add_attack_speed_builder(
-        trigger: Trigger<OnAdd, UpgradeLineBuilder>,
+        trigger: On<Add, UpgradeLineBuilder>,
         mut commands: Commands,
         upgrade_lines: Query<&UpgradeLineBuilder>,
         potential_upgrades: Query<(&ModifierType, &ModifierAttackSpeed, &ModifierSourceUpgrade, &PotentialUpgradeOf)>,
         attack_speeds: Query<&AttackSpeed>,
     ) {
-        let upgrade_line_entity = trigger.target();
+        let upgrade_line_entity = trigger.entity;
         let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
         let Ok((modifier_type, modifier, modifier_source, parent)) = potential_upgrades.get(upgrade_line.potential_upgrade_entity) else { return; };
         let Ok(current_attack_speed) = attack_speeds.get(parent.0) else { return; };
@@ -56,13 +56,13 @@ impl UpgradeLineBuilder {
             });
     }
     fn on_add_attack_damage_builder(
-        trigger: Trigger<OnAdd, UpgradeLineBuilder>,
+        trigger: On<Add, UpgradeLineBuilder>,
         mut commands: Commands,
         upgrade_lines: Query<&UpgradeLineBuilder>,
         potential_upgrades: Query<(&ModifierType, &ModifierAttackDamage, &ModifierSourceUpgrade, &PotentialUpgradeOf)>,
         attack_damages: Query<&AttackDamage>,
     ) {
-        let upgrade_line_entity = trigger.target();
+        let upgrade_line_entity = trigger.entity;
         let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
         let Ok((modifier_type, modifier, modifier_source, parent)) = potential_upgrades.get(upgrade_line.potential_upgrade_entity) else { return; };
         let Ok(current_attack_damage) = attack_damages.get(parent.0) else { return; };
@@ -78,13 +78,13 @@ impl UpgradeLineBuilder {
             });
     }
     fn on_add_attack_range_builder(
-        trigger: Trigger<OnAdd, UpgradeLineBuilder>,
+        trigger: On<Add, UpgradeLineBuilder>,
         mut commands: Commands,
         upgrade_lines: Query<&UpgradeLineBuilder>,
         potential_upgrades: Query<(&ModifierType, &ModifierAttackRange, &ModifierSourceUpgrade, &PotentialUpgradeOf)>,
         attack_ranges: Query<&AttackRange>,
     ) {
-        let upgrade_line_entity = trigger.target();
+        let upgrade_line_entity = trigger.entity;
         let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
         let Ok((modifier_type, modifier, modifier_source, parent)) = potential_upgrades.get(upgrade_line.potential_upgrade_entity) else { return; };
         let Ok(current_attack_range) = attack_ranges.get(parent.0) else { return; };
@@ -112,11 +112,11 @@ pub struct UpgradeLine {
 }
 impl UpgradeLine {
     fn on_add(
-        trigger: Trigger<OnInsert, UpgradeLine>,
+        trigger: On<Insert, UpgradeLine>,
         mut commands: Commands,
         upgrade_lines: Query<&UpgradeLine>,
     ) {
-        let upgrade_line_entity = trigger.target();
+        let upgrade_line_entity = trigger.entity;
         let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
 
         // Clear everything in case this is rebuild operation
@@ -157,7 +157,7 @@ impl UpgradeLine {
                         border: UiRect::all(Val::Px(1.)),
                         ..default()
                     },
-                    BorderColor(Color::WHITE),
+                    BorderColor::all(Color::WHITE),
                     BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.8)),
                 ))
                     .observe(Self::on_click)
@@ -198,18 +198,18 @@ impl UpgradeLine {
     }
 
     fn on_click(
-        trigger: Trigger<Pointer<Click>>,
+        trigger: On<Pointer<Click>>,
         mut commands: Commands,
         mut stock: ResMut<Stock>,
         upgrade_buttons: Query<&UpgradeButton>,
         upgrade_lines: Query<(Entity, &UpgradeLine)>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(upgrade_button) = upgrade_buttons.get(entity) else { return; };
         let Ok((upgrade_line_entity, upgrade_line)) = upgrade_lines.get(upgrade_button.0) else { return; };
         if !stock.try_pay_costs(&upgrade_line.costs) { return; }
 
-        commands.trigger_targets(ApplyPotentialUpgrade, [upgrade_line.potential_upgrade_entity]);
+        commands.trigger(ApplyPotentialUpgrade { entity: upgrade_line.potential_upgrade_entity });
 
         // Rebuild the button
         commands.entity(upgrade_line_entity).insert(UpgradeLineBuilder { potential_upgrade_entity: upgrade_line.potential_upgrade_entity });

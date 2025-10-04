@@ -1,5 +1,8 @@
-use bevy::render::render_resource::{ShaderRef, AsBindGroup};
-use bevy::sprite::{AlphaMode2d, Material2d};
+use bevy::{
+    render::render_resource::AsBindGroup,
+    shader::ShaderRef,
+    sprite_render::{AlphaMode2d, Material2d},
+};
 
 use crate::prelude::*;
 

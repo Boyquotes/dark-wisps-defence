@@ -85,10 +85,10 @@ pub struct TowerEmitter;
 pub struct TowerShootingTimer(pub Timer);
 impl TowerShootingTimer {
     fn on_attack_speed_change(
-        trigger: Trigger<OnInsert, AttackSpeed>,
+        trigger: On<Insert, AttackSpeed>,
         mut timers: Query<(&mut TowerShootingTimer, &AttackSpeed)>
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((mut timer, attack_speed)) = timers.get_mut(entity) else { return; };
         if attack_speed.0 == 0. { return; }
         timer.0.set_duration(Duration::from_secs_f32(1. / attack_speed.0));

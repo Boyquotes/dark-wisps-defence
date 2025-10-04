@@ -70,7 +70,7 @@ impl GridObjectPlacer {
     }
 
     fn on_coords_changed(
-        _trigger: Trigger<OnInsert, GridCoords>,
+        _trigger: On<Insert, GridCoords>,
         obstacle_grid: Res<ObstacleGrid>,
         energy_supply_grid: Res<EnergySupplyGrid>,
         mouse_info: Res<MouseInfo>,

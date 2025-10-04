@@ -36,12 +36,12 @@ impl Plugin for ConstructionMenuPlugin {
 pub struct ButtonConstructMenu(pub &'static str);
 impl ButtonConstructMenu {
     pub fn on_add(
-        trigger: Trigger<OnAdd, ButtonConstructMenu>,
+        trigger: On<Add, ButtonConstructMenu>,
         mut commands: Commands,
         asset_server: Res<AssetServer>,
         buttons: Query<&ButtonConstructMenu>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let image = buttons.get(entity).unwrap().0;
 
         commands.entity(entity).insert((
@@ -57,11 +57,11 @@ impl ButtonConstructMenu {
     }
 
     fn on_mouse_over(
-        trigger: Trigger<Pointer<Over>>,
+        trigger: On<Pointer<Over>>,
         mut menu_buttons: Query<(&mut ImageNode, &Children), With<ButtonConstructMenu>>,
         mut list_pickers: Query<&mut Visibility, With<ConstructMenuListPicker>>,
     ) -> Result<()> {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let (mut ui_image, children) = menu_buttons.get_mut(entity)?;
         let list_picker_entity = children.get(0).ok_or("List picker not found")?;
         let mut list_picker_visibility = list_pickers.get_mut(*list_picker_entity)?;
@@ -71,11 +71,11 @@ impl ButtonConstructMenu {
     }
     
     fn on_mouse_out(
-        trigger: Trigger<Pointer<Out>>,
+        trigger: On<Pointer<Out>>,
         mut menu_buttons: Query<(&mut ImageNode, &Children), With<ButtonConstructMenu>>,
         mut list_pickers: Query<&mut Visibility, With<ConstructMenuListPicker>>,
     ) -> Result<()> {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let (mut ui_image, children) = menu_buttons.get_mut(entity)?;
         let list_picker_entity = children.get(0).ok_or("List picker not found")?;
         let mut list_picker_visibility = list_pickers.get_mut(*list_picker_entity)?;
@@ -90,10 +90,10 @@ impl ButtonConstructMenu {
 pub struct ConstructMenuListPicker;
 impl ConstructMenuListPicker {
     pub fn on_add(
-        trigger: Trigger<OnAdd, ConstructMenuListPicker>,
+        trigger: On<Add, ConstructMenuListPicker>,
         mut commands: Commands,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         commands.entity(entity).insert((
             Node {
                 flex_direction: FlexDirection::Row,
@@ -125,12 +125,12 @@ impl ConstructObjectButton{
     }
 
     pub fn on_add(
-        trigger: Trigger<OnAdd, ConstructObjectButton>,
+        trigger: On<Add, ConstructObjectButton>,
         mut commands: Commands,
         asset_server: Res<AssetServer>,
         builders: Query<&ConstructObjectButton>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
 
         commands.entity(entity)
             .insert((
@@ -182,12 +182,12 @@ impl ConstructObjectButton{
     }
 
     fn on_click(
-        trigger: Trigger<Pointer<Click>>, 
+        trigger: On<Pointer<Click>>, 
         mut grid_object_placer_request: ResMut<GridObjectPlacerRequest>,
         menu_buttons: Query<&ConstructObjectButton>,
         mut list_pickers: Query<(&mut Interaction, &mut Visibility), With<ConstructMenuListPicker>>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(button) = menu_buttons.get(entity) else { return; };
         grid_object_placer_request.set(button.object_type.clone());
         list_pickers.iter_mut().for_each(|(mut interaction, mut visibility)| { *visibility = Visibility::Hidden; *interaction = Interaction::None; });

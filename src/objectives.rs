@@ -37,12 +37,12 @@ pub struct ObjectiveDetails {
 }
 impl ObjectiveDetails {
     fn on_add(
-        trigger: Trigger<OnAdd, ObjectiveDetails>,
+        trigger: On<Add, ObjectiveDetails>,
         mut commands: Commands,
         objective_details: Query<&ObjectiveDetails>,
         stats_wisps_killed: Res<StatsWispsKilled>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(objective_details) = objective_details.get(entity) else { return; };
         match objective_details.objective_type {
             ObjectiveType::ClearAllQuantumFields => {
@@ -86,12 +86,12 @@ impl Default for Objective {
 }
 impl Objective {
     fn on_add(
-        trigger: Trigger<OnAdd, Objective>,
+        trigger: On<Add, Objective>,
         mut commands: Commands,
         mut objectives: Query<(&mut Objective, &ObjectiveDetails)>,
         asset_server: Res<AssetServer>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((mut objective, objective_details)) = objectives.get_mut(entity) else { 
             panic!("Objective is missing ObjectiveDetails!");
          };
@@ -132,7 +132,7 @@ impl Objective {
 }
 
 fn on_reassess_inactive_objectives_event(
-    trigger: Trigger<DynamicGameEvent>,
+    trigger: On<DynamicGameEvent>,
     mut commands: Commands,
     objectives: Query<(Entity, &ObjectiveDetails), With<ObjectiveMarkerInactive>>,
 ) {

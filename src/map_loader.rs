@@ -50,7 +50,7 @@ impl Plugin for MapLoaderPlugin {
 pub struct LoadMapRequest(pub String);
 impl LoadMapRequest {
     fn on_trigger(
-        trigger: Trigger<LoadMapRequest>,
+        trigger: On<LoadMapRequest>,
         mut next_game_state: ResMut<NextState<GameState>>,
         mut next_ui_state: ResMut<NextState<UiInteraction>>,
         mut next_map_loading_stage: ResMut<NextState<MapLoadingStage>>,

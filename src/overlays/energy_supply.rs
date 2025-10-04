@@ -2,10 +2,11 @@ use bevy::{
     input::common_conditions::input_just_released, 
     reflect::TypePath, 
     render::{
-        render_resource::{AsBindGroup, ShaderRef, ShaderType},
+        render_resource::{AsBindGroup, ShaderType},
         storage::ShaderStorageBuffer,
-    }, 
-    sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d}
+    },
+    shader::ShaderRef,
+    sprite_render::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d}
 };
 use lib_grid::{
     grids::energy_supply::EnergySupplyGrid,
@@ -69,11 +70,11 @@ impl EnergySupplyOverlayConfig {
         }
     }
     fn on_building_ui_focused(
-        trigger: Trigger<UiMapObjectFocusedTrigger>,
+        trigger: On<UiMapObjectFocusedTrigger>,
         mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
         buildings: Query<&BuildingType>,
     ) {
-        let focused_building = trigger.target();
+        let focused_building = trigger.entity;
         if buildings.contains(focused_building) {
             overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::Highlight{building: focused_building};
         } else {
@@ -81,7 +82,7 @@ impl EnergySupplyOverlayConfig {
         }
     }
     fn on_building_ui_unfocused(
-        _trigger: Trigger<UiMapObjectUnfocusedTrigger>,
+        _trigger: On<UiMapObjectUnfocusedTrigger>,
         mut overlay_config: ResMut<EnergySupplyOverlayConfig>,
     ) {
         overlay_config.secondary_mode = EnergySupplyOverlaySecondaryMode::None;

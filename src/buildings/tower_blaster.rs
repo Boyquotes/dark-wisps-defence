@@ -28,13 +28,13 @@ impl BuilderTowerBlaster {
     }
 
     pub fn on_add(
-        trigger: Trigger<OnAdd, BuilderTowerBlaster>,
+        trigger: On<Add, BuilderTowerBlaster>,
         mut commands: Commands,
         builders: Query<&BuilderTowerBlaster>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         let building_info = almanach.get_building_info(BuildingType::Tower(TowerType::Blaster));
@@ -78,7 +78,7 @@ impl BuilderTowerBlaster {
             MarkerTowerRotationalTop(tower_base_entity),
         )).id();
         commands.entity(entity).add_child(tower_top);
-        commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);
+        commands.trigger(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion { entity });
     }
 }
 
@@ -89,7 +89,7 @@ pub fn shooting_system(
 ) {
     for (grid_imprint, transform, mut timer, mut target, top_rotation, attack_damage) in tower_blasters.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
-        if !timer.0.finished() { continue; }
+        if !timer.0.is_finished() { continue; }
 
         let Ok(wisp_position) = wisps.get(target_wisp).map(|target| target.translation.xy()) else {
             // Target wisp does not exist anymore

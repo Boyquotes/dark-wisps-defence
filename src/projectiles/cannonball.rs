@@ -48,12 +48,12 @@ impl BuilderCannonball {
     }
 
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderCannonball>,
+        trigger: On<Add, BuilderCannonball>,
         mut commands: Commands,
         builders: Query<&BuilderCannonball>,
         asset_server: Res<AssetServer>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         commands.entity(entity)

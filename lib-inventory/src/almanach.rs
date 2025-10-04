@@ -50,16 +50,18 @@ impl Almanach {
     }
 }
 
-#[derive(Event)]
-pub struct AlmanachRequestPotentialUpgradesInsertion;
+#[derive(EntityEvent)]
+pub struct AlmanachRequestPotentialUpgradesInsertion{
+    pub entity: Entity,
+}
 impl AlmanachRequestPotentialUpgradesInsertion {
     fn on_trigger(
-        trigger: Trigger<Self>,
+        trigger: On<Self>,
         mut commands: Commands,
         almanach: Res<Almanach>,
         buildings: Query<&BuildingType>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(building_type) = buildings.get(entity) else { return; };
 
         commands.entity(entity).with_related_entities::<PotentialUpgradeOf>(|parent|

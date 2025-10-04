@@ -10,7 +10,7 @@ impl Plugin for BadgesPlugin {
             .add_systems(Startup, initialize_badges_system)
             .add_systems(Update, (
                 ResourceBadgeText::sync_text_with_stock.run_if(resource_changed::<Stock>),
-                EssencesContainer::manage_essence_badges_visibility.run_if(on_event::<StockChangedEvent>),
+                EssencesContainer::manage_essence_badges_visibility.run_if(on_message::<StockChangedEvent>),
             ))
             .add_systems(OnEnter(GameState::Loading), EssencesContainer::hide_all_essence_badges)
             ;
@@ -36,7 +36,7 @@ pub struct EssencesContainer {
 }
 impl EssencesContainer {
     fn manage_essence_badges_visibility(
-        mut event_reader: EventReader<StockChangedEvent>,
+        mut event_reader: MessageReader<StockChangedEvent>,
         essences_container: Single<&EssencesContainer>,
         mut nodes: Query<&mut Node, With<EssenceBadge>>,
     ) {

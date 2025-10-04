@@ -45,12 +45,12 @@ impl From<Cost> for CostIndicator {
     }
 }
 impl CostIndicator {
-    fn on_add(   trigger: Trigger<OnAdd, CostIndicator>,
+    fn on_add(   trigger: On<Add, CostIndicator>,
         mut commands: Commands,
         stock: Res<Stock>,
         mut cost_indicators: Query<&mut CostIndicator>,
     ) {
-        let cost_indicator_entity = trigger.target();
+        let cost_indicator_entity = trigger.entity;
         let Ok(mut cost_indicator) = cost_indicators.get_mut(cost_indicator_entity) else { return; };
         // Update the cost indicator state
         cost_indicator.has_required_resources = stock.can_cover(&cost_indicator.cost);
@@ -124,7 +124,7 @@ fn on_cost_indicator_changed_system(
         text.0 = format!("{}", cost_indicator.cost.amount);
 
         let mut border_color = border_rectangles.get_mut(children.border_rectangle)?;
-        border_color.0 = if cost_indicator.has_required_resources{ GREEN.into() } else { RED.into() };
+        *border_color = BorderColor::all(if cost_indicator.has_required_resources{ GREEN } else { RED });
     }
     Ok(())
 }

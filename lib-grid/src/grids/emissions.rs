@@ -10,7 +10,7 @@ impl Plugin for EmissionsPlugin {
         app
             .insert_resource(EmissionsGrid::new_empty())
             .init_resource::<EmissionsEnergyRecalculateAll>()
-            .add_event::<EmitterChangedEvent>()
+            .add_message::<EmitterChangedEvent>()
             .add_systems(PostUpdate, (
                 emissions_calculations_system,
             ))
@@ -27,28 +27,28 @@ pub struct EmitterEnergyEnabled;
 pub struct EmitterEnergy(pub FloodEmissionsDetails);
 impl EmitterEnergy {
     fn on_add(
-        trigger: Trigger<OnAdd, EmitterEnergy>,
+        trigger: On<Add, EmitterEnergy>,
         mut commands: Commands,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         commands.entity(entity)
             .observe(Self::on_enable_or_insert)
             .observe(Self::on_disable_or_replace)
             .insert(EmitterEnergyEnabled);
     }
     fn on_remove(
-        trigger: Trigger<OnRemove, EmitterEnergy>,
+        trigger: On<Remove, EmitterEnergy>,
         mut commands: Commands,
     ) {
         let observer = trigger.observer();
         commands.entity(observer).despawn();
     }
     fn on_enable_or_insert(
-        trigger: Trigger<OnInsert, (GridCoords, GridImprint, EmitterEnergyEnabled)>,
-        mut events: EventWriter<EmitterChangedEvent>,
+        trigger: On<Insert, (GridCoords, GridImprint, EmitterEnergyEnabled)>,
+        mut events: MessageWriter<EmitterChangedEvent>,
         suppliers: Query<(&GridCoords, &GridImprint, &EmitterEnergy)>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((grid_coords, grid_imprint, emitter)) = suppliers.get(entity) else { return; };
         events.write(EmitterChangedEvent {
             emitter_entity: entity,
@@ -57,11 +57,11 @@ impl EmitterEnergy {
         });
     }
     fn on_disable_or_replace(
-        trigger: Trigger<OnReplace, (GridCoords, GridImprint, EmitterEnergyEnabled)>,
-        mut events: EventWriter<EmitterChangedEvent>,
+        trigger: On<Replace, (GridCoords, GridImprint, EmitterEnergyEnabled)>,
+        mut events: MessageWriter<EmitterChangedEvent>,
         suppliers: Query<(&GridCoords, &GridImprint, &EmitterEnergy), With<EmitterEnergyEnabled>>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((grid_coords, grid_imprint, emitter)) = suppliers.get(entity) else { return; };
         events.write(EmitterChangedEvent {
             emitter_entity: entity,
@@ -71,7 +71,7 @@ impl EmitterEnergy {
     }
 }
 
-#[derive(Event, Debug)]
+#[derive(Message, Debug)]
 pub struct EmitterChangedEvent {
     pub emitter_entity: Entity,
     pub coords: Vec<GridCoords>,
@@ -148,7 +148,7 @@ impl EmissionsGrid {
 
 fn emissions_calculations_system(
     mut recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
-    mut events: EventReader<EmitterChangedEvent>,
+    mut events: MessageReader<EmitterChangedEvent>,
     mut emissions_grid: ResMut<EmissionsGrid>,
     obstacle_grid: Res<ObstacleGrid>,
     emitters_buildings: Query<(&EmitterEnergy, &GridImprint, &GridCoords), With<EmitterEnergyEnabled>>,

@@ -4,7 +4,7 @@ pub mod spawning;
 pub mod systems;
 pub mod summoning;
 
-use bevy::sprite::Material2dPlugin;
+use bevy::sprite_render::Material2dPlugin;
 
 use crate::prelude::*;
 

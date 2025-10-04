@@ -30,13 +30,13 @@ impl BuilderExplorationCenter {
     }
 
     pub fn on_add(
-        trigger: Trigger<OnAdd, BuilderExplorationCenter>,
+        trigger: On<Add, BuilderExplorationCenter>,
         mut commands: Commands,
         builders: Query<&BuilderExplorationCenter>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         let building_info = almanach.get_building_info(BuildingType::ExplorationCenter);

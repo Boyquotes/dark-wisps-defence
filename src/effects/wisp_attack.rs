@@ -49,12 +49,12 @@ pub struct BuilderWispAttackEffect(pub Vec2);
 
 impl BuilderWispAttackEffect {
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderWispAttackEffect>,
+        trigger: On<Add, BuilderWispAttackEffect>,
         mut commands: Commands,
         explosion_atlas: Res<WispAttackEffectAtlas>,
         builders: Query<&BuilderWispAttackEffect>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         commands.entity(entity)

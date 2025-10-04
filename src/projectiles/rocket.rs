@@ -51,12 +51,12 @@ impl BuilderRocket {
     }
 
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderRocket>,
+        trigger: On<Add, BuilderRocket>,
         mut commands: Commands,
         builders: Query<&BuilderRocket>,
         asset_server: Res<AssetServer>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         commands.entity(entity)
@@ -80,9 +80,9 @@ impl BuilderRocket {
                     Sprite {
                         image: asset_server.load(ROCKET_EXHAUST_IMAGE),
                         custom_size: Some(Vec2::new(10.0, 6.25)),
-                        anchor: Anchor::Custom(Vec2::new(0.75, 0.)),
                         ..default()
                     },
+                    Anchor(Vec2::new(0.75, 0.)),
                     RocketExhaust,
                 )]
             ));

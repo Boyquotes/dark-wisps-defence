@@ -1,6 +1,9 @@
 use bevy::color::palettes::css::YELLOW;
-use bevy::render::camera::RenderTarget;
-use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
+use bevy::camera::RenderTarget;
+use bevy::render::{
+    render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages},
+    view::Hdr,
+};
 
 use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
@@ -16,7 +19,7 @@ impl Plugin for DisplayInfoPanelPlugin {
             .add_systems(Update, (
                 hide_system.run_if(in_state(UiInteraction::DisplayInfoPanel)),
                 show_on_click_system.run_if(in_state(UiInteraction::Free).or(in_state(UiInteraction::DisplayInfoPanel))),
-                on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayInfoPanel).and(on_event::<BuildingDestroyedEvent>)),
+                on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayInfoPanel).and(on_message::<BuildingDestroyedEvent>)),
             ))
             .add_systems(OnEnter(UiInteraction::DisplayInfoPanel), on_display_enter_system)
             .add_systems(OnExit(UiInteraction::DisplayInfoPanel), on_display_exit_system);
@@ -42,8 +45,8 @@ impl Default for DisplayInfoPanel {
 struct DisplayInfoPanelCamera;
 
 /// Triggers emitted when the user clicks on a map object
-#[derive(Event)]
-pub struct UiMapObjectFocusedTrigger;
+#[derive(EntityEvent)]
+pub struct UiMapObjectFocusedTrigger{ pub entity: Entity }
 #[derive(Event)]
 pub struct UiMapObjectUnfocusedTrigger;
 
@@ -100,13 +103,13 @@ fn show_on_click_system(
     camera_transform.translation.y = world_position.y;
 
     display_info_panel.into_inner().current_focus = focused_structure;
-    commands.trigger_targets(UiMapObjectFocusedTrigger, [focused_structure]);
+    commands.trigger(UiMapObjectFocusedTrigger { entity: focused_structure });
     next_ui_interaction_state.set(UiInteraction::DisplayInfoPanel);
 }
 
 fn on_building_destroyed_system(
     mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
-    mut events: EventReader<BuildingDestroyedEvent>,
+    mut events: MessageReader<BuildingDestroyedEvent>,
     display_info_panel: Single<&DisplayInfoPanel>,
 ) {
     let current_display_entity = display_info_panel.into_inner().current_focus;
@@ -149,11 +152,11 @@ fn initialize_display_info_panel_system(
         Camera2d::default(),
         Camera {
             order: 1,
-            hdr: true,
             target: RenderTarget::Image(camera_image_handle.clone().into()),
             is_active: false,
             ..default()
         },
+        Hdr,
         Projection::Orthographic(OrthographicProjection {
             near: -1000.,
             far: 1000.,

@@ -38,12 +38,12 @@ impl BuilderDarkOre {
     }
     
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderDarkOre>,
+        trigger: On<Add, BuilderDarkOre>,
         mut commands: Commands,
         builders: Query<&BuilderDarkOre>,
         asset_server: Res<AssetServer>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         let mut rng = nanorand::tls_rng();
@@ -141,11 +141,11 @@ pub mod dark_ore_area_scanner {
     }
     impl DarkOreAreaScanner {
         pub fn on_add(
-            trigger: Trigger<OnAdd, DarkOreAreaScanner>,
+            trigger: On<Add, DarkOreAreaScanner>,
             mut commands: Commands,
             scanners: Query<&DarkOreAreaScanner>
         ) {
-            let entity = trigger.target();
+            let entity = trigger.entity;
             let scanner = scanners.get(entity).unwrap();
             commands.entity(entity)
                 .observe(Self::scan_on_change)
@@ -154,12 +154,12 @@ pub mod dark_ore_area_scanner {
 
         // Local triggers when entity that is interested in scanner info changes by moving or changing the scanner range
         fn scan_on_change(
-            trigger: Trigger<OnInsert, (DarkOreAreaScanner, GridCoords)>,
+            trigger: On<Insert, (DarkOreAreaScanner, GridCoords)>,
             mut commands: Commands,
             obstacle_grid: Res<ObstacleGrid>,
             mut scanners: Query<(&DarkOreAreaScanner, &GridCoords, &mut DarkOreInRange)>,
         ) {
-            let entity = trigger.target();
+            let entity = trigger.entity;
             let Ok((scanner, grid_coords, mut dark_ore_in_range)) = scanners.get_mut(entity) else { return; };
             let ore_entities_in_range = obstacle_grid.imprint_query_element(*grid_coords, scanner.range_imprint, Self::is_dark_ore_helper);
             if ore_entities_in_range.is_empty() {
@@ -172,12 +172,12 @@ pub mod dark_ore_area_scanner {
 
         // Global trigger reacting to any dark ore removal to keep DarkOreinRange in sync
         pub fn on_remove_dark_ore(
-            trigger: Trigger<OnRemove, DarkOre>,
+            trigger: On<Remove, DarkOre>,
             mut commands: Commands,
             dark_ores: Query<&GridCoords, With<DarkOre>>,
             mut scanners: Query<(Entity, &DarkOreAreaScanner, &mut DarkOreInRange, &GridCoords)>,
         ) {
-            let entity = trigger.target();
+            let entity = trigger.entity;
             let dark_ore_grid_coords = dark_ores.get(entity).unwrap();
             for (scanner_entity, scanner, mut dark_ore_in_range, scanner_grid_coords) in scanners.iter_mut() {
                 // TODO: This won't work when we want to implement Mining Complex range expansion, as the GridCoords won't match ScannerImprint coords

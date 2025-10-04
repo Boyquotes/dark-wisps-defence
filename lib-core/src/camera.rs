@@ -1,4 +1,4 @@
-use bevy::{core_pipeline::bloom::Bloom, input::mouse::MouseWheel};
+use bevy::{post_process::bloom::Bloom, input::mouse::MouseWheel};
 use crate::lib_prelude::*;
 
 const ZOOM_MIN: f32 = 1.;
@@ -20,10 +20,6 @@ pub struct MainCamera;
 fn startup(mut commands: Commands) {
     commands.spawn((
         Camera2d::default(),
-        Camera {
-            hdr: true,
-            ..default()
-        },
         Transform::from_xyz(500., 500., 0.),
         Bloom {
             high_pass_frequency: 0.5,
@@ -36,7 +32,7 @@ fn startup(mut commands: Commands) {
 fn camera_zoom(
     camera: Single<&mut Projection, With<MainCamera>>,
     time: Res<Time>,
-    mut mouse_wheel_events: EventReader<MouseWheel>
+    mut mouse_wheel_events: MessageReader<MouseWheel>
 ) {
     let mut scroll = 0.0;
     for event in mouse_wheel_events.read() {

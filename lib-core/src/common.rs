@@ -71,10 +71,10 @@ impl Health {
 pub struct MaxHealth(pub f32);
 impl MaxHealth {
     fn on_insert(
-        trigger: Trigger<OnInsert, MaxHealth>,
+        trigger: On<Insert, MaxHealth>,
         mut healths: Query<(&mut Health, &MaxHealth)>,
     ) {
-        let Ok((mut health, max_health)) = healths.get_mut(trigger.target()) else { return; };
+        let Ok((mut health, max_health)) = healths.get_mut(trigger.entity) else { return; };
         if health.current == 0. {
             health.current = max_health.0;
         }
@@ -121,10 +121,10 @@ impl ColorPulsation {
     }
 
     fn on_remove(
-        trigger: Trigger<OnRemove, ColorPulsation>,
+        trigger: On<Remove, ColorPulsation>,
         mut sprites: Query<&mut Sprite>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(mut sprite) = sprites.get_mut(entity) else { return; };
         match &mut sprite.color {
             Color::Hsla(Hsla {lightness, .. }) => {
@@ -161,10 +161,10 @@ impl ColorPulsation {
 pub struct ZDepth(pub f32);
 impl ZDepth {
     fn on_insert(
-        trigger: Trigger<OnInsert, ZDepth>,
+        trigger: On<Insert, ZDepth>,
         mut transforms: Query<(&mut Transform, &ZDepth)>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((mut transform, z_depth)) = transforms.get_mut(entity) else { return; };
         transform.translation.z = z_depth.0;
     }

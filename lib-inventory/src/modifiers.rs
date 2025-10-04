@@ -76,12 +76,12 @@ impl ModifierSourceUpgrade {
 /// T - Modifier component (for example ModifierAttackRange)
 /// U - Property component (for example AttackRange)
 fn recalculate_on_modifier_inserted<T: Component + Modifier, U: Component + Property>(
-    trigger: Trigger<OnInsert, T>,
+    trigger: On<Insert, T>,
     mut commands: Commands,
     modifiers: Query<(&T, &ModifierOf)>,
     modification_targets: Query<&Modifiers>,
 ) {
-    let modifier_entity = trigger.target();
+    let modifier_entity = trigger.entity;
     let Ok((_, modifier_of)) = modifiers.get(modifier_entity) else { return; };
     let all_modifiers_list = modification_targets.get(modifier_of.0).unwrap();
     let new_value = all_modifiers_list.iter()
@@ -105,22 +105,24 @@ pub struct PotentialUpgradeOf(pub Entity);
 #[relationship_target(relationship = PotentialUpgradeOf, linked_spawn)]
 pub struct PotentialUpgrades(Vec<Entity>);
 
-#[derive(Event)]
-pub struct ApplyPotentialUpgrade;
+#[derive(EntityEvent)]
+pub struct ApplyPotentialUpgrade {
+    pub entity: Entity,
+}
 impl ApplyPotentialUpgrade {
     fn on_trigger(
-        trigger: Trigger<ApplyPotentialUpgrade>,
+        trigger: On<ApplyPotentialUpgrade>,
         mut commands: Commands,
         mut potential_upgrades: Query<(&ModifierType, &mut ModifierSourceUpgrade, &PotentialUpgradeOf)>,
         // Modifier value components
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((modifier_type, mut modifier_source_upgrade, parent)) = potential_upgrades.get_mut(entity) else { return; };
 
         // First turn the potential upgrade into full fledged modifier. We first need to insert ModifierOf and then clone as otherwise on_add observers won't trigger properly(they expect ModifierOf to be present)
         let modifier_entity = commands.spawn(ModifierOf(parent.0)).id();
         let mut commands_entity = commands.entity(entity);
-        commands_entity.clone_with(modifier_entity, |_| {});
+        commands_entity.clone_with_opt_out(modifier_entity, |_| {});
         
         // Then level up the potential upgrade
         if modifier_source_upgrade.current_level + 1 >= modifier_source_upgrade.upgrade_info.levels.len() { 

@@ -32,13 +32,13 @@ impl BuilderExpeditionDrone {
     }
 
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderExpeditionDrone>,
+        trigger: On<Add, BuilderExpeditionDrone>,
         mut commands: Commands,
         builders: Query<&BuilderExpeditionDrone>,
         asset_server: Res<AssetServer>,
         expedition_zones: Query<&Transform, With<ExpeditionZone>>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         if let Ok(exploration_zone_transform) = expedition_zones.get(builder.target_entity) {

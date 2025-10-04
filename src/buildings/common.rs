@@ -11,10 +11,10 @@ pub struct TowerTopRotation {
     pub current_angle: f32,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct BuildingDestroyedEvent(pub Entity);
 impl Command for BuildingDestroyedEvent {
     fn apply(self, world: &mut World) {
-        world.send_event(self);
+        world.write_message(self);
     }
 }

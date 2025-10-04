@@ -127,11 +127,11 @@ impl BuilderQuantumField {
     }
     
     fn on_add(
-        trigger: Trigger<OnAdd, BuilderQuantumField>,
+        trigger: On<Add, BuilderQuantumField>,
         mut commands: Commands,
         builders: Query<&BuilderQuantumField>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         commands.entity(entity)
@@ -238,11 +238,11 @@ impl GridPlacerUiForQuantumField {
     }
 
     fn on_add(
-        trigger: Trigger<OnAdd, GridPlacerUiForQuantumField>,
+        trigger: On<Add, GridPlacerUiForQuantumField>,
         mut commands: Commands,
         grid_placer_ui_for_quantum_field: Single<&GridPlacerUiForQuantumField>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let ui_text = grid_placer_ui_for_quantum_field.into_inner().imprint_str();
         commands.entity(entity).insert((
             Node {
@@ -276,11 +276,11 @@ impl ArrowButton {
         }
     }
     fn on_add(
-        trigger: Trigger<OnAdd, ArrowButton>,
+        trigger: On<Add, ArrowButton>,
         mut commands: Commands,
         arrows: Query<&ArrowButton>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let arrow_button = arrows.get(entity).unwrap();
         commands.entity(entity).insert((
             Node {
@@ -295,13 +295,13 @@ impl ArrowButton {
     }
 
     fn on_click(
-        trigger: Trigger<Pointer<Click>>,
+        trigger: On<Pointer<Click>>,
         ui: Single<(&Children, &mut GridPlacerUiForQuantumField)>,
         arrows: Query<&ArrowButton>,
         mut texts: Query<&mut Text>,
         mut placer_request: ResMut<GridObjectPlacerRequest>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let (ui_children, mut grid_placer_ui) = ui.into_inner();
     
         let arrow_button = arrows.get(entity).unwrap();
@@ -352,10 +352,10 @@ enum QuantumFieldActionButton {
 }
 impl QuantumFieldActionButton {
     fn on_add(
-        trigger: Trigger<OnAdd, QuantumFieldActionButton>,
+        trigger: On<Add, QuantumFieldActionButton>,
         mut commands: Commands,
     ) {
-        commands.entity(trigger.target()).insert((
+        commands.entity(trigger.entity).insert((
             Node {
                 width: Val::Percent(50.),
                 height: Val::Px(20.),
@@ -374,7 +374,7 @@ impl QuantumFieldActionButton {
         )).observe(Self::on_click);
     }
     fn on_click(
-        _trigger: Trigger<Pointer<Click>>,
+        _trigger: On<Pointer<Click>>,
         mut commands: Commands,
         mut stock: ResMut<Stock>,
         display_info_panel: Single<&DisplayInfoPanel>,
@@ -394,7 +394,7 @@ impl QuantumFieldActionButton {
                 let Ok(mut quantum_field) = quantum_fields.get_mut(focused_entity) else { return; };
                 if stock.try_pay_costs(quantum_field.get_current_layer_costs()) {
                     quantum_field.move_to_next_layer();
-                    commands.trigger_targets(UiMapObjectFocusedTrigger, [focused_entity]);
+                    commands.trigger(UiMapObjectFocusedTrigger { entity: focused_entity });
                 }
             },
             QuantumFieldActionButton::Hidden => {},
@@ -441,14 +441,14 @@ fn update_quantum_field_info_panel_system(
 }
 
 fn on_ui_map_object_focus_changed_trigger(
-    trigger: Trigger<UiMapObjectFocusedTrigger>,
+    trigger: On<UiMapObjectFocusedTrigger>,
     mut commands: Commands,
     quantum_fields: Query<&QuantumField>,
     quantum_field_panel: Single<&mut Node, With<QuantumFieldPanel>>,
     costs_container: Single<Entity, With<QuantumFieldLayerCostsContainer>>,
     costs_panels: Query<Entity, With<QuantumFieldLayerCostPanel>>,
 ) {
-    let focused_entity = trigger.target();
+    let focused_entity = trigger.entity;
     let Ok(quantum_field) = quantum_fields.get(focused_entity) else { 
         quantum_field_panel.into_inner().display = Display::None;
         return;

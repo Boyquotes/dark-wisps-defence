@@ -10,7 +10,7 @@ impl Plugin for ResourcesPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<Stock>()
-            .add_event::<StockChangedEvent>()
+            .add_message::<StockChangedEvent>()
             .add_systems(PostUpdate, emit_delta_events_system.run_if(resource_changed::<Stock>))
             .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(Stock::default()); });
     }
@@ -63,7 +63,7 @@ impl From<EssenceContainer> for EssencesContainer {
 
 
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct StockChangedEvent {
     pub resource_type: ResourceType,
     pub delta: i32,
@@ -148,7 +148,7 @@ impl Default for Stock {
 
 fn emit_delta_events_system(
     mut stock: ResMut<Stock>,
-    mut event_writer: EventWriter<StockChangedEvent>,
+    mut event_writer: MessageWriter<StockChangedEvent>,
  ) {
     for (resource_type, delta) in stock.delta.iter() {
         if *delta != 0 {

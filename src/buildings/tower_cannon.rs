@@ -27,13 +27,13 @@ impl BuilderTowerCannon {
     }
 
     pub fn on_add(
-        trigger: Trigger<OnAdd, BuilderTowerCannon>,
+        trigger: On<Add, BuilderTowerCannon>,
         mut commands: Commands,
         builders: Query<&BuilderTowerCannon>,
         asset_server: Res<AssetServer>,
         almanach: Res<Almanach>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         let building_info = almanach.get_building_info(BuildingType::Tower(TowerType::Cannon));
@@ -65,7 +65,7 @@ impl BuilderTowerCannon {
                     IndicatorDisplay::default(),
                 ],
             ));
-        commands.trigger_targets(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion, entity);
+        commands.trigger(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion { entity });
     }
 }
 
@@ -76,7 +76,7 @@ pub fn shooting_system(
 ) {
     for (transform, mut timer, mut target, attack_damage) in tower_cannons.iter_mut() {
         let TowerWispTarget::Wisp(target_wisp) = *target else { continue; };
-        if !timer.0.finished() { continue; }
+        if !timer.0.is_finished() { continue; }
 
         let Ok((wisp_grid_path, wisp_coords)) = wisps.get(target_wisp) else {
             // Target wisp does not exist anymore

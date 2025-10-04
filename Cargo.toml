@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.16.*", features = ["dynamic_linking"] }
+bevy = { version = "0.17.*", features = ["dynamic_linking"] }
 bytemuck = { version = "1.23.1", features = ["derive"] }
 nanorand = "0.7.0"
 serde = "1.0.*"

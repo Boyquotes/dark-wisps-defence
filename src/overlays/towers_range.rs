@@ -1,8 +1,12 @@
 use bevy::{
-    input::common_conditions::input_just_released, reflect::TypePath, render::{
-        render_resource::{AsBindGroup, ShaderRef, ShaderType},
+    input::common_conditions::input_just_released, 
+    reflect::TypePath,
+    render::{
+        render_resource::{AsBindGroup, ShaderType},
         storage::ShaderStorageBuffer,
-    }, sprite::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d}
+    },
+    shader:: ShaderRef,
+    sprite_render::{AlphaMode2d, Material2d, Material2dPlugin, MeshMaterial2d}
 };
 use lib_grid::{
     grids::tower_ranges::TowerRangesGrid,
@@ -65,11 +69,11 @@ impl TowersRangeOverlayConfig {
         }
     }
     fn on_building_ui_focused(
-        trigger: Trigger<UiMapObjectFocusedTrigger>,
+        trigger: On<UiMapObjectFocusedTrigger>,
         mut overlay_config: ResMut<TowersRangeOverlayConfig>,
         towers: Query<(), With<Tower>>, // Is focused a tower?
     ) {
-        let focused_entity = trigger.target();
+        let focused_entity = trigger.entity;
         if towers.contains(focused_entity) {
             overlay_config.secondary_mode = TowersRangeOverlaySecondaryMode::Highlight { tower: focused_entity };
         } else {
@@ -77,7 +81,7 @@ impl TowersRangeOverlayConfig {
         }
     }
     fn on_building_ui_unfocused(
-        _trigger: Trigger<UiMapObjectUnfocusedTrigger>,
+        _trigger: On<UiMapObjectUnfocusedTrigger>,
         mut overlay_config: ResMut<TowersRangeOverlayConfig>,
     ) {
         overlay_config.secondary_mode = TowersRangeOverlaySecondaryMode::None;

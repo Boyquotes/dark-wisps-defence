@@ -26,11 +26,11 @@ const VISIBLE_TOP_POSITION: f32 = 5.;
 pub struct ObjectivesShowHideButton;
 impl ObjectivesShowHideButton {
     fn on_add(
-        trigger: Trigger<OnAdd, ObjectivesShowHideButton>,
+        trigger: On<Add, ObjectivesShowHideButton>,
         mut commands: Commands, 
         asset_server: Res<AssetServer>,
     ) {
-        commands.entity(trigger.target()).insert((
+        commands.entity(trigger.entity).insert((
             Node {
                 width: Val::Px(32.0),
                 height: Val::Px(32.0),
@@ -43,7 +43,7 @@ impl ObjectivesShowHideButton {
         )).observe(Self::on_click);
     }
     fn on_click(
-        _trigger: Trigger<Pointer<Click>>,
+        _trigger: On<Pointer<Click>>,
         current_state: Res<State<ObjectivesPanelState>>,
         mut next_state: ResMut<NextState<ObjectivesPanelState>>,
     ) {
@@ -67,11 +67,11 @@ pub enum ObjectivesPanelState {
 pub struct ObjectivesPanel;
 impl ObjectivesPanel {
     fn on_add(
-        trigger: Trigger<OnAdd, ObjectivesPanel>,
+        trigger: On<Add, ObjectivesPanel>,
         mut commands: Commands,
         asset_server: Res<AssetServer>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         commands.entity(entity).insert((
             Node {
                 width: Val::Px(300.0),
@@ -97,11 +97,11 @@ impl ObjectivesPanel {
         ));
     }
     fn on_objective_added(
-        trigger: Trigger<OnAdd, Objective>,
+        trigger: On<Add, Objective>,
         mut commands: Commands,
         objectives_panel: Single<Entity, With<ObjectivesPanel>>,
     ) {
-        let objective_entity = trigger.target();
+        let objective_entity = trigger.entity;
         commands.entity(objectives_panel.into_inner()).add_child(objective_entity);
     }
 }

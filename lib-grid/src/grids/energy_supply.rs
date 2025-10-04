@@ -8,7 +8,7 @@ impl Plugin for EnergySupplyPlugin {
         app
             .insert_resource(EnergySupplyGrid::new_empty())
             .init_resource::<EnergySupplyRecalculatePower>()
-            .add_event::<SupplierChangedEvent>()
+            .add_message::<SupplierChangedEvent>()
             .add_systems(PostUpdate, (
                 (
                     on_supplier_changed_system,
@@ -28,10 +28,10 @@ impl Plugin for EnergySupplyPlugin {
 pub struct SupplierEnergy;
 impl SupplierEnergy {
     fn on_add(
-        trigger: Trigger<OnAdd, SupplierEnergy>,
+        trigger: On<Add, SupplierEnergy>,
         mut commands: Commands,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         commands.entity(entity)
             .observe(Self::refresh_on_insert)
             .observe(Self::refresh_on_replace);
@@ -39,11 +39,11 @@ impl SupplierEnergy {
 
     // Detect change in coords or range and trigger supply grid update
     fn refresh_on_insert(
-        trigger: Trigger<OnInsert, (GridCoords, EnergySupplyRange, SupplierEnergy)>,
-        mut supplier_changed_event_writer: EventWriter<SupplierChangedEvent>,
+        trigger: On<Insert, (GridCoords, EnergySupplyRange, SupplierEnergy)>,
+        mut supplier_changed_event_writer: MessageWriter<SupplierChangedEvent>,
         suppliers: Query<(&EnergySupplyRange, &GridCoords, &GridImprint), With<SupplierEnergy>>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((energy_supply_range, grid_coords, grid_imprint)) = suppliers.get(entity) else { return; };
 
         supplier_changed_event_writer.write(SupplierChangedEvent {
@@ -55,12 +55,12 @@ impl SupplierEnergy {
     }
     // Detect change in coords or range and trigger supply grid update
     fn refresh_on_replace(
-        trigger: Trigger<OnReplace, (GridCoords, EnergySupplyRange, SupplierEnergy)>,
-        mut supplier_changed_event_writer: EventWriter<SupplierChangedEvent>,
+        trigger: On<Replace, (GridCoords, EnergySupplyRange, SupplierEnergy)>,
+        mut supplier_changed_event_writer: MessageWriter<SupplierChangedEvent>,
         suppliers: Query<(&EnergySupplyRange, &GridCoords, &GridImprint), With<SupplierEnergy>>,
 
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((energy_supply_range, grid_coords, grid_imprint)) = suppliers.get(entity) else { return; };
 
         supplier_changed_event_writer.write(SupplierChangedEvent {
@@ -77,7 +77,7 @@ impl SupplierEnergy {
 #[require(HasPower)]
 pub struct GeneratorEnergy;
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct SupplierChangedEvent {
     pub supplier: Entity,
     pub coords: Vec<GridCoords>,
@@ -158,7 +158,7 @@ impl EnergySupplyGrid {
 
 fn on_supplier_changed_system(
     mut need_recalculate_power: ResMut<EnergySupplyRecalculatePower>,
-    mut events: EventReader<SupplierChangedEvent>,
+    mut events: MessageReader<SupplierChangedEvent>,
     mut energy_supply_grid: ResMut<EnergySupplyGrid>,
 ) {
     for event in events.read() {
@@ -203,12 +203,12 @@ pub struct NoPower;
 
 impl NeedsPower {
     fn on_add(
-        trigger: Trigger<OnAdd, NeedsPower>,
+        trigger: On<Add, NeedsPower>,
         mut commands: Commands,
         energy_supply_grid: Res<EnergySupplyGrid>,
         mut power_query: Query<(&GridCoords, &GridImprint, &mut NeedsPower)>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((grid_coords, grid_imprint, mut uses_power)) = power_query.get_mut(entity) else { return; };
 
         let has_power = energy_supply_grid.is_imprint_powered(*grid_coords, *grid_imprint);
@@ -218,12 +218,12 @@ impl NeedsPower {
 
     /// Local observer triggered when GridCoords or GridImprint changes on UsesPower entities
     fn on_coords_change(
-        trigger: Trigger<OnInsert, (GridCoords, GridImprint)>,
+        trigger: On<Insert, (GridCoords, GridImprint)>,
         mut commands: Commands,
         energy_supply_grid: Res<EnergySupplyGrid>,
         mut power_query: Query<(&GridCoords, &GridImprint, &mut NeedsPower)>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok((grid_coords, grid_imprint, mut uses_power)) = power_query.get_mut(entity) else { return; };
 
         let has_power = energy_supply_grid.is_imprint_powered(*grid_coords, *grid_imprint);

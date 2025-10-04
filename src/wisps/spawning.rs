@@ -19,12 +19,12 @@ impl BuilderWisp {
     }
 
     pub fn on_add(
-        trigger: Trigger<OnAdd, BuilderWisp>,
+        trigger: On<Add, BuilderWisp>,
         mut commands: Commands,
         mut wisps_grid: ResMut<WispsGrid>,
         builders: Query<&BuilderWisp>,
     ) {
-        let entity = trigger.target();
+        let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
         let mut rng = nanorand::tls_rng();
@@ -57,14 +57,14 @@ impl BuilderWisp {
 }
 
 pub fn on_wisp_spawn_attach_material<WispT: Component, MaterialT: Asset + WispMaterial>(
-    trigger: Trigger<OnAdd, WispT>,
+    trigger: On<Add, WispT>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<MaterialT>>,
     wisps: Query<(), With<WispT>>,
 ) {
-    let entity = trigger.target();
+    let entity = trigger.entity;
     if !wisps.contains(entity) { return; }
     let wisp_world_size = WISP_GRID_IMPRINT.world_size();
     let mesh = meshes.add(Rectangle::new(wisp_world_size.x, wisp_world_size.y));

@@ -65,6 +65,7 @@ impl BuilderExplosion {
                         index: 0,
                         ..Default::default()
                     }),
+                    custom_size: Some(GridImprint::default().world_size()), // Adjust to CELL_SIZE
                     ..default()
                 },
                 Transform {

@@ -64,7 +64,7 @@ impl BuilderRocket {
             .insert((
                 Sprite {
                     image: asset_server.load(ROCKET_BASE_IMAGE),
-                    custom_size: Some(Vec2::new(20.0, 10.0)),
+                    custom_size: Some(Vec2::new(40.0, 20.0)),
                     ..Default::default()
                 },
                 Transform {
@@ -79,10 +79,10 @@ impl BuilderRocket {
                 children![(
                     Sprite {
                         image: asset_server.load(ROCKET_EXHAUST_IMAGE),
-                        custom_size: Some(Vec2::new(10.0, 6.25)),
+                        custom_size: Some(Vec2::new(20.0, 12.5)),
                         ..default()
                     },
-                    Anchor(Vec2::new(0.75, 0.)),
+                    Anchor(Vec2::new(0.9, 0.)),
                     RocketExhaust,
                 )]
             ));
@@ -113,7 +113,7 @@ pub fn rocket_move_system(
         let current_direction = transform.local_x().xy();
 
         // Move the entity forward (along the local y-axis)
-        transform.translation += (current_direction * time.delta_secs() * 200.0).extend(0.0);
+        transform.translation += (current_direction * time.delta_secs() * 400.0).extend(0.0);
 
         // Calculate the target angle
         let target_angle = direction_vector.y.atan2(direction_vector.x);

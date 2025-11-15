@@ -43,7 +43,7 @@ impl BuilderWisp {
                 related![Modifiers[
                     (ModifierMaxHealth(10.), ModifierSourceBaseline),
                     (ModifierAttackRange(1.), ModifierSourceBaseline),
-                    (ModifierMovementSpeed(30.), ModifierSourceBaseline),
+                    (ModifierMovementSpeed(60.), ModifierSourceBaseline),
                 ]],
             ));
         match builder.wisp_type {

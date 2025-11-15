@@ -14,7 +14,7 @@ impl Plugin for GridPlugin {
     }
 }
 
-pub const CELL_SIZE: f32 = 16.;
+pub const CELL_SIZE: f32 = 32.;
 
 pub type GridVersion = u32;
 

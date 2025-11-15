@@ -4,7 +4,7 @@ use crate::lib_prelude::*;
 const ZOOM_MIN: f32 = 1.;
 const ZOOM_MAX: f32 = 4.;
 const ZOOM_SPEED: f32 = 20.;
-const SLIDE_SPEED: f32 = 500.;
+const SLIDE_SPEED: f32 = CELL_SIZE * 30.;
 
 pub struct CameraPlugin;
 impl Plugin for CameraPlugin {

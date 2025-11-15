@@ -71,7 +71,7 @@ impl BuilderWispAttackEffect {
                 },
                 Transform {
                     translation: builder.0.extend(Z_GROUND_EFFECT),
-                    scale: Vec3::new(0.25, 0.25, 1.0),
+                    scale: Vec3::new(0.5, 0.5, 1.0),
                     ..Default::default()
                 },
                 AnimationController::new(0, 9, 0.025, false),

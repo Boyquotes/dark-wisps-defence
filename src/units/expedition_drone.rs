@@ -53,6 +53,7 @@ impl BuilderExpeditionDrone {
                     Transform {
                         translation: builder.world_position.extend(Z_AERIAL_UNIT),
                         rotation: Quat::from_rotation_z(target_vector.y.atan2(target_vector.x)),
+                        scale: Vec3::new(2., 2., 1.),
                         ..default()
                     },
                     ExpeditionDrone { target: builder.target_entity, target_world_position: exploration_zone_transform.translation.xy() },
@@ -80,6 +81,6 @@ pub fn move_expedition_drone_system(
             commands.entity(entity).despawn();
             continue;
         }
-        transform.translation += (target_vector.normalize() * time.delta_secs() * 100.0).extend(0.);
+        transform.translation += (target_vector.normalize() * time.delta_secs() * 200.0).extend(0.);
     }
 }

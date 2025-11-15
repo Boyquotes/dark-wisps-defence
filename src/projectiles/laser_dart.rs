@@ -55,7 +55,7 @@ impl BuilderLaserDart {
             .insert((
                 Sprite {
                     color: Color::srgb(1.0, 0.0, 0.0),
-                    custom_size: Some(Vec2::new(7.0, 1.0)),
+                    custom_size: Some(Vec2::new(14.0, 2.0)),
                     ..Default::default()
                 },
                 Transform {
@@ -84,7 +84,7 @@ pub fn laser_dart_move_system(
                 target.target_wisp = None;
             }
         }
-        transform.translation += target.target_vector.extend(0.) * time.delta_secs() * 300.;
+        transform.translation += target.target_vector.extend(0.) * time.delta_secs() * 600.;
     }
 }
 

@@ -61,7 +61,7 @@ impl BuilderCannonball {
             .insert((
                 Sprite {
                     image: asset_server.load(CANNONBALL_BASE_IMAGE),
-                    custom_size: Some(Vec2::new(8.0, 8.0)),
+                    custom_size: Some(Vec2::new(CELL_SIZE / 2., CELL_SIZE / 2.)),
                     ..default()
                 },
                 Transform::from_translation(builder.world_position.extend(Z_PROJECTILE)),
@@ -81,7 +81,7 @@ pub fn cannonball_move_system(
 ) {
     for (mut transform, target) in cannonballs.iter_mut() {
         let direction_vector = (target.target_position - transform.translation.xy()).normalize();
-        let move_distance = direction_vector * time.delta_secs() * 200.;
+        let move_distance = direction_vector * time.delta_secs() * 400.;
 
         let remaining_distance = (transform.translation.xy() + move_distance).distance(target.target_position);
 

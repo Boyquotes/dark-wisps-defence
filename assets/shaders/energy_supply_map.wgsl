@@ -15,7 +15,7 @@ struct UniformGridData {
 @group(2) @binding(1) var<uniform> uniforms: UniformGridData;
 
 // Rendering constants
-const blockSize: f32 = 16.; // Size of each block in pixels
+const blockSize: f32 = 32.; // Size of each block in pixels
 const outlineThickness: f32 = 2.; // Size of the outline in pixels
 const outlineRatio: f32 = outlineThickness / blockSize; // Outline thickness relative to cell size
 const BASE_COLOR: vec4<f32> = vec4<f32>(1., 1., 1., 0.); // Transparent

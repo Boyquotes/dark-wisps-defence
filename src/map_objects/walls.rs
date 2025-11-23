@@ -34,27 +34,20 @@ pub struct BuilderWall {
 }
 impl SSS for BuilderWall {}
 impl Saveable for BuilderWall {
-    fn save(&self, tx: &Transaction) {
-        if let Some(entity) = self.entity {
-            // 1. Insert into walls table
-            if let Err(e) = tx.execute(
-                "INSERT INTO walls (id) VALUES (?1)",
-                [entity.index() as i64],
-            ) {
-                eprintln!("Failed to insert wall: {}", e);
-                return;
-            }
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let entity_index = self.entity.expect("BuilderWall for saving purpose must have an entity").index() as i64;
+        // 1. Insert into walls table
+        tx.execute(
+            "INSERT INTO walls (id) VALUES (?1)",
+            [entity_index],
+        )?;
 
-            // 2. Insert into grid_positions table
-            if let Err(e) = tx.execute(
-                "INSERT INTO grid_positions (wall_id, x, y) VALUES (?1, ?2, ?3)",
-                (entity.index() as i64, self.grid_position.x, self.grid_position.y),
-            ) {
-                eprintln!("Failed to insert grid position for wall: {}", e);
-            }
-        } else {
-            eprintln!("Cannot save BuilderWall without entity");
-        }
+        // 2. Insert into grid_positions table
+        tx.execute(
+            "INSERT INTO grid_positions (wall_id, x, y) VALUES (?1, ?2, ?3)",
+            (entity_index, self.grid_position.x, self.grid_position.y),
+        )?;
+        Ok(())
     }
 }
 impl BuilderWall {

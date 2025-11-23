@@ -1,6 +1,6 @@
 use bevy::input::common_conditions::input_just_released;
 use rusqlite::Connection;
-pub use rusqlite::Transaction;
+pub use rusqlite; // Export rusqlite for other crates
 
 use crate::lib_prelude::*;
 
@@ -64,7 +64,7 @@ impl SaveGameSignal {
 #[derive(Message)]
 pub struct LoadGame(pub String);
 pub trait Saveable: SSS {
-    fn save(&self, tx: &Transaction);
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()>;
 }
 pub struct SaveableBatchCommand<T: Saveable> {
     data: Vec<T>,
@@ -78,10 +78,11 @@ impl<T: Saveable> FromIterator<T> for SaveableBatchCommand<T> {
 }
 impl<T: Saveable> SSS for SaveableBatchCommand<T> {}
 impl<T: Saveable> SaveableBatch for SaveableBatchCommand<T> {
-    fn save_batch(&self, tx: &Transaction) {
-        for item in &self.data {
-            item.save(tx);
+    fn save_batch(self: Box<Self>, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        for item in self.data {
+            item.save(tx)?;
         }
+        Ok(())
     }
 }
 impl<T: Saveable> Command for SaveableBatchCommand<T> {
@@ -93,7 +94,7 @@ impl<T: Saveable> Command for SaveableBatchCommand<T> {
     }
 }
 pub trait SaveableBatch: SSS {
-    fn save_batch(&self, tx: &Transaction);
+    fn save_batch(self: Box<Self>, tx: &rusqlite::Transaction) -> rusqlite::Result<()>;
 }
 #[derive(Resource, Default)]
 pub struct GameSaveExecutor {
@@ -112,45 +113,32 @@ impl GameSaveExecutor {
         let save_name = save_executor.save_name.clone();
 
         std::thread::spawn(move || {
-            if std::path::Path::new(&save_name).exists() {
-                println!("Removing existing save file '{}'", save_name);
-                if let Err(e) = std::fs::remove_file(&save_name) {
-                    eprintln!("Failed to remove existing save file '{}': {}", save_name, e);
-                    return;
+            fn save_process(save_name: &str, objects: Vec<Box<dyn SaveableBatch>>) -> Result<(), Box<dyn std::error::Error>> {
+                if std::path::Path::new(save_name).exists() {
+                    println!("Removing existing save file '{}'", save_name);
+                    std::fs::remove_file(save_name)?;
                 }
-            }
-            // Open the database
-            let mut conn = match Connection::open(&save_name) {
-                Ok(c) => c,
-                Err(e) => {
-                    eprintln!("Failed to open database '{}': {}", save_name, e);
-                    return;
+                // Open the database
+                let mut conn = Connection::open(save_name)?;
+
+                // Run migrations
+                crate::common::db_migrations::migrations::runner().run(&mut conn)?;
+
+                // Start transaction
+                let tx = conn.transaction()?;
+
+                // Save all objects
+                for batch in objects {
+                    batch.save_batch(&tx)?;
                 }
-            };
 
-            // Run migrations
-            if let Err(e) = crate::common::db_migrations::migrations::runner().run(&mut conn) {
-                eprintln!("Failed to run migrations: {}", e);
-                return;
-            }
-
-            // Start transaction
-            let tx = match conn.transaction() {
-                Ok(t) => t,
-                Err(e) => {
-                    eprintln!("Failed to start transaction: {}", e);
-                    return;
-                }
-            };
-
-            // Save all objects
-            for batch in objects {
-                batch.save_batch(&tx);
+                // Commit transaction
+                tx.commit()?;
+                Ok(())
             }
 
-            // Commit transaction
-            if let Err(e) = tx.commit() {
-                eprintln!("Failed to commit transaction: {}", e);
+            if let Err(e) = save_process(&save_name, objects) {
+                eprintln!("Failed to save game: {}", e);
             } else {
                 println!("Game saved successfully to '{}'", save_name);
             }

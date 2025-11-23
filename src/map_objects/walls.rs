@@ -30,14 +30,39 @@ pub struct Wall;
 #[derive(Component)]
 pub struct BuilderWall {
     pub grid_position: GridCoords,
+    pub entity: Option<Entity>,
 }
 impl SSS for BuilderWall {}
 impl Saveable for BuilderWall {
-    fn save(&self, _tx: &Transaction) {}
+    fn save(&self, tx: &Transaction) {
+        if let Some(entity) = self.entity {
+            // 1. Insert into walls table
+            if let Err(e) = tx.execute(
+                "INSERT INTO walls (id) VALUES (?1)",
+                [entity.index() as i64],
+            ) {
+                eprintln!("Failed to insert wall: {}", e);
+                return;
+            }
+
+            // 2. Insert into grid_positions table
+            if let Err(e) = tx.execute(
+                "INSERT INTO grid_positions (wall_id, x, y) VALUES (?1, ?2, ?3)",
+                (entity.index() as i64, self.grid_position.x, self.grid_position.y),
+            ) {
+                eprintln!("Failed to insert grid position for wall: {}", e);
+            }
+        } else {
+            eprintln!("Cannot save BuilderWall without entity");
+        }
+    }
 }
 impl BuilderWall {
     pub fn new(grid_position: GridCoords) -> Self { 
-        Self { grid_position }
+        Self { grid_position, entity: None }
+    }
+    pub fn new_for_saving(grid_position: GridCoords, entity: Entity) -> Self { 
+        Self { grid_position, entity: Some(entity) }
     }
     
     fn on_add(
@@ -67,12 +92,12 @@ impl BuilderWall {
 
     fn on_game_save(
         mut commands: Commands,
-        walls: Query<&GridCoords, With<Wall>>,
+        walls: Query<(Entity, &GridCoords), With<Wall>>,
     ) {
         println!("Creating batch of BuilderWalls for saving. {} walls", walls.iter().count());
         let batch = walls
             .iter()
-            .map(|grid_coords| BuilderWall::new(*grid_coords))
+            .map(|(entity, grid_coords)| BuilderWall::new_for_saving(*grid_coords, entity))
             .collect::<SaveableBatchCommand<_>>();
         commands.queue(batch);
     }

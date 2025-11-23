@@ -4,6 +4,11 @@ pub use rusqlite::Transaction;
 
 use crate::lib_prelude::*;
 
+pub mod db_migrations {
+    use refinery::embed_migrations;
+    embed_migrations!("./migrations");
+}
+
 pub mod common_prelude {
     pub use super::*;
 }
@@ -122,6 +127,12 @@ impl GameSaveExecutor {
                     return;
                 }
             };
+
+            // Run migrations
+            if let Err(e) = crate::common::db_migrations::migrations::runner().run(&mut conn) {
+                eprintln!("Failed to run migrations: {}", e);
+                return;
+            }
 
             // Start transaction
             let tx = match conn.transaction() {

@@ -2027,8 +2027,6 @@ dependencies = [
  "lib-inventory",
  "lib-ui",
  "nanorand",
- "refinery",
- "rusqlite",
  "serde",
  "serde_yaml",
 ]
@@ -2992,6 +2990,8 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "lib-derive",
+ "refinery",
+ "rusqlite",
  "serde",
 ]
 

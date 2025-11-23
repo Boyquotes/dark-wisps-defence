@@ -32,7 +32,9 @@ pub struct BuilderWall {
     pub grid_position: GridCoords,
 }
 impl SSS for BuilderWall {}
-impl Saveable for BuilderWall {}
+impl Saveable for BuilderWall {
+    fn save(&self, _tx: &Transaction) {}
+}
 impl BuilderWall {
     pub fn new(grid_position: GridCoords) -> Self { 
         Self { grid_position }

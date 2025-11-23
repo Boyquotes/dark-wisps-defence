@@ -1,4 +1,6 @@
 use bevy::input::common_conditions::input_just_released;
+use rusqlite::Connection;
+pub use rusqlite::Transaction;
 
 use crate::lib_prelude::*;
 
@@ -15,6 +17,9 @@ impl Plugin for CommonPlugin {
             .add_systems(Update, (
                 ColorPulsation::pulsate_sprites_system,
                 SaveGameSignal::emit.run_if(input_just_released(KeyCode::KeyZ)),
+            ))
+            .add_systems(Last, (
+                GameSaveExecutor::on_game_save.run_if(on_message::<SaveGameSignal>),
             ))
             .add_observer(ZDepth::on_insert)
             .add_observer(MaxHealth::on_insert)
@@ -53,7 +58,9 @@ impl SaveGameSignal {
 }
 #[derive(Message)]
 pub struct LoadGame(pub String);
-pub trait Saveable: SSS {}
+pub trait Saveable: SSS {
+    fn save(&self, tx: &Transaction);
+}
 pub struct SaveableBatchCommand<T: Saveable> {
     data: Vec<T>,
 }
@@ -65,7 +72,13 @@ impl<T: Saveable> FromIterator<T> for SaveableBatchCommand<T> {
     }
 }
 impl<T: Saveable> SSS for SaveableBatchCommand<T> {}
-impl<T: Saveable> SaveableBatch for SaveableBatchCommand<T> {}
+impl<T: Saveable> SaveableBatch for SaveableBatchCommand<T> {
+    fn save_batch(&self, tx: &Transaction) {
+        for item in &self.data {
+            item.save(tx);
+        }
+    }
+}
 impl<T: Saveable> Command for SaveableBatchCommand<T> {
     fn apply(self, world: &mut World) {
         let mut buffer = world.resource_mut::<GameSaveExecutor>();
@@ -74,12 +87,66 @@ impl<T: Saveable> Command for SaveableBatchCommand<T> {
         buffer.objects_to_save.push(Box::new(self));
     }
 }
-pub trait SaveableBatch: SSS {}
+pub trait SaveableBatch: SSS {
+    fn save_batch(&self, tx: &Transaction);
+}
 #[derive(Resource, Default)]
 pub struct GameSaveExecutor {
     pub save_name: String,
     pub objects_to_save: Vec<Box<dyn SaveableBatch>>,
 }
+impl GameSaveExecutor {
+    fn on_game_save(
+        mut save_executor: ResMut<GameSaveExecutor>,
+    ) {
+        if save_executor.objects_to_save.is_empty() {
+            return;
+        }
+        
+        let objects = std::mem::take(&mut save_executor.objects_to_save);
+        let save_name = save_executor.save_name.clone();
+
+        std::thread::spawn(move || {
+            if std::path::Path::new(&save_name).exists() {
+                println!("Removing existing save file '{}'", save_name);
+                if let Err(e) = std::fs::remove_file(&save_name) {
+                    eprintln!("Failed to remove existing save file '{}': {}", save_name, e);
+                    return;
+                }
+            }
+            // Open the database
+            let mut conn = match Connection::open(&save_name) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("Failed to open database '{}': {}", save_name, e);
+                    return;
+                }
+            };
+
+            // Start transaction
+            let tx = match conn.transaction() {
+                Ok(t) => t,
+                Err(e) => {
+                    eprintln!("Failed to start transaction: {}", e);
+                    return;
+                }
+            };
+
+            // Save all objects
+            for batch in objects {
+                batch.save_batch(&tx);
+            }
+
+            // Commit transaction
+            if let Err(e) = tx.commit() {
+                eprintln!("Failed to commit transaction: {}", e);
+            } else {
+                println!("Game saved successfully to '{}'", save_name);
+            }
+        });
+    }
+}
+
 
 // Component for entities that are bound to the map and shall be removed on its change
 #[derive(Component, Default)]

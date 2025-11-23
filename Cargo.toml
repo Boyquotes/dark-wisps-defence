@@ -5,10 +5,12 @@ edition = "2024"
 
 [dependencies]
 bevy = { version = "0.17.*", features = ["dynamic_linking"] }
-bytemuck = { version = "1.23.1", features = ["derive"] }
+bytemuck = { version = "1.23.*", features = ["derive"] }
 nanorand = "0.7.0"
+refinery = { version = "0.9.*", features = ["rusqlite"]}
+rusqlite = { version = "0.37.*", features = ["bundled"] }
 serde = "1.0.*"
-serde_yaml = "0.9.34"
+serde_yaml = "0.9.*"
 
 [dependencies.lib-core]
 path = "lib-core"

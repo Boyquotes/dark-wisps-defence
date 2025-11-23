@@ -14,6 +14,9 @@ impl Plugin for WallPlugin {
                 onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 color_rotation_system,
             ))
+            .add_systems(PostUpdate, (
+                BuilderWall::on_game_save.run_if(on_message::<SaveGameSignal>),
+            ))
             .add_observer(BuilderWall::on_add);
     }
 }
@@ -28,7 +31,8 @@ pub struct Wall;
 pub struct BuilderWall {
     pub grid_position: GridCoords,
 }
-
+impl SSS for BuilderWall {}
+impl Saveable for BuilderWall {}
 impl BuilderWall {
     pub fn new(grid_position: GridCoords) -> Self { 
         Self { grid_position }
@@ -57,6 +61,18 @@ impl BuilderWall {
                 Wall,
             ));
         emissions_energy_recalculate_all.0 = true;
+    }
+
+    fn on_game_save(
+        mut commands: Commands,
+        walls: Query<&GridCoords, With<Wall>>,
+    ) {
+        println!("Creating batch of BuilderWalls for saving. {} walls", walls.iter().count());
+        let batch = walls
+            .iter()
+            .map(|grid_coords| BuilderWall::new(*grid_coords))
+            .collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
     }
 }
 

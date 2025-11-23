@@ -1,3 +1,5 @@
+use bevy::input::common_conditions::input_just_released;
+
 use crate::lib_prelude::*;
 
 pub mod common_prelude {
@@ -8,14 +10,20 @@ pub struct CommonPlugin;
 impl Plugin for CommonPlugin {
     fn build(&self, app: &mut App) {
         app
+            .init_resource::<GameSaveExecutor>()
+            .add_message::<SaveGameSignal>()
             .add_systems(Update, (
                 ColorPulsation::pulsate_sprites_system,
+                SaveGameSignal::emit.run_if(input_just_released(KeyCode::KeyZ)),
             ))
             .add_observer(ZDepth::on_insert)
             .add_observer(MaxHealth::on_insert)
-            .add_observer(ColorPulsation::on_remove);
+            .add_observer(ColorPulsation::on_remove)
+            ;
     }
 }
+
+pub trait SSS: Send + Sync + 'static {}
 
 // Simple property trait for single value objects. Useful in generic contexts.
 pub trait Property {
@@ -29,6 +37,48 @@ pub trait Property {
 pub struct DynamicGameEvent(pub String);
 impl DynamicGameEvent {
     pub fn game_started() -> Self { DynamicGameEvent("game-started".to_string()) }
+}
+
+#[derive(Message)]
+pub struct SaveGameSignal;
+impl SaveGameSignal {
+    fn emit(
+        mut save_executor: ResMut<GameSaveExecutor>,
+        mut writer: MessageWriter<SaveGameSignal>,
+    ) {
+        save_executor.save_name = "test_save.dwd".into();
+        save_executor.objects_to_save.clear();
+        writer.write(SaveGameSignal);
+    }
+}
+#[derive(Message)]
+pub struct LoadGame(pub String);
+pub trait Saveable: SSS {}
+pub struct SaveableBatchCommand<T: Saveable> {
+    data: Vec<T>,
+}
+impl<T: Saveable> FromIterator<T> for SaveableBatchCommand<T> {
+    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+        let mut result = Self { data: Vec::new() };
+        result.data.extend(iter);
+        result
+    }
+}
+impl<T: Saveable> SSS for SaveableBatchCommand<T> {}
+impl<T: Saveable> SaveableBatch for SaveableBatchCommand<T> {}
+impl<T: Saveable> Command for SaveableBatchCommand<T> {
+    fn apply(self, world: &mut World) {
+        let mut buffer = world.resource_mut::<GameSaveExecutor>();
+        println!("Added {} objects to GameSaveExecutor", self.data.len());
+        // Box since we store dyn in GameSaveExecutor
+        buffer.objects_to_save.push(Box::new(self));
+    }
+}
+pub trait SaveableBatch: SSS {}
+#[derive(Resource, Default)]
+pub struct GameSaveExecutor {
+    pub save_name: String,
+    pub objects_to_save: Vec<Box<dyn SaveableBatch>>,
 }
 
 // Component for entities that are bound to the map and shall be removed on its change

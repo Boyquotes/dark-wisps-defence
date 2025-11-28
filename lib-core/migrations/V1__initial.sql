@@ -1,5 +1,10 @@
-CREATE TABLE walls (
+CREATE TABLE entities (
     id INTEGER PRIMARY KEY
+);
+
+CREATE TABLE walls (
+    id INTEGER PRIMARY KEY,
+    FOREIGN KEY(id) REFERENCES entities(id)
 );
 
 CREATE TABLE grid_positions (

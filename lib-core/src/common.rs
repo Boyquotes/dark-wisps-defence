@@ -96,11 +96,145 @@ impl<T: Saveable> Command for SaveableBatchCommand<T> {
 pub trait SaveableBatch: SSS {
     fn save_batch(self: Box<Self>, tx: &rusqlite::Transaction) -> rusqlite::Result<()>;
 }
+use std::cell::RefCell;
+
 #[derive(Resource, Default)]
 pub struct GameSaveExecutor {
     pub save_name: String,
     pub objects_to_save: Vec<Box<dyn SaveableBatch>>,
 }
+
+thread_local! {
+    static DB_CONNECTION: RefCell<Option<(String, Connection)>> = RefCell::new(None);
+}
+
+/// Helper to access a thread-local database connection.
+/// It opens the connection if it's not open or if the path has changed.
+pub fn with_db_connection<F, R>(path: &str, f: F) -> rusqlite::Result<R>
+where
+    F: FnOnce(&Connection) -> rusqlite::Result<R>,
+{
+    DB_CONNECTION.with(|cell| {
+        let mut current = cell.borrow_mut();
+        
+        // Check if we need to open a new connection
+        let needs_open = match *current {
+            Some((ref p, _)) => p != path,
+            None => true,
+        };
+
+        if needs_open {
+            let conn = Connection::open(path)?;
+            *current = Some((path.to_string(), conn));
+        }
+
+        // Now we are sure we have a connection
+        if let Some((_, ref conn)) = *current {
+            f(conn)
+        } else {
+            unreachable!("Connection should be open")
+        }
+    })
+}
+
+use std::collections::HashMap;
+
+#[derive(Resource, Default)]
+pub struct EntityMap {
+    pub map: HashMap<u64, Entity>,
+}
+
+pub trait Loadable: Sized + Component {
+    /// Fetches a batch of items from the database and spawns them using commands.
+    /// Returns the number of items loaded.
+    fn load_batch(
+        conn: &rusqlite::Connection, 
+        limit: usize, 
+        offset: usize,
+        commands: &mut Commands,
+        entity_map: &EntityMap,
+    ) -> rusqlite::Result<usize>;
+}
+
+/// Local state for the loading system to track progress
+#[derive(Default)]
+pub struct LoadingState {
+    pub offset: usize,
+    pub done: bool,
+}
+
+/// System to populate EntityMap from the 'entities' table.
+/// This should be run once before any component loading systems.
+pub fn populate_entity_map_system(
+    mut commands: Commands,
+    save_executor: Res<GameSaveExecutor>,
+    mut entity_map: ResMut<EntityMap>,
+) {
+    // Simple guard: don't run if already populated
+    if !entity_map.map.is_empty() { return; }
+
+    let result = with_db_connection(&save_executor.save_name, |conn| {
+        let mut stmt = conn.prepare("SELECT id FROM entities")?;
+        let ids_iter = stmt.query_map([], |row| row.get::<_, u64>(0))?;
+        
+        let mut count = 0;
+        for id_result in ids_iter {
+            let old_id = id_result?;
+            let new_entity = commands.spawn_empty().id();
+            entity_map.map.insert(old_id, new_entity);
+            count += 1;
+        }
+        Ok(count)
+    });
+
+    match result {
+        Ok(count) => println!("Populated EntityMap with {} entities", count),
+        Err(e) => eprintln!("Failed to populate EntityMap: {}", e),
+    }
+}
+
+/// Generic system to load batches of items
+pub fn load_batch_system<T: Loadable>(
+    mut commands: Commands,
+    save_executor: Res<GameSaveExecutor>,
+    entity_map: Res<EntityMap>,
+    mut state: Local<LoadingState>,
+) {
+    if state.done {
+        return;
+    }
+
+    let start_time = std::time::Instant::now();
+    let time_budget = std::time::Duration::from_millis(5);
+    let batch_size = 100;
+
+    loop {
+        let result = with_db_connection(&save_executor.save_name, |conn| {
+            T::load_batch(conn, batch_size, state.offset, &mut commands, &entity_map)
+        });
+
+        match result {
+            Ok(count) => {
+                if count == 0 {
+                    state.done = true;
+                    break;
+                } else {
+                    state.offset += count;
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to load batch for {}: {}", std::any::type_name::<T>(), e);
+                state.done = true;
+                break;
+            }
+        }
+
+        if start_time.elapsed() > time_budget {
+            break;
+        }
+    }
+}
+
 impl GameSaveExecutor {
     fn on_game_save(
         mut save_executor: ResMut<GameSaveExecutor>,

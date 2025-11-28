@@ -17,6 +17,7 @@ impl Plugin for WallPlugin {
             .add_systems(PostUpdate, (
                 BuilderWall::on_game_save.run_if(on_message::<SaveGameSignal>),
             ))
+            .add_systems(Update, lib_core::common::load_batch_system::<BuilderWall>)
             .add_observer(BuilderWall::on_add);
     }
 }
@@ -36,6 +37,13 @@ impl SSS for BuilderWall {}
 impl Saveable for BuilderWall {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
         let entity_index = self.entity.expect("BuilderWall for saving purpose must have an entity").index() as i64;
+        
+        // 0. Ensure entity exists in entities table
+        tx.execute(
+            "INSERT OR IGNORE INTO entities (id) VALUES (?1)",
+            [entity_index],
+        )?;
+
         // 1. Insert into walls table
         tx.execute(
             "INSERT INTO walls (id) VALUES (?1)",
@@ -48,6 +56,40 @@ impl Saveable for BuilderWall {
             (entity_index, self.grid_position.x, self.grid_position.y),
         )?;
         Ok(())
+    }
+}
+impl Loadable for BuilderWall {
+    fn load_batch(
+        conn: &rusqlite::Connection, 
+        limit: usize, 
+        offset: usize,
+        commands: &mut Commands,
+        entity_map: &lib_core::common::EntityMap,
+    ) -> rusqlite::Result<usize> {
+        let mut stmt = conn.prepare_cached(
+            "SELECT w.id, gp.x, gp.y FROM walls w 
+             JOIN grid_positions gp ON w.id = gp.wall_id 
+             LIMIT ?1 OFFSET ?2"
+        )?;
+
+        let rows = stmt.query_map([limit, offset], |row| {
+            let entity_index: i64 = row.get(0)?;
+            let x: i32 = row.get(1)?;
+            let y: i32 = row.get(2)?;
+            Ok((entity_index, GridCoords { x, y }))
+        })?;
+
+        let mut count = 0;
+        for row in rows {
+            let (old_id, grid_position) = row?;
+            if let Some(&new_entity) = entity_map.map.get(&(old_id as u64)) {
+                commands.entity(new_entity).insert(BuilderWall::new_for_saving(grid_position, new_entity));
+                count += 1;
+            } else {
+                eprintln!("Warning: Wall with old ID {} has no corresponding new entity", old_id);
+            }
+        }
+        Ok(count)
     }
 }
 impl BuilderWall {

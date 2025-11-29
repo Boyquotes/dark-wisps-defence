@@ -26,6 +26,10 @@ impl Plugin for MapLoadPlugin {
     }
 }
 
+pub trait Loadable {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult>;
+}
+
 #[derive(Event)]
 pub struct LoadGameSignal(pub String);
 impl LoadGameSignal {
@@ -47,7 +51,7 @@ impl LoadGameSignal {
         save_executor.save_name = trigger.event().0.clone();
         
         next_game_state.set(GameState::Loading2);
-        next_map_loading_stage.set(MapLoadingStage2::Init); // Transition to LoadMapInfo immediately via next()
+        next_map_loading_stage.set(MapLoadingStage2::Init);
         next_ui_state.set(UiInteraction::Free);
 
         // Despawn all existing map elements
@@ -77,10 +81,6 @@ impl<'a, 'w, 's> LoadContext<'a, 'w, 's> {
     }
 }
 
-pub trait Loadable {
-    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult>;
-}
-
 pub type LoaderFn = fn(&mut LoadContext) -> rusqlite::Result<LoadResult>;
 
 #[derive(Resource, Default)]
@@ -91,21 +91,6 @@ pub struct GameLoadRegistry {
 impl GameLoadRegistry {
     pub fn register<T: Loadable>(&mut self, phase: MapLoadingStage2) {
         self.loaders.entry(phase).or_default().push(T::load);
-    }
-}
-
-pub trait AppGameLoadExtension {
-    fn register_db_loader<T: Loadable>(&mut self, phase: MapLoadingStage2) -> &mut Self;
-}
-
-impl AppGameLoadExtension for App {
-    fn register_db_loader<T: Loadable>(&mut self, phase: MapLoadingStage2) -> &mut Self {
-        if !self.world().contains_resource::<GameLoadRegistry>() {
-            self.init_resource::<GameLoadRegistry>();
-        }
-        let mut registry = self.world_mut().resource_mut::<GameLoadRegistry>();
-        registry.register::<T>(phase);
-        self
     }
 }
 
@@ -185,12 +170,14 @@ pub fn process_loading_tasks_system(
 
 /// Check if there are any MapLoadingTasks (local) or LoadingTask (DB) left.
 fn progress_map_loading_state(
-    stage: ResMut<State<MapLoadingStage2>>,
+    stage: Res<State<MapLoadingStage2>>,
     mut next_stage: ResMut<NextState<MapLoadingStage2>>,
     loading_tasks: Query<(), With<DbLoadingTask>>,
 ) {
     if !loading_tasks.is_empty() { return; }
-    next_stage.set(stage.get().next());
+    let next = stage.get().next();
+    println!("All loading tasks completed, moving to next stage: {:?}", next);
+    next_stage.set(next);
 }
 
 fn spawn_loading_tasks(

@@ -17,9 +17,12 @@ use crate::map_objects::quantum_field::QuantumField;
 pub struct MapEditorPlugin;
 impl Plugin for MapEditorPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(MapInfo::default());
-        app.add_systems(Update, save_map_system);
-        app.register_db_loader::<MapInfoLoader>(MapLoadingStage2::LoadMapInfo);
+        app
+            .insert_resource(MapInfo::default())
+            .add_systems(Update, save_map_system)
+            .register_db_loader::<MapInfo>(MapLoadingStage2::LoadMapInfo)
+            .register_db_saver(MapInfo::on_game_save)
+            ;
     }
 }
 
@@ -42,13 +45,8 @@ impl Saveable for MapInfo {
         Ok(())
     }
 }
-
-#[derive(Component)]
-pub struct MapInfoLoader;
-impl SSS for MapInfoLoader {}
-impl Loadable for MapInfoLoader {
+impl Loadable for MapInfo {
     fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
-        // Singleton load, only run once
         let mut stmt = ctx.conn.prepare("SELECT width, height, name FROM map_info WHERE id = 1")?;
         let result = stmt.query_row([], |row| {
             let width: i32 = row.get(0)?;
@@ -77,7 +75,6 @@ impl Loadable for MapInfoLoader {
         Ok(LoadResult::Finished)
     }
 }
-
 impl MapInfo {
     pub fn set(&mut self, map_file: map_loader::MapFile) {
         self.grid_width = map_file.width;
@@ -88,6 +85,12 @@ impl MapInfo {
     }
     pub fn bounds(&self) -> (i32, i32) {
         (self.grid_width, self.grid_height)
+    }
+    fn on_game_save(
+        mut commands: Commands,
+        map_info: Res<MapInfo>,
+    ) {
+        commands.queue(SaveableBatchCommand::from_single(map_info.clone()));
     }
 }
 

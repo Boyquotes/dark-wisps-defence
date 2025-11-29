@@ -1,3 +1,5 @@
+use bevy::ecs::system::ScheduleSystem;
+
 use crate::lib_prelude::*;
 
 thread_local! {
@@ -31,4 +33,25 @@ where
             unreachable!("Connection should be open")
         }
     })
+}
+
+pub trait AppGameLoadSaveExtension {
+    fn register_db_loader<T: Loadable>(&mut self, stage: MapLoadingStage2) -> &mut Self;
+    fn register_db_saver<M>(&mut self, save_system: impl IntoScheduleConfigs<ScheduleSystem, M>) -> &mut Self;
+}
+impl AppGameLoadSaveExtension for App {
+    fn register_db_loader<T: Loadable>(&mut self, stage: MapLoadingStage2) -> &mut Self {
+        if !self.world().contains_resource::<GameLoadRegistry>() {
+            self.init_resource::<GameLoadRegistry>();
+        }
+        let mut registry = self.world_mut().resource_mut::<GameLoadRegistry>();
+        registry.register::<T>(stage);
+
+        self
+    }
+    fn register_db_saver<M>(&mut self, save_system: impl IntoScheduleConfigs<ScheduleSystem, M>) -> &mut Self {
+        self.add_systems(PostUpdate, save_system.run_if(on_message::<SaveGameSignal>));
+        
+        self
+    }
 }

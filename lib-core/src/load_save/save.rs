@@ -6,6 +6,30 @@ pub mod db_migrations {
     embed_migrations!("./migrations");
 }
 
+pub struct MapSavePlugin;
+impl Plugin for MapSavePlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .init_resource::<GameSaveExecutor>()
+            .add_message::<SaveGameSignal>()
+            .add_systems(Update, (
+                SaveGameSignal::emit.run_if(input_just_released(KeyCode::KeyZ)),
+            ))
+            .add_systems(Last, (
+                GameSaveExecutor::on_game_save.run_if(on_message::<SaveGameSignal>),
+            ))
+            ;
+    }
+}
+
+pub trait Saveable: SSS {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()>;
+}
+pub trait SaveableBatch: SSS {
+    fn save_batch(self: Box<Self>, tx: &rusqlite::Transaction) -> rusqlite::Result<()>;
+}
+
+
 #[derive(Message)]
 pub struct SaveGameSignal;
 impl SaveGameSignal {
@@ -19,11 +43,13 @@ impl SaveGameSignal {
     }
 }
 
-pub trait Saveable: SSS {
-    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()>;
-}
 pub struct SaveableBatchCommand<T: Saveable> {
     data: Vec<T>,
+}
+impl<T: Saveable> SaveableBatchCommand<T> {
+    pub fn from_single(item: T) -> Self {
+        Self { data: vec![item] }
+    }
 }
 impl<T: Saveable> FromIterator<T> for SaveableBatchCommand<T> {
     fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
@@ -49,10 +75,6 @@ impl<T: Saveable> Command for SaveableBatchCommand<T> {
         buffer.objects_to_save.push(Box::new(self));
     }
 }
-pub trait SaveableBatch: SSS {
-    fn save_batch(self: Box<Self>, tx: &rusqlite::Transaction) -> rusqlite::Result<()>;
-}
-
 #[derive(Resource, Default)]
 pub struct GameSaveExecutor {
     pub save_name: String,
@@ -103,18 +125,3 @@ impl GameSaveExecutor {
     }
 }
 
-pub struct MapSavePlugin;
-impl Plugin for MapSavePlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .init_resource::<GameSaveExecutor>()
-            .add_message::<SaveGameSignal>()
-            .add_systems(Update, (
-                SaveGameSignal::emit.run_if(input_just_released(KeyCode::KeyZ)),
-            ))
-            .add_systems(Last, (
-                GameSaveExecutor::on_game_save.run_if(on_message::<SaveGameSignal>),
-            ))
-            ;
-    }
-}

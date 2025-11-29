@@ -50,7 +50,7 @@ impl Saveable for BuilderWall {
 
         // 2. Insert into grid_positions table
         tx.execute(
-            "INSERT INTO grid_positions (wall_id, x, y) VALUES (?1, ?2, ?3)",
+            "INSERT INTO grid_positions (entity_id, x, y) VALUES (?1, ?2, ?3)",
             (entity_index, self.grid_position.x, self.grid_position.y),
         )?;
         Ok(())
@@ -63,33 +63,30 @@ impl Loadable for BuilderWall {
 
         let mut stmt = ctx.conn.prepare_cached(
             "SELECT w.id, gp.x, gp.y FROM walls w 
-             JOIN grid_positions gp ON w.id = gp.wall_id 
+             JOIN grid_positions gp ON w.id = gp.entity_id 
              LIMIT ?1 OFFSET ?2"
         )?;
 
         let rows = stmt.query_map([LIMIT, offset], |row| {
-            let entity_index: i64 = row.get(0)?;
+            let entity_index: u64 = row.get(0)?;
             let x: i32 = row.get(1)?;
             let y: i32 = row.get(2)?;
             Ok((entity_index, GridCoords { x, y }))
         })?;
 
-        let mut count = 0;
+        let mut batch = Vec::new();
         for row in rows {
             let (old_id, grid_position) = row?;
-            if let Some(new_entity) = ctx.get_entity(old_id as u64) {
-                ctx.commands.entity(new_entity).insert(BuilderWall::new_for_saving(grid_position, new_entity));
-                count += 1;
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                batch.push((new_entity, BuilderWall::new_for_saving(grid_position, new_entity)));
             } else {
                 eprintln!("Warning: Wall with old ID {} has no corresponding new entity", old_id);
             }
         }
+        let batch_size = batch.len();
+        ctx.commands.insert_batch(batch);
         
-        if count == 0 {
-            Ok(LoadResult::Finished)
-        } else {
-            Ok(LoadResult::Progressed(count))
-        }
+        Ok(batch_size.into())
     }
 }
 impl BuilderWall {

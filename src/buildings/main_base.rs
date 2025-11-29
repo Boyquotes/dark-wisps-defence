@@ -1,3 +1,4 @@
+use lib_core::states::MapLoadingStage2;
 use lib_grid::grids::emissions::{EmissionsType, EmitterEnergy};
 use lib_grid::grids::energy_supply::{GeneratorEnergy, SupplierEnergy};
 use lib_grid::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode};
@@ -9,21 +10,85 @@ pub struct MainBasePlugin;
 impl Plugin for MainBasePlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_observer(BuilderMainBase::on_add);
+            .add_observer(BuilderMainBase::on_add)
+            .register_db_loader::<BuilderMainBase>(MapLoadingStage2::SpawnMapElements)
+            .register_db_saver(BuilderMainBase::on_game_save);
     }
 }
 
 pub const MAIN_BASE_BASE_IMAGE: &str = "buildings/main_base.png";
 
 
-#[derive(Component)]
+#[derive(Component, SSS)]
 pub struct BuilderMainBase {
-    grid_position: GridCoords,
+    pub grid_position: GridCoords,
+    pub entity: Option<Entity>,
+}
+impl Saveable for BuilderMainBase {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let entity_index = self.entity.expect("BuilderMainBase for saving purpose must have an entity").index() as i64;
+
+        // 0. Ensure entity exists in entities table
+        tx.execute(
+            "INSERT OR IGNORE INTO entities (id) VALUES (?1)",
+            [entity_index],
+        )?;
+
+        // 1. Insert into main_base table (which stores the entity info)
+        tx.execute(
+            "INSERT OR REPLACE INTO main_bases (id) VALUES (?1)",
+            [entity_index],
+        )?;
+
+        // 2. Insert into grid_positions table
+        tx.execute(
+            "INSERT INTO grid_positions (entity_id, x, y) VALUES (?1, ?2, ?3)",
+            (entity_index, self.grid_position.x, self.grid_position.y),
+        )?;
+        Ok(())
+    }
+}
+impl Loadable for BuilderMainBase {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        // Singleton load - but we query by ID from the table now
+        let mut stmt = ctx.conn.prepare(
+            "SELECT mb.id, gp.x, gp.y FROM main_bases mb
+             JOIN grid_positions gp ON mb.id = gp.entity_id"
+        )?;
+        let mut rows = stmt.query([])?;
+        
+        if let Some(row) = rows.next()? {
+            let old_id: u64 = row.get(0)?;
+            let x: i32 = row.get(1)?;
+            let y: i32 = row.get(2)?;
+            let grid_position = GridCoords { x, y };
+            
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                ctx.commands.entity(new_entity).insert(BuilderMainBase::new_for_saving(grid_position, new_entity));
+            } else {
+                eprintln!("Warning: MainBase with old ID {} has no corresponding new entity", old_id);
+            }
+        }
+
+        Ok(LoadResult::Finished)
+    }
 }
 impl BuilderMainBase {
     pub fn new(grid_position: GridCoords) -> Self {
-        Self { grid_position }
-     }
+        Self { grid_position, entity: None }
+    }
+    pub fn new_for_saving(grid_position: GridCoords, entity: Entity) -> Self {
+        Self { grid_position, entity: Some(entity) }
+    }
+
+    fn on_game_save(
+        mut commands: Commands,
+        main_base: Query<(Entity, &GridCoords), With<MainBase>>,
+    ) {
+        if let Ok((entity, coords)) = main_base.single() {
+            commands.queue(SaveableBatchCommand::from_single(BuilderMainBase::new_for_saving(*coords, entity)));
+        }
+    }
 
     pub fn on_add(
         trigger: On<Add, BuilderMainBase>,

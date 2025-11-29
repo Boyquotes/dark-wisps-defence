@@ -72,6 +72,15 @@ pub enum LoadResult {
     Progressed(usize),
     Finished,
 }
+impl From<usize> for LoadResult {
+    fn from(value: usize) -> Self {
+        if value == 0 {
+            LoadResult::Finished
+        } else {
+            LoadResult::Progressed(value)
+        }
+    }
+}
 
 pub struct LoadContext<'a, 'w, 's> {
     pub conn: &'a rusqlite::Connection,
@@ -80,7 +89,7 @@ pub struct LoadContext<'a, 'w, 's> {
     pub offset: usize,
 }
 impl<'a, 'w, 's> LoadContext<'a, 'w, 's> {
-    pub fn get_entity(&self, old_id: u64) -> Option<Entity> {
+    pub fn get_new_entity_for_old(&self, old_id: u64) -> Option<Entity> {
         self.entity_map.map.get(&old_id).copied()
     }
 }

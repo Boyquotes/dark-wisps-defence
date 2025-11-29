@@ -15,8 +15,13 @@ CREATE TABLE walls (
 );
 
 CREATE TABLE grid_positions (
-    wall_id INTEGER,
+    entity_id INTEGER,
     x INTEGER,
     y INTEGER,
-    FOREIGN KEY(wall_id) REFERENCES walls(id)
+    FOREIGN KEY(entity_id) REFERENCES entities(id)
+);
+
+CREATE TABLE main_bases (
+    id INTEGER PRIMARY KEY,
+    FOREIGN KEY(id) REFERENCES entities(id)
 );

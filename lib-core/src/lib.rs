@@ -19,8 +19,7 @@ impl Plugin for LibCorePlugin {
             common::CommonPlugin,
             grids::GridPlugin,
             buildings::BuildingsPlugin,
-            load_save::MapLoadPlugin,
-            load_save::MapSavePlugin,
+            load_save::LoadSavePlugin,
         ));
     }
 }

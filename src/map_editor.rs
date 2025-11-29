@@ -26,7 +26,7 @@ impl Plugin for MapEditorPlugin {
     }
 }
 
-#[derive(Resource, Default, Clone)]
+#[derive(Resource, Default, Clone, SSS)]
 pub struct MapInfo {
     pub grid_width: i32,
     pub grid_height: i32,
@@ -35,7 +35,6 @@ pub struct MapInfo {
     pub name: String,
     pub map_file: map_loader::MapFile,
 }
-impl SSS for MapInfo {}
 impl Saveable for MapInfo {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
         tx.execute(

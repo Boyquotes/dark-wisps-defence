@@ -3,6 +3,30 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, FieldsUnnamed, Attribute, Meta};
 
+/// Derives the SSS trait (Send + Sync + 'static) for structs and enums.
+///
+/// # Example
+/// ```rust
+/// #[derive(SSS)]
+/// struct MyComponent;
+///
+/// // Generates:
+/// // impl SSS for MyComponent {}
+/// ```
+#[proc_macro_derive(SSS)]
+pub fn derive_sss(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    
+    let expanded = quote! {
+        impl #impl_generics SSS for #name #ty_generics #where_clause {}
+    };
+    
+    TokenStream::from(expanded)
+}
+
 /// Derives the Property trait for structs containing a single f32 field.
 /// 
 /// This macro automatically implements `get()` and `set()` methods that

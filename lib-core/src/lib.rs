@@ -33,7 +33,7 @@ pub mod prelude {
     pub use crate::common::common_prelude::*;
     pub use crate::load_save::load_save_prelude::*;
     // Re-export the derive macros
-    pub use lib_derive::Property;
+    pub use lib_derive::{Property, SSS};
 }
 
 pub mod lib_prelude {

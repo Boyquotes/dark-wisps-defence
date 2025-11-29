@@ -27,12 +27,11 @@ pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, he
 #[require(MapBound)]
 pub struct Wall;
 
-#[derive(Component)]
+#[derive(Component, SSS)]
 pub struct BuilderWall {
     pub grid_position: GridCoords,
     pub entity: Option<Entity>,
 }
-impl SSS for BuilderWall {}
 impl Saveable for BuilderWall {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
         let entity_index = self.entity.expect("BuilderWall for saving purpose must have an entity").index() as i64;

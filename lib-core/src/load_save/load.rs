@@ -1,7 +1,5 @@
 use crate::lib_prelude::*;
 use bevy::input::common_conditions::input_just_released;
-use super::common::with_db_connection;
-use super::save::GameSaveExecutor;
 
 pub struct MapLoadPlugin;
 impl Plugin for MapLoadPlugin {
@@ -49,6 +47,12 @@ impl LoadGameSignal {
         map_bound_entities: Query<Entity, With<MapBound>>,
     ) {
         save_executor.save_name = trigger.event().0.clone();
+        
+        // Run migrations synchronously on main thread before parallel loading starts
+        with_db_connection(&save_executor.save_name, |conn| {
+            db_migrations::migrations::runner().run(conn)?;
+            Ok(())
+        }).expect("Failed to run migrations on load");
         
         next_game_state.set(GameState::Loading2);
         next_map_loading_stage.set(MapLoadingStage2::Init);

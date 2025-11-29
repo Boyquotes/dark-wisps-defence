@@ -6,11 +6,16 @@ thread_local! {
     static DB_CONNECTION: std::cell::RefCell<Option<(String, rusqlite::Connection)>> = std::cell::RefCell::new(None);
 }
 
+pub mod db_migrations {
+    use refinery::embed_migrations;
+    embed_migrations!("./migrations");
+}
+
 /// Helper to access a thread-local database connection.
 /// It opens the connection if it's not open or if the path has changed.
-pub fn with_db_connection<F, R>(path: &str, f: F) -> rusqlite::Result<R>
+pub fn with_db_connection<F>(path: &str, f: F) -> Result<(), Box<dyn std::error::Error>> 
 where
-    F: FnOnce(&rusqlite::Connection) -> rusqlite::Result<R>,
+    F: FnOnce(&mut rusqlite::Connection) -> Result<(), Box<dyn std::error::Error>>,
 {
     DB_CONNECTION.with(|cell| {
         let mut current = cell.borrow_mut();
@@ -27,7 +32,7 @@ where
         }
 
         // Now we are sure we have a connection
-        if let Some((_, ref conn)) = *current {
+        if let Some((_, ref mut conn)) = *current {
             f(conn)
         } else {
             unreachable!("Connection should be open")

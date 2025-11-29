@@ -1,11 +1,6 @@
 use crate::lib_prelude::*;
 use bevy::input::common_conditions::input_just_released;
 
-pub mod db_migrations {
-    use refinery::embed_migrations;
-    embed_migrations!("./migrations");
-}
-
 pub struct MapSavePlugin;
 impl Plugin for MapSavePlugin {
     fn build(&self, app: &mut App) {
@@ -97,22 +92,24 @@ impl GameSaveExecutor {
                     println!("Removing existing save file '{}'", save_name);
                     std::fs::remove_file(save_name)?;
                 }
-                // Open the database
-                let mut conn = rusqlite::Connection::open(save_name)?;
+                
+                with_db_connection(save_name, |conn| {
+                    // Run migrations
+                    db_migrations::migrations::runner().run(conn)?;
 
-                // Run migrations
-                db_migrations::migrations::runner().run(&mut conn)?;
+                    // Start transaction
+                    let tx = conn.transaction()?;
 
-                // Start transaction
-                let tx = conn.transaction()?;
+                    // Save all objects
+                    for batch in objects {
+                        batch.save_batch(&tx)?;
+                    }
 
-                // Save all objects
-                for batch in objects {
-                    batch.save_batch(&tx)?;
-                }
-
-                // Commit transaction
-                tx.commit()?;
+                    // Commit transaction
+                    tx.commit()?;
+                    Ok(())
+                })?;
+                
                 Ok(())
             }
 

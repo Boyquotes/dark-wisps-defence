@@ -18,10 +18,13 @@ impl Plugin for CommonPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<GameSaveExecutor>()
+            .init_resource::<EntityMap>()
+            .init_resource::<GameLoadRegistry>()
             .add_message::<SaveGameSignal>()
             .add_systems(Update, (
                 ColorPulsation::pulsate_sprites_system,
                 SaveGameSignal::emit.run_if(input_just_released(KeyCode::KeyZ)),
+                process_loading_tasks_system,
             ))
             .add_systems(Last, (
                 GameSaveExecutor::on_game_save.run_if(on_message::<SaveGameSignal>),
@@ -144,23 +147,45 @@ pub struct EntityMap {
     pub map: HashMap<u64, Entity>,
 }
 
-pub trait Loadable: Sized + Component {
-    /// Fetches a batch of items from the database and spawns them using commands.
-    /// Returns the number of items loaded.
-    fn load_batch(
-        conn: &rusqlite::Connection, 
-        limit: usize, 
-        offset: usize,
-        commands: &mut Commands,
-        entity_map: &EntityMap,
-    ) -> rusqlite::Result<usize>;
+pub enum LoadResult {
+    Progressed(usize),
+    Finished,
 }
 
-/// Local state for the loading system to track progress
-#[derive(Default)]
-pub struct LoadingState {
+pub struct LoadContext<'a, 'w, 's> {
+    pub conn: &'a rusqlite::Connection,
+    pub commands: &'a mut Commands<'w, 's>,
+    pub entity_map: &'a EntityMap,
     pub offset: usize,
-    pub done: bool,
+}
+
+impl<'a, 'w, 's> LoadContext<'a, 'w, 's> {
+    pub fn get_entity(&self, old_id: u64) -> Option<Entity> {
+        self.entity_map.map.get(&old_id).copied()
+    }
+}
+
+pub trait Loadable: Sized + Component {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult>;
+}
+
+pub type LoadFn = fn(&mut LoadContext) -> rusqlite::Result<LoadResult>;
+
+#[derive(Resource, Default)]
+pub struct GameLoadRegistry {
+    pub loaders: Vec<LoadFn>,
+}
+
+impl GameLoadRegistry {
+    pub fn register<T: Loadable>(&mut self) {
+        self.loaders.push(T::load);
+    }
+}
+
+#[derive(Component, Clone)]
+pub struct LoadingTask {
+    pub loader: LoadFn,
+    pub offset: usize,
 }
 
 /// System to populate EntityMap from the 'entities' table.
@@ -193,46 +218,62 @@ pub fn populate_entity_map_system(
     }
 }
 
-/// Generic system to load batches of items
-pub fn load_batch_system<T: Loadable>(
+pub fn start_loading_system(
     mut commands: Commands,
+    registry: Res<GameLoadRegistry>,
+) {
+    for loader in &registry.loaders {
+        commands.spawn(LoadingTask {
+            loader: *loader,
+            offset: 0,
+        });
+    }
+}
+pub fn process_loading_tasks_system(
+    par_commands: ParallelCommands,
     save_executor: Res<GameSaveExecutor>,
     entity_map: Res<EntityMap>,
-    mut state: Local<LoadingState>,
+    mut tasks: Query<(Entity, &mut LoadingTask)>,
 ) {
-    if state.done {
-        return;
-    }
-
     let start_time = std::time::Instant::now();
     let time_budget = std::time::Duration::from_millis(5);
-    let batch_size = 100;
 
-    loop {
-        let result = with_db_connection(&save_executor.save_name, |conn| {
-            T::load_batch(conn, batch_size, state.offset, &mut commands, &entity_map)
+    tasks.par_iter_mut().for_each(|(entity, mut task)| {
+        par_commands.command_scope(|mut cmd| {
+             let _ = with_db_connection(&save_executor.save_name, |conn| {
+                 loop {
+                     // Check global system budget
+                     if start_time.elapsed() > time_budget {
+                         break;
+                     }
+
+                     let mut ctx = LoadContext {
+                         conn,
+                         commands: &mut cmd,
+                         entity_map: &entity_map,
+                         offset: task.offset,
+                     };
+                     
+                     match (task.loader)(&mut ctx) {
+                         Ok(LoadResult::Finished) => {
+                             cmd.entity(entity).despawn();
+                             break; // Task done
+                         },
+                         Ok(LoadResult::Progressed(count)) => {
+                             task.offset += count;
+                             // Continue loop to process more if time permits
+                         },
+                         Err(e) => {
+                             eprintln!("Loading task failed: {}", e);
+                             cmd.entity(entity).despawn(); // Stop on error
+                             break;
+                         }
+                     }
+                 }
+                 Ok(())
+             });
         });
-
-        match result {
-            Ok(count) => {
-                if count == 0 {
-                    state.done = true;
-                    break;
-                } else {
-                    state.offset += count;
-                }
-            }
-            Err(e) => {
-                eprintln!("Failed to load batch for {}: {}", std::any::type_name::<T>(), e);
-                state.done = true;
-                break;
-            }
-        }
-
-        if start_time.elapsed() > time_budget {
-            break;
-        }
-    }
+    });
 }
 
 impl GameSaveExecutor {

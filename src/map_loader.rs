@@ -149,7 +149,7 @@ impl ApplyMapMapLoadingTask {
 }
 
 /// Represents yaml content for a map
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct MapFile {
     pub width: i32,
     pub height: i32,

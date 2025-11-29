@@ -8,16 +8,23 @@ use crate::map_loader::{MapBuilding, MapQuantumField};
 use crate::map_objects::dark_ore::DarkOre;
 use crate::map_objects::quantum_field::QuantumField;
 
+fn register_loaders(mut registry: ResMut<lib_core::common::GameLoadRegistry>) {
+    registry.register::<MapInfoLoader>();
+}
+
 pub struct MapEditorPlugin;
 impl Plugin for MapEditorPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(MapInfo::default());
         app.add_systems(Update, save_map_system);
-
+        app.add_systems(Startup, register_loaders);
     }
 }
 
-#[derive(Resource, Default)]
+use lib_core::common::{Loadable, LoadResult, SSS, Saveable};
+use lib_core::common::rusqlite::{self, Transaction};
+
+#[derive(Resource, Default, Clone)]
 pub struct MapInfo {
     pub grid_width: i32,
     pub grid_height: i32,
@@ -26,6 +33,51 @@ pub struct MapInfo {
     pub name: String,
     pub map_file: map_loader::MapFile,
 }
+impl SSS for MapInfo {}
+impl Saveable for MapInfo {
+    fn save(self, tx: &Transaction) -> rusqlite::Result<()> {
+        tx.execute(
+            "INSERT OR REPLACE INTO map_info (id, width, height, name) VALUES (1, ?1, ?2, ?3)",
+            (self.grid_width, self.grid_height, &self.name),
+        )?;
+        Ok(())
+    }
+}
+
+#[derive(Component)]
+pub struct MapInfoLoader;
+impl SSS for MapInfoLoader {}
+impl Loadable for MapInfoLoader {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        // Singleton load, only run once
+        let mut stmt = ctx.conn.prepare("SELECT width, height, name FROM map_info WHERE id = 1")?;
+        let result = stmt.query_row([], |row| {
+            let width: i32 = row.get(0)?;
+            let height: i32 = row.get(1)?;
+            let name: String = row.get(2)?;
+            Ok((width, height, name))
+        });
+
+        match result {
+            Ok((width, height, name)) => {
+                let map_info = MapInfo {
+                    grid_width: width,
+                    grid_height: height,
+                    world_width: width as f32 * CELL_SIZE,
+                    world_height: height as f32 * CELL_SIZE,
+                    name,
+                    map_file: map_loader::MapFile::default(),
+                };
+                ctx.commands.insert_resource(map_info);
+                // Singleton loaded, we are done.
+                Ok(LoadResult::Finished)
+            }
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(LoadResult::Finished),
+            Err(e) => Err(e),
+        }
+    }
+}
+
 impl MapInfo {
     pub fn set(&mut self, map_file: map_loader::MapFile) {
         self.grid_width = map_file.width;

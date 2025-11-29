@@ -182,6 +182,21 @@ impl GameLoadRegistry {
     }
 }
 
+pub trait AppGameLoadExtension {
+    fn register_db_loader<T: Loadable>(&mut self) -> &mut Self;
+}
+
+impl AppGameLoadExtension for App {
+    fn register_db_loader<T: Loadable>(&mut self) -> &mut Self {
+        if !self.world().contains_resource::<GameLoadRegistry>() {
+            self.init_resource::<GameLoadRegistry>();
+        }
+        let mut registry = self.world_mut().resource_mut::<GameLoadRegistry>();
+        registry.register::<T>();
+        self
+    }
+}
+
 #[derive(Component, Clone)]
 pub struct LoadingTask {
     pub loader: LoadFn,

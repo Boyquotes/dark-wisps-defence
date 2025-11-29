@@ -8,20 +8,16 @@ use crate::map_loader::{MapBuilding, MapQuantumField};
 use crate::map_objects::dark_ore::DarkOre;
 use crate::map_objects::quantum_field::QuantumField;
 
-fn register_loaders(mut registry: ResMut<lib_core::common::GameLoadRegistry>) {
-    registry.register::<MapInfoLoader>();
-}
-
 pub struct MapEditorPlugin;
 impl Plugin for MapEditorPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(MapInfo::default());
         app.add_systems(Update, save_map_system);
-        app.add_systems(Startup, register_loaders);
+        app.register_db_loader::<MapInfoLoader>();
     }
 }
 
-use lib_core::common::{Loadable, LoadResult, SSS, Saveable};
+use lib_core::common::{AppGameLoadExtension, Loadable, LoadResult, SSS, Saveable};
 use lib_core::common::rusqlite::{self, Transaction};
 
 #[derive(Resource, Default, Clone)]

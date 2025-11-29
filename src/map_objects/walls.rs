@@ -5,11 +5,7 @@ use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
 use crate::prelude::*;
 use crate::ui::grid_object_placer::GridObjectPlacer;
-use lib_core::common::{LoadContext, LoadResult, Loadable, SSS, Saveable};
-
-fn register_loaders(mut registry: ResMut<lib_core::common::GameLoadRegistry>) {
-    registry.register::<BuilderWall>();
-}
+use lib_core::common::{AppGameLoadExtension, LoadContext, LoadResult, Loadable, SSS, Saveable};
 
 pub struct WallPlugin;
 impl Plugin for WallPlugin {
@@ -22,7 +18,7 @@ impl Plugin for WallPlugin {
             .add_systems(PostUpdate, (
                 BuilderWall::on_game_save.run_if(on_message::<SaveGameSignal>),
             ))
-            .add_systems(Startup, register_loaders)
+            .register_db_loader::<BuilderWall>()
             .add_observer(BuilderWall::on_add);
     }
 }

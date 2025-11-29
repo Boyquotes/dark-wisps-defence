@@ -5,7 +5,6 @@ use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
 use crate::prelude::*;
 use crate::ui::grid_object_placer::GridObjectPlacer;
-use lib_core::states::MapLoadingStage2;
 
 pub struct WallPlugin;
 impl Plugin for WallPlugin {
@@ -35,24 +34,12 @@ pub struct BuilderWall {
 impl Saveable for BuilderWall {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
         let entity_index = self.entity.expect("BuilderWall for saving purpose must have an entity").index() as i64;
-        
-        // 0. Ensure entity exists in entities table
-        tx.execute(
-            "INSERT OR IGNORE INTO entities (id) VALUES (?1)",
-            [entity_index],
-        )?;
 
         // 1. Insert into walls table
-        tx.execute(
-            "INSERT INTO walls (id) VALUES (?1)",
-            [entity_index],
-        )?;
+        tx.save_marker("walls", entity_index)?;
 
         // 2. Insert into grid_positions table
-        tx.execute(
-            "INSERT INTO grid_positions (entity_id, x, y) VALUES (?1, ?2, ?3)",
-            (entity_index, self.grid_position.x, self.grid_position.y),
-        )?;
+        tx.save_grid_coords(entity_index, self.grid_position)?;
         Ok(())
     }
 }
@@ -63,7 +50,7 @@ impl Loadable for BuilderWall {
 
         let mut stmt = ctx.conn.prepare_cached(
             "SELECT w.id, gp.x, gp.y FROM walls w 
-             JOIN grid_positions gp ON w.id = gp.entity_id 
+             JOIN grid_coords gp ON w.id = gp.entity_id 
              LIMIT ?1 OFFSET ?2"
         )?;
 

@@ -14,7 +14,7 @@ CREATE TABLE walls (
     FOREIGN KEY(id) REFERENCES entities(id)
 );
 
-CREATE TABLE grid_positions (
+CREATE TABLE grid_coords (
     entity_id INTEGER,
     x INTEGER,
     y INTEGER,

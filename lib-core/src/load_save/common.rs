@@ -11,6 +11,34 @@ pub mod db_migrations {
     embed_migrations!("./migrations");
 }
 
+pub trait GameDbHelpers {
+    fn register_entity(&self, entity_id: i64) -> rusqlite::Result<usize>;
+    fn save_grid_coords(&self, entity_id: i64, pos: GridCoords) -> rusqlite::Result<usize>;
+    fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize>;
+}
+impl GameDbHelpers for rusqlite::Connection {
+    fn register_entity(&self, entity_id: i64) -> rusqlite::Result<usize> {
+        self.execute(
+            "INSERT OR IGNORE INTO entities (id) VALUES (?1)",
+            [entity_id],
+        )
+    }
+
+    fn save_grid_coords(&self, entity_id: i64, pos: GridCoords) -> rusqlite::Result<usize> {
+        self.execute(
+            "INSERT INTO grid_coords (entity_id, x, y) VALUES (?1, ?2, ?3)",
+            (entity_id, pos.x, pos.y),
+        )
+    }
+
+    /// Save entity of the object in its dedicated table. Calls register_entity()
+    fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize> {
+        self.register_entity(entity_id)?;
+        let query = format!("INSERT OR REPLACE INTO {} (id) VALUES (?1)", table_name);
+        self.execute(&query, [entity_id])
+    }
+}
+
 /// Helper to access a thread-local database connection.
 /// It opens the connection if it's not open or if the path has changed.
 pub fn with_db_connection<F>(path: &str, f: F) -> Result<(), Box<dyn std::error::Error>> 

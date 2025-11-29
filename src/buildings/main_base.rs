@@ -1,4 +1,3 @@
-use lib_core::states::MapLoadingStage2;
 use lib_grid::grids::emissions::{EmissionsType, EmitterEnergy};
 use lib_grid::grids::energy_supply::{GeneratorEnergy, SupplierEnergy};
 use lib_grid::search::flooding::{FloodEmissionsDetails, FloodEmissionsEvaluator, FloodEmissionsMode};
@@ -28,23 +27,11 @@ impl Saveable for BuilderMainBase {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
         let entity_index = self.entity.expect("BuilderMainBase for saving purpose must have an entity").index() as i64;
 
-        // 0. Ensure entity exists in entities table
-        tx.execute(
-            "INSERT OR IGNORE INTO entities (id) VALUES (?1)",
-            [entity_index],
-        )?;
-
         // 1. Insert into main_base table (which stores the entity info)
-        tx.execute(
-            "INSERT OR REPLACE INTO main_bases (id) VALUES (?1)",
-            [entity_index],
-        )?;
+        tx.save_marker("main_bases", entity_index)?;
 
         // 2. Insert into grid_positions table
-        tx.execute(
-            "INSERT INTO grid_positions (entity_id, x, y) VALUES (?1, ?2, ?3)",
-            (entity_index, self.grid_position.x, self.grid_position.y),
-        )?;
+        tx.save_grid_coords(entity_index, self.grid_position)?;
         Ok(())
     }
 }
@@ -53,7 +40,7 @@ impl Loadable for BuilderMainBase {
         // Singleton load - but we query by ID from the table now
         let mut stmt = ctx.conn.prepare(
             "SELECT mb.id, gp.x, gp.y FROM main_bases mb
-             JOIN grid_positions gp ON mb.id = gp.entity_id"
+             JOIN grid_coords gp ON mb.id = gp.entity_id"
         )?;
         let mut rows = stmt.query([])?;
         

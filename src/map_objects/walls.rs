@@ -5,7 +5,7 @@ use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
 use crate::prelude::*;
 use crate::ui::grid_object_placer::GridObjectPlacer;
-use lib_core::common::{AppGameLoadExtension, LoadContext, LoadResult, Loadable, SSS, Saveable};
+use lib_core::states::MapLoadingStage2;
 
 pub struct WallPlugin;
 impl Plugin for WallPlugin {
@@ -18,7 +18,7 @@ impl Plugin for WallPlugin {
             .add_systems(PostUpdate, (
                 BuilderWall::on_game_save.run_if(on_message::<SaveGameSignal>),
             ))
-            .register_db_loader::<BuilderWall>()
+            .register_db_loader::<BuilderWall>(MapLoadingStage2::SpawnMapElements)
             .add_observer(BuilderWall::on_add);
     }
 }

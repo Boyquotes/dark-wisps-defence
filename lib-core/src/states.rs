@@ -13,6 +13,7 @@ impl Plugin for StatesPlugin {
             .init_state::<GameState>()
             .init_state::<UiInteraction>()
             .init_state::<MapLoadingStage>()
+            .init_state::<MapLoadingStage2>()
             .add_systems(PreUpdate, (
                 UiInteraction::on_escape.run_if(input_just_pressed(KeyCode::Escape)),
             ))
@@ -28,6 +29,7 @@ pub enum GameState {
     Running,
     Paused,
     Loading,
+    Loading2,
 }
 impl GameState {
     fn pause_resume_game(
@@ -38,6 +40,7 @@ impl GameState {
             GameState::Paused => next_game_state.set(GameState::Running),
             GameState::Running => next_game_state.set(GameState::Paused),
             GameState::Loading => {}
+            GameState::Loading2 => {}
         }
     }
 }
@@ -82,6 +85,27 @@ impl MapLoadingStage {
             MapLoadingStage::ResetGridsAndResources => MapLoadingStage::ApplyMap,
             MapLoadingStage::ApplyMap => MapLoadingStage::Loaded,
             MapLoadingStage::Loaded => MapLoadingStage::Loaded,
+        }
+    }
+}
+
+#[derive(Default, Clone, Debug, States, PartialEq, Eq, Hash)]
+pub enum MapLoadingStage2 {
+    #[default]
+    Init,
+    LoadMapInfo,
+    LoadResources,
+    SpawnMapElements,
+    Ready,
+}
+impl MapLoadingStage2 {
+    pub fn next(&self) -> Self {
+        match self {
+            MapLoadingStage2::Init => MapLoadingStage2::LoadMapInfo,
+            MapLoadingStage2::LoadMapInfo => MapLoadingStage2::LoadResources,
+            MapLoadingStage2::LoadResources => MapLoadingStage2::SpawnMapElements,
+            MapLoadingStage2::SpawnMapElements => MapLoadingStage2::Ready,
+            MapLoadingStage2::Ready => MapLoadingStage2::Ready,
         }
     }
 }

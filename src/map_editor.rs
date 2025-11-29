@@ -3,6 +3,12 @@ use std::fs::File;
 use lib_grid::grids::obstacles::{Field, ObstacleGrid};
 
 use crate::prelude::*;
+use lib_core::states::MapLoadingStage2;
+use lib_grid::grids::emissions::EmissionsGrid;
+use lib_grid::grids::energy_supply::EnergySupplyGrid;
+use lib_grid::grids::tower_ranges::TowerRangesGrid;
+use lib_grid::grids::wisps::WispsGrid;
+
 use crate::map_loader;
 use crate::map_loader::{MapBuilding, MapQuantumField};
 use crate::map_objects::dark_ore::DarkOre;
@@ -13,12 +19,9 @@ impl Plugin for MapEditorPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(MapInfo::default());
         app.add_systems(Update, save_map_system);
-        app.register_db_loader::<MapInfoLoader>();
+        app.register_db_loader::<MapInfoLoader>(MapLoadingStage2::LoadMapInfo);
     }
 }
-
-use lib_core::common::{AppGameLoadExtension, Loadable, LoadResult, SSS, Saveable};
-use lib_core::common::rusqlite::{self, Transaction};
 
 #[derive(Resource, Default, Clone)]
 pub struct MapInfo {
@@ -31,7 +34,7 @@ pub struct MapInfo {
 }
 impl SSS for MapInfo {}
 impl Saveable for MapInfo {
-    fn save(self, tx: &Transaction) -> rusqlite::Result<()> {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
         tx.execute(
             "INSERT OR REPLACE INTO map_info (id, width, height, name) VALUES (1, ?1, ?2, ?3)",
             (self.grid_width, self.grid_height, &self.name),
@@ -54,23 +57,24 @@ impl Loadable for MapInfoLoader {
             Ok((width, height, name))
         });
 
-        match result {
-            Ok((width, height, name)) => {
-                let map_info = MapInfo {
-                    grid_width: width,
-                    grid_height: height,
-                    world_width: width as f32 * CELL_SIZE,
-                    world_height: height as f32 * CELL_SIZE,
-                    name,
-                    map_file: map_loader::MapFile::default(),
-                };
-                ctx.commands.insert_resource(map_info);
-                // Singleton loaded, we are done.
-                Ok(LoadResult::Finished)
-            }
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(LoadResult::Finished),
-            Err(e) => Err(e),
-        }
+        let (width, height, name) = result?;
+        let map_info = MapInfo {
+            grid_width: width,
+            grid_height: height,
+            world_width: width as f32 * CELL_SIZE,
+            world_height: height as f32 * CELL_SIZE,
+            name,
+            map_file: map_loader::MapFile::default(),
+        };
+        
+        ctx.commands.insert_resource(ObstacleGrid::new_with_size(width, height));
+        ctx.commands.insert_resource(EmissionsGrid::new_with_size(width, height));
+        ctx.commands.insert_resource(EnergySupplyGrid::new_with_size(width, height));
+        ctx.commands.insert_resource(WispsGrid::new_with_size(width, height));
+        ctx.commands.insert_resource(TowerRangesGrid::new_with_size(width, height));
+
+        ctx.commands.insert_resource(map_info);
+        Ok(LoadResult::Finished)
     }
 }
 

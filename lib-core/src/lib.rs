@@ -7,6 +7,7 @@ pub mod mouse;
 pub mod states;
 pub mod common;
 pub mod utils;
+pub mod load_save;
 
 pub struct LibCorePlugin;
 impl Plugin for LibCorePlugin {
@@ -18,6 +19,8 @@ impl Plugin for LibCorePlugin {
             common::CommonPlugin,
             grids::GridPlugin,
             buildings::BuildingsPlugin,
+            load_save::MapLoadPlugin,
+            load_save::MapSavePlugin,
         ));
     }
 }
@@ -29,7 +32,7 @@ pub mod prelude {
     pub use crate::mouse::mouse_prelude::*;
     pub use crate::states::states_prelude::*;
     pub use crate::common::common_prelude::*;
-
+    pub use crate::load_save::load_save_prelude::*;
     // Re-export the derive macros
     pub use lib_derive::Property;
 }

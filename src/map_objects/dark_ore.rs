@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use lib_grid::grids::obstacles::{BelowField, Field, ObstacleGrid};
+use lib_grid::grids::obstacles::ObstacleGrid;
 
 use crate::prelude::*;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -11,11 +11,13 @@ impl Plugin for DarkOrePlugin {
         app
             .add_systems(Update, (
                 onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
-                remove_empty_dark_ore_system,
+                DarkOre::remove_empty,
             ))
+            .add_observer(DarkOre::on_remove)
             .add_observer(BuilderDarkOre::on_add)
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_add)
-            .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_remove_dark_ore);
+            .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_remove_dark_ore)
+            ;
     }
 }
 
@@ -26,6 +28,28 @@ pub const DARK_ORE_BASE_IMAGES: [&str; 2] = ["map_objects/dark_ore_1.png", "map_
 #[require(MapBound)]
 pub struct DarkOre {
     pub amount: i32,
+}
+impl DarkOre {
+    fn on_remove(
+        trigger: On<Remove, DarkOre>,
+        mut obstacle_grid: ResMut<ObstacleGrid>,
+        dark_ores_query: Query<&GridCoords, With<DarkOre>>,
+    ) {
+        let entity = trigger.entity;
+        let Ok(dark_ore_grid_coords) = dark_ores_query.get(entity) else { return; };
+        obstacle_grid.imprint_custom(*dark_ore_grid_coords, DARK_ORE_GRID_IMPRINT, |field| field.dark_ore = None);
+    }
+    fn remove_empty(
+        mut commands: Commands,
+        dark_ores: Query<(Entity, &DarkOre), Changed<DarkOre>>,
+    ) {
+        for (entity, dark_ore) in dark_ores.iter() {
+            if dark_ore.amount <= 0 {
+                commands.entity(entity).despawn();
+            }
+        }
+    }
+
 }
 
 #[derive(Component)]
@@ -68,59 +92,26 @@ impl BuilderDarkOre {
     }
 }
 
-pub fn remove_dark_ore(
-    commands: &mut Commands,
-    obstacle_grid: &mut ResMut<ObstacleGrid>,
-    grid_position: GridCoords,
-) {
-    let (dark_ore_entity, new_field) = match &obstacle_grid[grid_position] {
-        Field::DarkOre(entity) => (*entity, Field::Empty),
-        Field::Building(building_entity, BuildingType::MiningComplex, BelowField::DarkOre(entity)) => (*entity, Field::Building(*building_entity, BuildingType::MiningComplex, BelowField::Empty)),
-        _ => panic!("Cannot remove a dark_ore from a non-dark_ore field"),
-    };
-    commands.entity(dark_ore_entity).despawn();
-    obstacle_grid.imprint_custom(grid_position, DARK_ORE_GRID_IMPRINT, &|field| *field = new_field.clone());
-}
-
-
 fn onclick_spawn_system(
     mut commands: Commands,
     mut obstacle_grid: ResMut<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Single<&GridObjectPlacer>,
-    dark_ores_query: Query<&GridCoords, With<DarkOre>>,
 ) {
     if !matches!(*grid_object_placer.into_inner(), GridObjectPlacer::DarkOre) { return; }
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {
         // Place a dark_ore
-        if obstacle_grid.imprint_query_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| field.is_empty()) {
+        if obstacle_grid.query_imprint_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| !field.has_dark_ore()) {
             let dark_ore_entity = commands.spawn(BuilderDarkOre::new(mouse_coords)).id();
-            obstacle_grid.imprint(mouse_coords, Field::DarkOre(dark_ore_entity), DARK_ORE_GRID_IMPRINT);
+            obstacle_grid.imprint_custom(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| field.dark_ore = Some(dark_ore_entity));
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a dark_ore
-        match obstacle_grid[mouse_coords] {
-            Field::DarkOre(entity) => {
-                if let Ok(dark_ore_coords) = dark_ores_query.get(entity) {
-                    remove_dark_ore(&mut commands, &mut obstacle_grid, *dark_ore_coords);
-                }
-            },
-            _ => {}
-        }
-    }
-}
-
-fn remove_empty_dark_ore_system(
-    mut commands: Commands,
-    mut obstacle_grid: ResMut<ObstacleGrid>,
-    dark_ores_query: Query<(&GridCoords, &DarkOre), Changed<DarkOre>>,
-) {
-    for (grid_coords, dark_ore) in dark_ores_query.iter() {
-        if dark_ore.amount <= 0 {
-            remove_dark_ore(&mut commands, &mut obstacle_grid, *grid_coords);
+        if let Some(entity) = obstacle_grid[mouse_coords].dark_ore {
+            commands.entity(entity).despawn();
         }
     }
 }
@@ -161,7 +152,7 @@ pub mod dark_ore_area_scanner {
         ) {
             let entity = trigger.entity;
             let Ok((scanner, grid_coords, mut dark_ore_in_range)) = scanners.get_mut(entity) else { return; };
-            let ore_entities_in_range = obstacle_grid.imprint_query_element(*grid_coords, scanner.range_imprint, Self::is_dark_ore_helper);
+            let ore_entities_in_range = obstacle_grid.query_imprint_element(*grid_coords, scanner.range_imprint, |field| field.dark_ore);
             if ore_entities_in_range.is_empty() {
                 commands.entity(entity).insert(NoOreInScannerRange).remove::<HasOreInScannerRange>();
             } else {
@@ -191,11 +182,6 @@ pub mod dark_ore_area_scanner {
                     commands.entity(scanner_entity).insert(NoOreInScannerRange).remove::<HasOreInScannerRange>();
                 }
             }
-        }
-
-        // Helper to execute on every obstacle grid field to gather the dark_ore entities
-        fn is_dark_ore_helper(field: &Field) -> Option<Entity> {
-            if let Field::Building(_, BuildingType::MiningComplex, BelowField::DarkOre(dark_ore_entity)) = field { Some(*dark_ore_entity) } else { None }
         }
     }
 

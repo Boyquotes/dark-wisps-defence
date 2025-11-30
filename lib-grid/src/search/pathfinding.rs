@@ -2,7 +2,7 @@ use std::collections::BinaryHeap;
 
 use crate::lib_prelude::*;
 use crate::grids::emissions::EmissionsGrid;
-use crate::grids::obstacles::{Field, ObstacleGrid};
+use crate::grids::obstacles::{GridStructureType, ObstacleGrid};
 use crate::search::common::{State, ALL_DIRECTIONS};
 
 use super::common::TRACKING_GRID;
@@ -26,7 +26,7 @@ pub fn path_find_energy_beckon(
                 let new_coords = coords.shifted((delta_x, delta_y));
                 if !new_coords.is_in_bounds(obstacle_grid.bounds())
                     || tracking.is_tracked(new_coords)
-                    || obstacle_grid[new_coords].is_wall()
+                    || obstacle_grid[new_coords].has_wall()
                 {
                     continue;
                 }
@@ -35,15 +35,15 @@ pub fn path_find_energy_beckon(
                 if delta_x.abs() == delta_y.abs() {
                     let adjacent_x = (coords.x + delta_x, coords.y).into();
                     let adjacent_y = (coords.x, coords.y + delta_y).into();
-                    if !obstacle_grid[adjacent_x].is_empty() || !obstacle_grid[adjacent_y].is_empty() {
+                    if !obstacle_grid[adjacent_x].has_structure() || !obstacle_grid[adjacent_y].has_structure() {
                         continue;
                     }
                 }
 
                 tracking.set_tracked(new_coords, coords);
                 let new_distance = distance + 1;
-                let new_cost = match obstacle_grid[new_coords] {
-                    Field::Building(_, building_type, _) => {
+                let new_cost = match obstacle_grid[new_coords].structure {
+                    GridStructureType::Building(_, building_type) => {
                         // TODO: Currently finds the supplier even if its turned off(Disabled by player / not powered etc.)
                         if building_type.is_energy_supplier() {
                             // Compile the path by backtracking

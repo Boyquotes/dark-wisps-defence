@@ -1,5 +1,5 @@
 use lib_grid::grids::emissions::EmissionsGrid;
-use lib_grid::grids::obstacles::{Field, ObstacleGrid};
+use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid};
 use lib_grid::grids::wisps::WispsGrid;
 use lib_grid::search::pathfinding::path_find_energy_beckon;
 use lib_inventory::stats::StatsWispsKilled;
@@ -95,7 +95,7 @@ pub fn wisp_charge_attack(
                 *wisp_state = WispState::Attacking;
             } else if let Some(coords_in_range) = grid_path.at_distance(attack_range.get() as usize) {
                 // Otherwise, check if the field in the current range is a building
-                if obstacle_grid[coords_in_range].is_building() {
+                if obstacle_grid[coords_in_range].has_building() {
                     *wisp_state = WispState::Attacking;
                 }
             }
@@ -103,7 +103,7 @@ pub fn wisp_charge_attack(
         if !matches!(*wisp_state, WispState::Attacking) { continue; }
         // Then confirm the target still exists
         let Some(target_coords) = grid_path.at_distance(attack_range.get() as usize) else { continue; };
-        let Field::Building(target_entity, .. ) = obstacle_grid[target_coords] else {
+        let GridStructureType::Building(target_entity, _) = obstacle_grid[target_coords].structure else {
             // If not, then either find new target if we were already at our itended target, or continue moving if we were stopped by an obstacle
             if grid_path.distance() <= attack_range.get() as usize {
                 *wisp_state = WispState::NeedTarget;
@@ -181,8 +181,8 @@ pub fn collide_wisps(
     for (wisp_entity, wisp_state, grid_path, health, transform, coords) in wisps.iter() {
         if !matches!(wisp_state, WispState::MovingToTarget) || health.is_dead() { continue; }
         if !grid_path.is_empty() { continue; }
-        let building_entity = match &grid[*coords] {
-            Field::Building(entity, ..) => *entity,
+        let building_entity = match &grid[*coords].structure {
+            GridStructureType::Building(entity, _) => *entity,
             _ => panic!("Expected a building"),
         };
         let mut health = buildings.get_mut(building_entity).unwrap();

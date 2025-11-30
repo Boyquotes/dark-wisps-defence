@@ -1,7 +1,7 @@
 use bevy::color::palettes::css::GRAY;
 
 use lib_grid::grids::emissions::EmissionsEnergyRecalculateAll;
-use lib_grid::grids::obstacles::{Field, ObstacleGrid};
+use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid};
 
 use crate::prelude::*;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -128,12 +128,12 @@ pub fn remove_wall(
     obstacle_grid: &mut ResMut<ObstacleGrid>,
     grid_position: GridCoords,
 ) {
-    let entity = match &obstacle_grid[grid_position] {
-        Field::Wall(entity) => *entity,
+    let entity = match &obstacle_grid[grid_position].structure {
+        GridStructureType::Wall(entity) => *entity,
         _ => panic!("Cannot remove a wall on a non-wall"),
     };
     commands.entity(entity).despawn();
-    obstacle_grid.deprint_all(grid_position, WALL_GRID_IMPRINT);
+    obstacle_grid.deprint_structure(grid_position, WALL_GRID_IMPRINT);
     emissions_energy_recalculate_all.0 = true;
 }
 
@@ -153,11 +153,11 @@ pub fn onclick_spawn_system(
         // Place a wall
         if obstacle_grid[mouse_coords].is_empty() {
             let wall_entity = commands.spawn(BuilderWall::new(mouse_coords)).id();
-            obstacle_grid.imprint(mouse_coords, Field::Wall(wall_entity), WALL_GRID_IMPRINT);
+            obstacle_grid.imprint_structure(mouse_coords, WALL_GRID_IMPRINT, GridStructureType::Wall(wall_entity));
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a wall
-        if obstacle_grid[mouse_coords].is_wall() {
+        if obstacle_grid[mouse_coords].has_wall() {
             remove_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
         }
     }

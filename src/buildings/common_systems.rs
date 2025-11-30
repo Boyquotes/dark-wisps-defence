@@ -1,4 +1,4 @@
-use lib_grid::grids::obstacles::{BelowField, Field, ObstacleGrid};
+use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid};
 use lib_grid::grids::wisps::WispsGrid;
 use lib_grid::search::targetfinding::target_find_closest_wisp;
 use lib_core::utils::angle_difference;
@@ -58,7 +58,6 @@ fn onclick_building_spawn_system(
     // ---
     enum GridAction {
         Imprint(Entity),
-        ImprintMiningComplex(Entity),
         Reprint{entity: Entity, old_coords: GridCoords},
     }
     // ---
@@ -94,23 +93,13 @@ fn onclick_building_spawn_system(
         },
         BuildingType::MiningComplex => {
             let entity = commands.spawn(BuilderMiningComplex::new(mouse_coords)).id();
-            GridAction::ImprintMiningComplex(entity)
+            GridAction::Imprint(entity)
         },
     };
     match grid_action {
-        GridAction::Imprint(entity) => obstacle_grid.imprint(mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint),
-        GridAction::ImprintMiningComplex(entity) => obstacle_grid.imprint_custom(mouse_coords, *grid_imprint, &|field| {
-            // Retain information about dark ore that will be below the mining complex
-            let below_field = match field {
-                Field::Empty => BelowField::Empty,
-                Field::DarkOre(entity) => BelowField::DarkOre(*entity),
-                _ => panic!("imprint_mining_complex() can only be used with an Empty or DarkOre Field"),
-            };
-            *field = Field::Building(entity, BuildingType::MiningComplex, below_field);
-            
-        }),
-        GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint(
-            old_coords, mouse_coords, Field::Building(entity, *building_type, default()), *grid_imprint
+        GridAction::Imprint(entity) => obstacle_grid.imprint_structure(mouse_coords, *grid_imprint, GridStructureType::Building(entity, *building_type)),
+        GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint_structure(
+            old_coords, mouse_coords, *grid_imprint, GridStructureType::Building(entity, *building_type),
         ),
     }
 }
@@ -165,7 +154,7 @@ fn damage_control_system(
     for (entity, health, grid_imprint, grid_coords) in buildings.iter() {
         if health.is_dead() {
             commands.entity(entity).despawn();
-            obstacle_grid.deprint_main_floor(*grid_coords, *grid_imprint);
+            obstacle_grid.deprint_structure(*grid_coords, *grid_imprint);
             grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
                 commands.spawn(BuilderExplosion(coords));
             });
@@ -205,3 +194,23 @@ fn rotational_aiming_system(
         rotation.current_angle += angle_diff.clamp(-rotation_delta, rotation_delta);
     }
 }
+
+// fn imprint_building_on_insert(
+//     trigger: On<Insert, Building>,
+//     mut obstacle_grid: ResMut<ObstacleGrid>,
+//     buildings: Query<(&GridImprint, &GridCoords, &BuildingType), With<Building>>,
+// ) {
+//     let entity = trigger.entity;
+//     let Ok((grid_imprint, grid_coords, building_type)) = buildings.get(entity) else { return; };
+//     obstacle_grid.imprint(*grid_coords, Field::Building(entity, *building_type, default()), *grid_imprint);
+// }
+
+// fn deprint_building_on_remove(
+//     trigger: On<Remove, Building>,
+//     mut obstacle_grid: ResMut<ObstacleGrid>,
+//     buildings: Query<(&GridImprint, &GridCoords), With<Building>>,
+// ) {
+//     let entity = trigger.entity;
+//     let Ok((grid_imprint, grid_coords)) = buildings.get(entity) else { return; };
+//     obstacle_grid.deprint_all(*grid_coords, *grid_imprint);
+// }

@@ -81,7 +81,7 @@ impl GridObjectPlacer {
         let is_imprint_placable = match &*grid_object_placer {
             GridObjectPlacer::None => false,
             GridObjectPlacer::Building(building_type) => obstacle_grid.query_building_placement(*grid_coords, *building_type, *grid_imprint),
-            _ => obstacle_grid.imprint_query_all(*grid_coords, *grid_imprint, |field| field.is_empty()),
+            _ => obstacle_grid.query_imprint_all(*grid_coords, *grid_imprint, |field| field.is_empty()),
         };
     
         let (needs_energy_supply, is_imprint_powered) = match &*grid_object_placer {

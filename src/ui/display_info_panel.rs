@@ -5,7 +5,7 @@ use bevy::render::{
     view::Hdr,
 };
 
-use lib_grid::grids::obstacles::{Field, ObstacleGrid};
+use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid};
 
 use crate::prelude::*;
 
@@ -89,21 +89,27 @@ fn show_on_click_system(
 ) {
     if !mouse.just_pressed(MouseButton::Left) || !mouse_info.grid_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
 
-    let focused_structure = match &obstacle_grid[mouse_info.grid_coords] {
-        Field::Building(entity, _, _ ) => *entity,
-        Field::QuantumField(entity) => *entity,
-        _ => return,
+    let field = &obstacle_grid[mouse_info.grid_coords];
+    let focused_element =  match &field.structure {
+        GridStructureType::Building(entity, _) => *entity,
+        _ => {
+            if let Some(entity) = &field.quantum_field {
+                *entity
+            } else {
+                return;
+            }
+        },
     };
 
     // Center the camera on the focused structure
-    let Ok((grid_coords, grid_imprint)) = grid_positions.get(focused_structure) else { return; };
+    let Ok((grid_coords, grid_imprint)) = grid_positions.get(focused_element) else { return; };
     let world_position = grid_coords.to_world_position_centered(*grid_imprint);
     let mut camera_transform = info_panel_camera.into_inner();
     camera_transform.translation.x = world_position.x;
     camera_transform.translation.y = world_position.y;
 
-    display_info_panel.into_inner().current_focus = focused_structure;
-    commands.trigger(UiMapObjectFocusedTrigger { entity: focused_structure });
+    display_info_panel.into_inner().current_focus = focused_element;
+    commands.trigger(UiMapObjectFocusedTrigger { entity: focused_element });
     next_ui_interaction_state.set(UiInteraction::DisplayInfoPanel);
 }
 

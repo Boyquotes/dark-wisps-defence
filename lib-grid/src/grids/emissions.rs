@@ -162,7 +162,7 @@ fn emissions_calculations_system(
                 &obstacle_grid,
                 &grid_imprint.covered_coords(*coords),
                 &vec![emitter.0.clone()],
-                |field| !field.is_wall(),
+                |field| !field.has_wall(),
             );
         }
         events.clear();
@@ -173,7 +173,7 @@ fn emissions_calculations_system(
                 &obstacle_grid,
                 &event.coords,
                 &event.emissions_details,
-                |field| !field.is_wall(),
+                |field| !field.has_wall(),
             );
         }
     }

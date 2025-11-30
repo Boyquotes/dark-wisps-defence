@@ -4,102 +4,72 @@ use crate::grids::base::BaseGrid;
 pub struct ObstaclesGridPlugin;
 impl Plugin for ObstaclesGridPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ObstacleGrid::new_empty());
+        app
+            .insert_resource(ObstacleGrid::new_empty())
+            .init_resource::<ReservedCoords>()
+            .add_systems(First, ReservedCoords::clear_system)
+            ;
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
-pub enum Field {
-    #[default]
-    Empty,
-    Building(Entity, BuildingType, BelowField),
-    Wall(Entity),
-    DarkOre(Entity),
-    QuantumField(Entity),
+pub struct Field {
+    pub dark_ore: Option<Entity>,
+    pub quantum_field: Option<Entity>,
+    pub structure: GridStructureType,
 }
 impl Field {
+    pub fn has_dark_ore(&self) -> bool {
+        self.dark_ore.is_some()
+    }
+    pub fn is_within_quantum_field(&self) -> bool {
+        self.quantum_field.is_some()
+    }
     pub fn is_empty(&self) -> bool {
-        matches!(self, Field::Empty)
+        matches!(self.structure, GridStructureType::Empty) && !self.is_within_quantum_field() && !self.has_dark_ore()
     }
-    pub fn is_building(&self) -> bool {
-        matches!(self, Field::Building(..))
+    pub fn has_building(&self) -> bool {
+        matches!(self.structure, GridStructureType::Building(..))
     }
-    pub fn is_wall(&self) -> bool {
-        matches!(self, Field::Wall(_))
+    pub fn has_wall(&self) -> bool {
+        matches!(self.structure, GridStructureType::Wall(_))
     }
-    pub fn is_dark_ore(&self) -> bool { matches!(self, Field::DarkOre(_)) }
-    pub fn is_high_obstacle(&self) -> bool { 
-        matches!(self, Field::Wall(_) | Field::Building(..)) 
-    }
-    pub fn is_natural_obstacle(&self) -> bool {
-        matches!(self, Field::Wall(_) | Field::DarkOre(_) | Field::Building(_, BuildingType::MiningComplex, BelowField::DarkOre(_)) | Field::QuantumField(_))
-    }
-    //If there is BelowField, turn into it. If not, become empty
-    pub fn clear_main_floor(&mut self) {
-        *self = match self {
-            Field::Building(_, _, below_field) => (*below_field).into(),
-            _ => Field::Empty,
-        };
-    }
-}
-impl From<BelowField> for Field {
-    fn from(below_field: BelowField) -> Self {
-        match below_field {
-            BelowField::Empty => Field::Empty,
-            BelowField::DarkOre(entity) => Field::DarkOre(entity),
-        }
+    pub fn has_structure(&self) -> bool { 
+        matches!(self.structure, GridStructureType::Wall(_) | GridStructureType::Building(..)) 
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Default)]
-pub enum BelowField {
+#[derive(Clone, Debug, PartialEq, Default)]
+pub enum GridStructureType {
     #[default]
     Empty,
-    DarkOre(Entity),
-}
-impl BelowField {
-    pub fn is_empty(&self) -> bool {
-        matches!(self, BelowField::Empty)
-    }
+    Building(Entity, BuildingType),
+    Wall(Entity),
 }
 
 pub type ObstacleGrid = BaseGrid<Field, GridVersion>;
 
 impl ObstacleGrid {
-    // Naive imprint that replaced the fields without regards to anything above or under
-    pub fn imprint(&mut self, coords: GridCoords, field: Field, imprint: GridImprint) {
+    pub fn imprint_structure(&mut self, coords: GridCoords, imprint: GridImprint, structure: GridStructureType) {
         match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
                     for x in 0..width {
                         let index = self.index(coords.shifted((x, y)));
-                        self.grid[index] = field.clone();
+                        self.grid[index].structure = structure.clone();
                     }
                 }
             }
         }
         self.version = self.version.wrapping_add(1);
     }
-    pub fn deprint_all(&mut self, coords: GridCoords, imprint: GridImprint) {
+    pub fn deprint_structure(&mut self, coords: GridCoords, imprint: GridImprint) {
         match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
                     for x in 0..width {
                         let index = self.index(coords.shifted((x, y)));
-                        self.grid[index] = Field::Empty;
-                    }
-                }
-            }
-        }
-        self.version = self.version.wrapping_add(1);
-    }
-    pub fn deprint_main_floor(&mut self, coords: GridCoords, imprint: GridImprint) {
-        match imprint {
-            GridImprint::Rectangle { width, height } => {
-                for y in 0..height {
-                    for x in 0..width {
-                        let index = self.index(coords.shifted((x, y)));
-                        self.grid[index].clear_main_floor();
+                        self.grid[index].structure = GridStructureType::Empty;
                     }
                 }
             }
@@ -107,11 +77,11 @@ impl ObstacleGrid {
         self.version = self.version.wrapping_add(1);
     }
     // Naive reprint that deprints all in old coords and hard imprints in new coords
-    pub fn reprint(&mut self, old_coords: GridCoords, new_coords: GridCoords, field: Field, imprint: GridImprint) {
-        self.deprint_all(old_coords, imprint);
-        self.imprint(new_coords, field, imprint);
+    pub fn reprint_structure(&mut self, old_coords: GridCoords, new_coords: GridCoords, imprint: GridImprint, new_structure: GridStructureType) {
+        self.deprint_structure(old_coords, imprint);
+        self.imprint_structure(new_coords, imprint, new_structure);
     }
-    pub fn imprint_query_all(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
+    pub fn query_imprint_all(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
         match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
@@ -126,7 +96,7 @@ impl ObstacleGrid {
         }
         true
     }
-    pub fn imprint_query_any(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
+    pub fn query_imprint_any(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> bool {
         match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
@@ -141,7 +111,7 @@ impl ObstacleGrid {
         }
         false
     }
-    pub fn imprint_query_count(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> usize {
+    pub fn query_imprint_count(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> bool) -> usize {
         let mut count = 0;
         match imprint {
             GridImprint::Rectangle { width, height } => {
@@ -157,7 +127,7 @@ impl ObstacleGrid {
         }
         count
     }
-    pub fn imprint_query_element<T>(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> Option<T>) -> Vec<T> {
+    pub fn query_imprint_element<T>(&self, coords: GridCoords, imprint: GridImprint, query: fn(&Field) -> Option<T>) -> Vec<T> {
         let mut vec = Vec::new();
         match imprint {
             GridImprint::Rectangle { width, height } => {
@@ -186,20 +156,19 @@ impl ObstacleGrid {
                     for x in 0..width {
                         let inner_coords = coords.shifted((x, y));
                         if !inner_coords.is_in_bounds(self.bounds()) { return false; }
-                        match &self[inner_coords] {
-                            Field::Empty => continue,
-                            Field::DarkOre(_) => has_dark_ore = true,
-                            _ => return false,
-                        }
+                        
+                        let field = &self[inner_coords];
+                        if field.is_within_quantum_field() || field.has_structure() { return false }
+                        if field.has_dark_ore() { has_dark_ore = true; }
                     }
                 }
                 return has_dark_ore;
             },
-            _ => self.imprint_query_all(coords, imprint, |field| field.is_empty()),
+            _ => self.query_imprint_all(coords, imprint, |field| field.is_empty()),
         }
     }
 
-    pub fn imprint_custom(&mut self, coords: GridCoords, imprint: GridImprint, imprint_fn: &dyn Fn(&mut Field)) {
+    pub fn imprint_custom(&mut self, coords: GridCoords, imprint: GridImprint, imprint_fn: impl Fn(&mut Field)) {
         match imprint {
             GridImprint::Rectangle { width, height } => {
                 for y in 0..height {
@@ -211,5 +180,18 @@ impl ObstacleGrid {
             }
         }
         self.version = self.version.wrapping_add(1);
-    } 
+    }
+}
+
+
+// When placing objects on map sometimes we want to reserve space so the state can be changed async later while ensuring that no other object can be placed there in parallel systems.
+// This resourvation are cleared in the Firs schedule of the following frame.
+#[derive(Resource, Default)]
+pub struct ReservedCoords {
+    pub for_structures: HashSet<GridCoords>,
+}
+impl ReservedCoords {
+    fn clear_system(mut reserved_coords: ResMut<ReservedCoords>) {
+        reserved_coords.for_structures.clear();
+    }
 }

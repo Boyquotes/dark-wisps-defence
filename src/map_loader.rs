@@ -2,7 +2,7 @@ use std::fs::File;
 
 use lib_grid::grids::emissions::EmissionsGrid;
 use lib_grid::grids::energy_supply::EnergySupplyGrid;
-use lib_grid::grids::obstacles::{Field, ObstacleGrid};
+use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid};
 use lib_grid::grids::tower_ranges::TowerRangesGrid;
 use lib_grid::grids::wisps::WispsGrid;
 
@@ -174,11 +174,11 @@ impl MapFile {
     ) {
         self.walls.iter().for_each(|wall_coords| {
             let wall_entity = commands.spawn(BuilderWall::new(*wall_coords)).id();
-            obstacle_grid.imprint(*wall_coords, Field::Wall(wall_entity), WALL_GRID_IMPRINT);
+            obstacle_grid.imprint_structure(*wall_coords, WALL_GRID_IMPRINT, GridStructureType::Wall(wall_entity));
         });
         let _dark_ores = self.dark_ores.iter().map(|dark_ore_coords| {
             let dark_ore_entity = commands.spawn(BuilderDarkOre::new(*dark_ore_coords)).id();
-            obstacle_grid.imprint(*dark_ore_coords, Field::DarkOre(dark_ore_entity), DARK_ORE_GRID_IMPRINT);
+            obstacle_grid.imprint_custom(*dark_ore_coords, DARK_ORE_GRID_IMPRINT, |field| field.dark_ore = Some(dark_ore_entity));
             (*dark_ore_coords, dark_ore_entity)
         }).collect::<HashMap<_,_>>();
         self.buildings.iter().for_each(|building| {
@@ -202,12 +202,12 @@ impl MapFile {
                     // entity
                 }
             };
-            obstacle_grid.imprint(building.coords, Field::Building(building_entity, building.building_type, default()), almanach.get_building_info(building.building_type).grid_imprint);
+            obstacle_grid.imprint_structure(building.coords, almanach.get_building_info(building.building_type).grid_imprint, GridStructureType::Building(building_entity, building.building_type));
         });
         self.quantum_fields.iter().for_each(|quantum_field| {
             let grid_imprint = GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size };
             let quantum_field_entity = commands.spawn(BuilderQuantumField::new(quantum_field.coords, grid_imprint)).id();
-            obstacle_grid.imprint(quantum_field.coords, Field::QuantumField(quantum_field_entity), grid_imprint);
+            obstacle_grid.imprint_custom(quantum_field.coords, grid_imprint, |field| field.quantum_field = Some(quantum_field_entity));
         });
         self.objectives.iter().cloned().for_each(|objective_details| {
             commands.spawn(objective_details);

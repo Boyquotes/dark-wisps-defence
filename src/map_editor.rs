@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use lib_grid::grids::obstacles::{Field, ObstacleGrid};
+use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid};
 
 use crate::prelude::*;
 use lib_core::states::MapLoadingStage2;
@@ -112,20 +112,11 @@ pub fn save_map_system(
     for y in 0..grid.height {
         for x in 0..grid.width {
             let coords = GridCoords { x, y };
-            match &grid[coords] {
-                Field::Wall(_) => {
+            match &grid[coords].structure {
+                GridStructureType::Wall(_) => {
                     walls.push(coords);
                 },
-                Field::DarkOre(entity) => {
-                    if processed_entities.insert(entity) {
-                        let (_, dark_ore_coords) = dark_ores_query.get(*entity).unwrap();
-                        dark_ores.push(*dark_ore_coords);
-                    }
-                },
-                Field::Building(entity, _, below_field) => {
-                    if !below_field.is_empty() {
-                        panic!("BelowFields in editor not yet implemented");
-                    }
+                GridStructureType::Building(entity, _) => {
                     if processed_entities.insert(entity) {
                         let (building_type, building_coords) = buildings_query.get(*entity).unwrap();
                         buildings.push(
@@ -136,14 +127,20 @@ pub fn save_map_system(
                         );
                     }
                 }
-                Field::QuantumField(entity) => {
-                    if processed_entities.insert(entity) {
-                        let (quantum_field_coords, quantum_field_grid_imprint) = quantum_fields_query.get(*entity).unwrap();
-                        let GridImprint::Rectangle { width, .. } = quantum_field_grid_imprint;
-                        quantum_fields.push(MapQuantumField { coords: *quantum_field_coords, size: *width });
-                    }
+                GridStructureType::Empty => {},
+            }
+            if let Some(entity) =  &grid[coords].quantum_field {
+                if processed_entities.insert(entity) {
+                    let (_, dark_ore_coords) = dark_ores_query.get(*entity).unwrap();
+                    dark_ores.push(*dark_ore_coords);
                 }
-                _ => {}
+            }
+            if let Some(entity) = &grid[coords].quantum_field {
+                if processed_entities.insert(entity) {
+                    let (quantum_field_coords, quantum_field_grid_imprint) = quantum_fields_query.get(*entity).unwrap();
+                    let GridImprint::Rectangle { width, .. } = quantum_field_grid_imprint;
+                    quantum_fields.push(MapQuantumField { coords: *quantum_field_coords, size: *width });
+                }
             }
         }
     }

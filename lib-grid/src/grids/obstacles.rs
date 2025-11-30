@@ -8,6 +8,8 @@ impl Plugin for ObstaclesGridPlugin {
             .insert_resource(ObstacleGrid::new_empty())
             .init_resource::<ReservedCoords>()
             .add_systems(First, ReservedCoords::clear_system)
+            .add_observer(on_obstacle_grid_object_inserted)
+            .add_observer(on_obstacle_grid_object_removed)
             ;
     }
 }
@@ -183,6 +185,52 @@ impl ObstacleGrid {
     }
 }
 
+fn on_obstacle_grid_object_inserted(
+    trigger: On<Insert, ObstacleGridObject>,
+    mut obstacle_grid: ResMut<ObstacleGrid>,
+    objects: Query<(&GridImprint, &GridCoords, &ObstacleGridObject)>,
+    buildings: Query<&BuildingType>,
+) {
+    let entity = trigger.entity;
+    let Ok((grid_imprint, grid_coords, obstacle_grid_object)) = objects.get(entity) else { return; };
+    match obstacle_grid_object {
+        ObstacleGridObject::Building => {
+            let Ok(building_type) = buildings.get(entity) else { return; };
+            obstacle_grid.imprint_structure(*grid_coords, *grid_imprint, GridStructureType::Building(entity, *building_type));
+        }
+        ObstacleGridObject::Wall => {
+            obstacle_grid.imprint_structure(*grid_coords, *grid_imprint, GridStructureType::Wall(entity));
+        }
+        ObstacleGridObject::QuantumField => {
+            obstacle_grid.imprint_custom(*grid_coords, *grid_imprint, |field| field.quantum_field = Some(entity));
+        }
+        ObstacleGridObject::DarkOre => {
+            obstacle_grid.imprint_custom(*grid_coords, *grid_imprint, |field| field.dark_ore = Some(entity));
+        }
+    }
+}
+fn on_obstacle_grid_object_removed(
+    trigger: On<Remove, ObstacleGridObject>,
+    mut obstacle_grid: ResMut<ObstacleGrid>,
+    objects: Query<(&GridImprint, &GridCoords, &ObstacleGridObject)>,
+) {
+    let entity = trigger.entity;
+    let Ok((grid_imprint, grid_coords, obstacle_grid_object)) = objects.get(entity) else { return; };
+    match obstacle_grid_object {
+        ObstacleGridObject::Building => {
+            obstacle_grid.deprint_structure(*grid_coords, *grid_imprint);
+        }
+        ObstacleGridObject::Wall => {
+            obstacle_grid.deprint_structure(*grid_coords, *grid_imprint);
+        }
+        ObstacleGridObject::QuantumField => {
+            obstacle_grid.imprint_custom(*grid_coords, *grid_imprint, |field| field.quantum_field = None);
+        }
+        ObstacleGridObject::DarkOre => {
+            obstacle_grid.imprint_custom(*grid_coords, *grid_imprint, |field| field.dark_ore = None);
+        }
+    }
+}
 
 // When placing objects on map sometimes we want to reserve space so the state can be changed async later while ensuring that no other object can be placed there in parallel systems.
 // This resourvation are cleared in the Firs schedule of the following frame.
@@ -191,6 +239,31 @@ pub struct ReservedCoords {
     pub for_structures: HashSet<GridCoords>,
 }
 impl ReservedCoords {
+    pub fn reserve(&mut self, coords: GridCoords, imprint: GridImprint) {
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let inner_coords = coords.shifted((x, y));
+                        self.for_structures.insert(inner_coords);
+                    }
+                }
+            }
+        }
+    }
+    pub fn any_reserved(&self, coords: GridCoords, imprint: GridImprint) -> bool {
+        match imprint {
+            GridImprint::Rectangle { width, height } => {
+                for y in 0..height {
+                    for x in 0..width {
+                        let inner_coords = coords.shifted((x, y));
+                        if self.for_structures.contains(&inner_coords) { return true; }
+                    }
+                }
+                false
+            }
+        }
+    }
     fn clear_system(mut reserved_coords: ResMut<ReservedCoords>) {
         reserved_coords.for_structures.clear();
     }

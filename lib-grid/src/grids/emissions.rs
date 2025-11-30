@@ -16,6 +16,8 @@ impl Plugin for EmissionsPlugin {
             ))
             .add_observer(EmitterEnergy::on_add)
             .add_observer(EmitterEnergy::on_remove)
+            .add_observer(EmitterEnergy::on_spread_affector_insert)
+            .add_observer(EmitterEnergy::on_spread_affector_remove)
             ;
     }
 }
@@ -68,6 +70,18 @@ impl EmitterEnergy {
             coords: grid_imprint.covered_coords(*grid_coords),
             emissions_details: vec![emitter.0.cloned_with_reversed_mode()],
         });
+    }
+    fn on_spread_affector_insert(
+        _trigger: On<Insert, EmissionsGridSpreadAffector>,
+        mut recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    ) {
+        recalculate_all.0 = true;
+    }
+    fn on_spread_affector_remove(
+        _trigger: On<Remove, EmissionsGridSpreadAffector>,
+        mut recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
+    ) {
+        recalculate_all.0 = true;
     }
 }
 

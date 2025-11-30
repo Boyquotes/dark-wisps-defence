@@ -1,4 +1,4 @@
-use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid};
+use lib_grid::grids::obstacles::{ObstacleGrid, ReservedCoords};
 use lib_grid::grids::wisps::WispsGrid;
 use lib_grid::search::targetfinding::target_find_closest_wisp;
 use lib_core::utils::angle_difference;
@@ -36,13 +36,14 @@ impl Plugin for CommonSystemsPlugin {
 
 fn onclick_building_spawn_system(
     mut commands: Commands,
-    mut obstacle_grid: ResMut<ObstacleGrid>,
+    mut reserved_coords: ResMut<ReservedCoords>,
+    obstacle_grid: Res<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     almanach: Res<Almanach>,
     mut stock: ResMut<Stock>,
     grid_object_placer: Single<(&GridObjectPlacer, &GridImprint)>,
-    main_base: Query<(Entity, &GridCoords), With<MainBase>>,
+    main_base: Query<Entity, With<MainBase>>,
 ) {
     let mouse_coords = mouse_info.grid_coords;
     if mouse_info.is_over_ui || !mouse.just_released(MouseButton::Left) { return; }
@@ -50,58 +51,44 @@ fn onclick_building_spawn_system(
     let GridObjectPlacer::Building(building_type) = grid_object_placer else { return; };
     // Grid Placement Validation
     if !mouse_coords.is_imprint_in_bounds(grid_imprint, obstacle_grid.bounds())
-        || !obstacle_grid.query_building_placement(mouse_coords, *building_type, *grid_imprint) { return; }
+        || !obstacle_grid.query_building_placement(mouse_coords, *building_type, *grid_imprint) 
+        || reserved_coords.any_reserved(mouse_coords, *grid_imprint) { return; }
     // Payment
     let building_costs = &almanach.get_building_info(*building_type).cost;
     if !stock.try_pay_costs(building_costs) { println!("Not enough dark ore"); return; }
     // Creation
     // ---
-    enum GridAction {
-        Imprint(Entity),
-        Reprint{entity: Entity, old_coords: GridCoords},
-    }
     // ---
-    let grid_action = match building_type {
+    reserved_coords.reserve(mouse_coords, *grid_imprint);
+    match building_type {
         BuildingType::EnergyRelay => {
-            let entity = commands.spawn(BuilderEnergyRelay::new(mouse_coords)).id();
-            GridAction::Imprint(entity)
+            commands.spawn(BuilderEnergyRelay::new(mouse_coords));
         }
         BuildingType::ExplorationCenter => {
-            let entity = commands.spawn(BuilderExplorationCenter::new(mouse_coords)).id();
-            GridAction::Imprint(entity)
+            commands.spawn(BuilderExplorationCenter::new(mouse_coords));
         }
         BuildingType::Tower(TowerType::Blaster) => {
-            let entity = commands.spawn(BuilderTowerBlaster::new(mouse_coords)).id();
-            GridAction::Imprint(entity)
+            commands.spawn(BuilderTowerBlaster::new(mouse_coords));
         },
         BuildingType::Tower(TowerType::Cannon) => {
-            let entity = commands.spawn(BuilderTowerCannon::new(mouse_coords)).id();
-            GridAction::Imprint(entity)
+            commands.spawn(BuilderTowerCannon::new(mouse_coords));
         },
         BuildingType::Tower(TowerType::RocketLauncher) => {
-            let entity = commands.spawn(BuilderTowerRocketLauncher::new(mouse_coords)).id();
-            GridAction::Imprint(entity)
+            commands.spawn(BuilderTowerRocketLauncher::new(mouse_coords));
         },
         BuildingType::Tower(TowerType::Emitter) => {
-            let entity = commands.spawn(BuilderTowerEmitter::new(mouse_coords)).id();
-            GridAction::Imprint(entity)
+            commands.spawn(BuilderTowerEmitter::new(mouse_coords));
         },
         BuildingType::MainBase => {
-            let Ok((main_base_entity, main_base_coords)) = main_base.single() else { return; };
-            commands.entity(main_base_entity).insert(mouse_coords);
-            GridAction::Reprint{entity: main_base_entity, old_coords: *main_base_coords}
+            let Ok(main_base_entity) = main_base.single() else { return; };
+            // Remove/Insert ObstacleGridObject to trigger grid reprint
+            commands.entity(main_base_entity).remove::<ObstacleGridObject>().insert(mouse_coords).insert(ObstacleGridObject::Building);
         },
         BuildingType::MiningComplex => {
-            let entity = commands.spawn(BuilderMiningComplex::new(mouse_coords)).id();
-            GridAction::Imprint(entity)
+            commands.spawn(BuilderMiningComplex::new(mouse_coords));
         },
     };
-    match grid_action {
-        GridAction::Imprint(entity) => obstacle_grid.imprint_structure(mouse_coords, *grid_imprint, GridStructureType::Building(entity, *building_type)),
-        GridAction::Reprint{entity, old_coords} => obstacle_grid.reprint_structure(
-            old_coords, mouse_coords, *grid_imprint, GridStructureType::Building(entity, *building_type),
-        ),
-    }
+
 }
 
 fn targeting_system(
@@ -148,13 +135,11 @@ fn tick_shooting_timers_system(
 
 fn damage_control_system(
     mut commands: Commands,
-    mut obstacle_grid: ResMut<ObstacleGrid>,
     buildings: Query<(Entity, &Health, &GridImprint, &GridCoords), With<Building>>,
 ) {
     for (entity, health, grid_imprint, grid_coords) in buildings.iter() {
         if health.is_dead() {
             commands.entity(entity).despawn();
-            obstacle_grid.deprint_structure(*grid_coords, *grid_imprint);
             grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
                 commands.spawn(BuilderExplosion(coords));
             });
@@ -194,23 +179,3 @@ fn rotational_aiming_system(
         rotation.current_angle += angle_diff.clamp(-rotation_delta, rotation_delta);
     }
 }
-
-// fn imprint_building_on_insert(
-//     trigger: On<Insert, Building>,
-//     mut obstacle_grid: ResMut<ObstacleGrid>,
-//     buildings: Query<(&GridImprint, &GridCoords, &BuildingType), With<Building>>,
-// ) {
-//     let entity = trigger.entity;
-//     let Ok((grid_imprint, grid_coords, building_type)) = buildings.get(entity) else { return; };
-//     obstacle_grid.imprint(*grid_coords, Field::Building(entity, *building_type, default()), *grid_imprint);
-// }
-
-// fn deprint_building_on_remove(
-//     trigger: On<Remove, Building>,
-//     mut obstacle_grid: ResMut<ObstacleGrid>,
-//     buildings: Query<(&GridImprint, &GridCoords), With<Building>>,
-// ) {
-//     let entity = trigger.entity;
-//     let Ok((grid_imprint, grid_coords)) = buildings.get(entity) else { return; };
-//     obstacle_grid.deprint_all(*grid_coords, *grid_imprint);
-// }

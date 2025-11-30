@@ -1,7 +1,6 @@
 use bevy::color::palettes::css::GRAY;
 
-use lib_grid::grids::emissions::EmissionsEnergyRecalculateAll;
-use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid};
+use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid, ReservedCoords};
 
 use crate::prelude::*;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -23,7 +22,7 @@ impl Plugin for WallPlugin {
 pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
 #[derive(Component)]
-#[require(MapBound)]
+#[require(MapBound, ObstacleGridObject = ObstacleGridObject::Wall, EmissionsGridSpreadAffector)]
 pub struct Wall;
 
 #[derive(Component, SSS)]
@@ -83,11 +82,10 @@ impl BuilderWall {
     pub fn new_for_saving(grid_position: GridCoords, entity: Entity) -> Self { 
         Self { grid_position, entity: Some(entity) }
     }
-    
+
     fn on_add(
         trigger: On<Add, BuilderWall>,
         mut commands: Commands,
-        mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
         builders: Query<&BuilderWall>,
     ) {
         let entity = trigger.entity;
@@ -106,7 +104,6 @@ impl BuilderWall {
                 WALL_GRID_IMPRINT,
                 Wall,
             ));
-        emissions_energy_recalculate_all.0 = true;
     }
 
     fn on_game_save(
@@ -122,26 +119,10 @@ impl BuilderWall {
     }
 }
 
-pub fn remove_wall(
-    commands: &mut Commands,
-    emissions_energy_recalculate_all: &mut ResMut<EmissionsEnergyRecalculateAll>,
-    obstacle_grid: &mut ResMut<ObstacleGrid>,
-    grid_position: GridCoords,
-) {
-    let entity = match &obstacle_grid[grid_position].structure {
-        GridStructureType::Wall(entity) => *entity,
-        _ => panic!("Cannot remove a wall on a non-wall"),
-    };
-    commands.entity(entity).despawn();
-    obstacle_grid.deprint_structure(grid_position, WALL_GRID_IMPRINT);
-    emissions_energy_recalculate_all.0 = true;
-}
-
-
 pub fn onclick_spawn_system(
     mut commands: Commands,
-    mut emissions_energy_recalculate_all: ResMut<EmissionsEnergyRecalculateAll>,
-    mut obstacle_grid: ResMut<ObstacleGrid>,
+    mut reserved_coords: ResMut<ReservedCoords>,
+    obstacle_grid: Res<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Single<&GridObjectPlacer>,
@@ -151,14 +132,14 @@ pub fn onclick_spawn_system(
     if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {
         // Place a wall
-        if obstacle_grid[mouse_coords].is_empty() {
-            let wall_entity = commands.spawn(BuilderWall::new(mouse_coords)).id();
-            obstacle_grid.imprint_structure(mouse_coords, WALL_GRID_IMPRINT, GridStructureType::Wall(wall_entity));
+        if obstacle_grid[mouse_coords].is_empty() && !reserved_coords.any_reserved(mouse_coords, WALL_GRID_IMPRINT) {
+            commands.spawn(BuilderWall::new(mouse_coords));
+            reserved_coords.reserve(mouse_coords, WALL_GRID_IMPRINT);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a wall
-        if obstacle_grid[mouse_coords].has_wall() {
-            remove_wall(&mut commands, &mut emissions_energy_recalculate_all, &mut obstacle_grid, mouse_coords);
+        if let GridStructureType::Wall(entity) = obstacle_grid[mouse_coords].structure {
+            commands.entity(entity).despawn();
         }
     }
 }

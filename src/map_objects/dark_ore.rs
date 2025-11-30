@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use lib_grid::grids::obstacles::ObstacleGrid;
+use lib_grid::grids::obstacles::{ObstacleGrid, ReservedCoords};
 
 use crate::prelude::*;
 use crate::ui::grid_object_placer::GridObjectPlacer;
@@ -13,7 +13,6 @@ impl Plugin for DarkOrePlugin {
                 onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 DarkOre::remove_empty,
             ))
-            .add_observer(DarkOre::on_remove)
             .add_observer(BuilderDarkOre::on_add)
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_add)
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_remove_dark_ore)
@@ -25,20 +24,11 @@ pub const DARK_ORE_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1
 pub const DARK_ORE_BASE_IMAGES: [&str; 2] = ["map_objects/dark_ore_1.png", "map_objects/dark_ore_2.png"];
 
 #[derive(Component)]
-#[require(MapBound)]
+#[require(MapBound, ObstacleGridObject = ObstacleGridObject::DarkOre)]
 pub struct DarkOre {
     pub amount: i32,
 }
 impl DarkOre {
-    fn on_remove(
-        trigger: On<Remove, DarkOre>,
-        mut obstacle_grid: ResMut<ObstacleGrid>,
-        dark_ores_query: Query<&GridCoords, With<DarkOre>>,
-    ) {
-        let entity = trigger.entity;
-        let Ok(dark_ore_grid_coords) = dark_ores_query.get(entity) else { return; };
-        obstacle_grid.imprint_custom(*dark_ore_grid_coords, DARK_ORE_GRID_IMPRINT, |field| field.dark_ore = None);
-    }
     fn remove_empty(
         mut commands: Commands,
         dark_ores: Query<(Entity, &DarkOre), Changed<DarkOre>>,
@@ -94,7 +84,8 @@ impl BuilderDarkOre {
 
 fn onclick_spawn_system(
     mut commands: Commands,
-    mut obstacle_grid: ResMut<ObstacleGrid>,
+    mut reserved_coords: ResMut<ReservedCoords>,
+    obstacle_grid: Res<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Single<&GridObjectPlacer>,
@@ -104,9 +95,9 @@ fn onclick_spawn_system(
     if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacle_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {
         // Place a dark_ore
-        if obstacle_grid.query_imprint_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| !field.has_dark_ore()) {
-            let dark_ore_entity = commands.spawn(BuilderDarkOre::new(mouse_coords)).id();
-            obstacle_grid.imprint_custom(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| field.dark_ore = Some(dark_ore_entity));
+        if obstacle_grid.query_imprint_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| !field.has_dark_ore()) && !reserved_coords.any_reserved(mouse_coords, DARK_ORE_GRID_IMPRINT) {
+            commands.spawn(BuilderDarkOre::new(mouse_coords));
+            reserved_coords.reserve(mouse_coords, DARK_ORE_GRID_IMPRINT);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a dark_ore

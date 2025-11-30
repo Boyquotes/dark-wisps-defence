@@ -166,3 +166,16 @@ impl AutoGridTransformSync {
         transform.translation.y = world_centered.y;
     }
 }
+
+/// Component auto-managing given entity presence in ObstacleGrid
+#[derive(Component)]
+pub enum ObstacleGridObject {
+    Building,
+    Wall,
+    QuantumField,
+    DarkOre,
+}
+
+/// Adding or removing entities with this component causes full recalculation of the emission grid
+#[derive(Component, Default)]
+pub struct EmissionsGridSpreadAffector;

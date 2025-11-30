@@ -2,7 +2,7 @@ use std::fs::File;
 
 use lib_grid::grids::emissions::EmissionsGrid;
 use lib_grid::grids::energy_supply::EnergySupplyGrid;
-use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid};
+use lib_grid::grids::obstacles::ObstacleGrid;
 use lib_grid::grids::tower_ranges::TowerRangesGrid;
 use lib_grid::grids::wisps::WispsGrid;
 
@@ -16,9 +16,9 @@ use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_emitter::BuilderTowerEmitter;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
 use crate::objectives::ObjectiveDetails;
-use crate::map_objects::dark_ore::{BuilderDarkOre, DARK_ORE_GRID_IMPRINT};
+use crate::map_objects::dark_ore::BuilderDarkOre;
 use crate::map_objects::quantum_field::BuilderQuantumField;
-use crate::map_objects::walls::{BuilderWall, WALL_GRID_IMPRINT};
+use crate::map_objects::walls::BuilderWall;
 use crate::wisps::summoning::Summoning;
 
 pub struct MapLoaderPlugin;
@@ -139,11 +139,9 @@ impl ApplyMapMapLoadingTask {
         mut commands: Commands,
         mut map_info: ResMut<MapInfo>,
         task: Query<Entity, With<ApplyMapMapLoadingTask>>,
-        mut obstacles_grid: ResMut<ObstacleGrid>,
-        almanach: Res<Almanach>,
     ) {
         let Ok(task_entity) = task.single() else { return; };
-        map_info.map_file.apply(&mut commands, &mut obstacles_grid, &almanach);
+        map_info.map_file.apply(&mut commands);
         commands.entity(task_entity).despawn();
     }
 }
@@ -169,29 +167,24 @@ impl MapFile {
     fn apply(
         &mut self,
         commands: &mut Commands,
-        obstacle_grid: &mut ObstacleGrid,
-        almanach: &Almanach,
     ) {
         self.walls.iter().for_each(|wall_coords| {
-            let wall_entity = commands.spawn(BuilderWall::new(*wall_coords)).id();
-            obstacle_grid.imprint_structure(*wall_coords, WALL_GRID_IMPRINT, GridStructureType::Wall(wall_entity));
+            commands.spawn(BuilderWall::new(*wall_coords));
         });
-        let _dark_ores = self.dark_ores.iter().map(|dark_ore_coords| {
-            let dark_ore_entity = commands.spawn(BuilderDarkOre::new(*dark_ore_coords)).id();
-            obstacle_grid.imprint_custom(*dark_ore_coords, DARK_ORE_GRID_IMPRINT, |field| field.dark_ore = Some(dark_ore_entity));
-            (*dark_ore_coords, dark_ore_entity)
-        }).collect::<HashMap<_,_>>();
+        self.dark_ores.iter().for_each(|dark_ore_coords| {
+            commands.spawn(BuilderDarkOre::new(*dark_ore_coords));
+        });
         self.buildings.iter().for_each(|building| {
-            let building_entity = match building.building_type {
-                BuildingType::MainBase => commands.spawn(BuilderMainBase::new(building.coords)).id(),
-                BuildingType::EnergyRelay => commands.spawn(BuilderEnergyRelay::new(building.coords)).id(),
-                BuildingType::ExplorationCenter => commands.spawn(BuilderExplorationCenter::new(building.coords)).id(),
+            match building.building_type {
+                BuildingType::MainBase => commands.spawn(BuilderMainBase::new(building.coords)),
+                BuildingType::EnergyRelay => commands.spawn(BuilderEnergyRelay::new(building.coords)),
+                BuildingType::ExplorationCenter => commands.spawn(BuilderExplorationCenter::new(building.coords)),
                 BuildingType::Tower(tower_type) => {
                     match tower_type {
-                        TowerType::Blaster => commands.spawn(BuilderTowerBlaster::new(building.coords)).id(),
-                        TowerType::Cannon => commands.spawn(BuilderTowerCannon::new(building.coords)).id(),
-                        TowerType::RocketLauncher => commands.spawn(BuilderTowerRocketLauncher::new(building.coords)).id(),
-                        TowerType::Emitter => commands.spawn(BuilderTowerEmitter::new(building.coords)).id(),
+                        TowerType::Blaster => commands.spawn(BuilderTowerBlaster::new(building.coords)),
+                        TowerType::Cannon => commands.spawn(BuilderTowerCannon::new(building.coords)),
+                        TowerType::RocketLauncher => commands.spawn(BuilderTowerRocketLauncher::new(building.coords)),
+                        TowerType::Emitter => commands.spawn(BuilderTowerEmitter::new(building.coords)),
                     }
                 }
                 BuildingType::MiningComplex => {
@@ -202,12 +195,10 @@ impl MapFile {
                     // entity
                 }
             };
-            obstacle_grid.imprint_structure(building.coords, almanach.get_building_info(building.building_type).grid_imprint, GridStructureType::Building(building_entity, building.building_type));
         });
         self.quantum_fields.iter().for_each(|quantum_field| {
             let grid_imprint = GridImprint::Rectangle { width: quantum_field.size, height: quantum_field.size };
-            let quantum_field_entity = commands.spawn(BuilderQuantumField::new(quantum_field.coords, grid_imprint)).id();
-            obstacle_grid.imprint_custom(quantum_field.coords, grid_imprint, |field| field.quantum_field = Some(quantum_field_entity));
+            commands.spawn(BuilderQuantumField::new(quantum_field.coords, grid_imprint));
         });
         self.objectives.iter().cloned().for_each(|objective_details| {
             commands.spawn(objective_details);

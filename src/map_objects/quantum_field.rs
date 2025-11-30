@@ -1,6 +1,6 @@
 use bevy::color::palettes::css::{AQUA, BLUE, INDIGO};
 
-use lib_grid::grids::obstacles::ObstacleGrid;
+use lib_grid::grids::obstacles::{ObstacleGrid, ReservedCoords};
 use lib_ui::prelude::*;
 
 use crate::prelude::*;
@@ -74,7 +74,7 @@ impl Default for QuantumFieldImprintSelector {
 struct Solved;
 
 #[derive(Component)]
-#[require(MapBound)]
+#[require(MapBound, ObstacleGridObject = ObstacleGridObject::QuantumField)]
 pub struct QuantumField {
     pub layers: Vec<QuantumFieldLayer>,
     pub current_layer: usize,
@@ -170,11 +170,11 @@ impl BuilderQuantumField {
 
 fn onclick_spawn_system(
     mut commands: Commands,
-    mut obstacles_grid: ResMut<ObstacleGrid>,
+    mut reserved_coords: ResMut<ReservedCoords>,
+    obstacles_grid: Res<ObstacleGrid>,
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_info: Res<MouseInfo>,
     grid_object_placer: Single<&GridObjectPlacer>,
-    quantum_fields_query: Query<&GridCoords, With<QuantumField>>,
 ) {
     let GridObjectPlacer::QuantumField(imprint_selector) = grid_object_placer.into_inner() else { return; };
     let grid_imprint = imprint_selector.get();
@@ -182,17 +182,14 @@ fn onclick_spawn_system(
     if mouse_info.is_over_ui || !mouse_coords.is_in_bounds(obstacles_grid.bounds()) { return; }
     if mouse.pressed(MouseButton::Left) {
         // Place a quantum_field
-        if obstacles_grid.query_imprint_all(mouse_coords, grid_imprint, |field| !field.is_within_quantum_field()) {
-            let quantum_field_entity = commands.spawn(BuilderQuantumField::new(mouse_coords, grid_imprint)).id();
-            obstacles_grid.imprint_custom(mouse_coords, grid_imprint, |field| field.quantum_field = Some(quantum_field_entity));
+        if obstacles_grid.query_imprint_all(mouse_coords, grid_imprint, |field| !field.is_within_quantum_field()) && !reserved_coords.any_reserved(mouse_coords, grid_imprint) {
+            commands.spawn(BuilderQuantumField::new(mouse_coords, grid_imprint));
+            reserved_coords.reserve(mouse_coords, grid_imprint);
         }
     } else if mouse.pressed(MouseButton::Right) {
         // Remove a quantum_field
         if let Some(entity) = obstacles_grid[mouse_coords].quantum_field {
-            if let Ok(quantum_field_coords) = quantum_fields_query.get(entity) {
-                commands.entity(entity).despawn();
-                obstacles_grid.imprint_custom(*quantum_field_coords, grid_imprint, |field| field.dark_ore = None);
-            }
+            commands.entity(entity).despawn();
         }
     }
 }

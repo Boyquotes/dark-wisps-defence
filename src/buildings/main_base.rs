@@ -43,19 +43,13 @@ impl Saveable for BuilderMainBase {
 }
 impl Loadable for BuilderMainBase {
     fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
-        let mut stmt = ctx.conn.prepare(
-            "SELECT mb.id, gp.x, gp.y, eh.current FROM main_bases mb
-             JOIN grid_coords gp ON mb.id = gp.entity_id
-             JOIN healths eh ON mb.id = eh.entity_id"
-        )?;
+        let mut stmt = ctx.conn.prepare("SELECT id FROM main_bases")?;
         let mut rows = stmt.query([])?;
         
-        if let Some(row) = rows.next()? {
-            let old_id: u64 = row.get(0)?;
-            let x: i32 = row.get(1)?;
-            let y: i32 = row.get(2)?;
-            let health: f32 = row.get(3)?;
-            let grid_position = GridCoords { x, y };
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let grid_position = ctx.conn.get_grid_coords(old_id)?;
+            let health = ctx.conn.get_health(old_id)?;
             
             if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
                 let save_data = MainBaseSaveData { entity: new_entity, health };

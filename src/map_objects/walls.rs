@@ -48,27 +48,23 @@ impl Loadable for BuilderWall {
         let offset = ctx.offset;
 
         let mut stmt = ctx.conn.prepare_cached(
-            "SELECT w.id, gp.x, gp.y FROM walls w 
-             JOIN grid_coords gp ON w.id = gp.entity_id 
-             LIMIT ?1 OFFSET ?2"
+            "SELECT id FROM walls LIMIT ?1 OFFSET ?2"
         )?;
 
-        let rows = stmt.query_map([LIMIT, offset], |row| {
-            let entity_index: u64 = row.get(0)?;
-            let x: i32 = row.get(1)?;
-            let y: i32 = row.get(2)?;
-            Ok((entity_index, GridCoords { x, y }))
-        })?;
+        let mut rows = stmt.query([LIMIT, offset])?;
 
         let mut batch = Vec::new();
-        for row in rows {
-            let (old_id, grid_position) = row?;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let grid_position = ctx.conn.get_grid_coords(old_id)?;
+            
             if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
                 batch.push((new_entity, BuilderWall::new_for_saving(grid_position, new_entity)));
             } else {
                 eprintln!("Warning: Wall with old ID {} has no corresponding new entity", old_id);
             }
         }
+        
         let batch_size = batch.len();
         ctx.commands.insert_batch(batch);
         

@@ -65,7 +65,7 @@ impl LoadGameSignal {
 
 #[derive(Resource, Default)]
 pub struct DbEntityMap {
-    pub map: HashMap<u64, Entity>,
+    pub map: HashMap<i64, Entity>,
 }
 
 pub enum LoadResult {
@@ -89,7 +89,7 @@ pub struct LoadContext<'a, 'w, 's> {
     pub offset: usize,
 }
 impl<'a, 'w, 's> LoadContext<'a, 'w, 's> {
-    pub fn get_new_entity_for_old(&self, old_id: u64) -> Option<Entity> {
+    pub fn get_new_entity_for_old(&self, old_id: i64) -> Option<Entity> {
         self.entity_map.map.get(&old_id).copied()
     }
 }
@@ -118,7 +118,7 @@ impl Loadable for PopulateDbEntityMapTask {
     fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
         let mut map = HashMap::new();
         let mut stmt = ctx.conn.prepare("SELECT id FROM entities")?;
-        let rows = stmt.query_map([], |row| row.get::<_, u64>(0))?;
+        let rows = stmt.query_map([], |row| row.get::<_, i64>(0))?;
         
         let mut count = 0;
         for row in rows {

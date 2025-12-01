@@ -16,6 +16,9 @@ pub trait GameDbHelpers {
     fn save_grid_coords(&self, entity_id: i64, pos: GridCoords) -> rusqlite::Result<usize>;
     fn save_health(&self, entity_id: i64, current: f32) -> rusqlite::Result<usize>;
     fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize>;
+    
+    fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords>;
+    fn get_health(&self, entity_id: i64) -> rusqlite::Result<f32>;
 }
 impl GameDbHelpers for rusqlite::Connection {
     fn register_entity(&self, entity_id: i64) -> rusqlite::Result<usize> {
@@ -44,6 +47,20 @@ impl GameDbHelpers for rusqlite::Connection {
         self.register_entity(entity_id)?;
         let query = format!("INSERT OR REPLACE INTO {} (id) VALUES (?1)", table_name);
         self.execute(&query, [entity_id])
+    }
+    
+    fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords> {
+        let mut stmt = self.prepare("SELECT x, y FROM grid_coords WHERE entity_id = ?1")?;
+        let mut rows = stmt.query([entity_id])?;
+        let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
+        Ok(GridCoords { x: row.get(0)?, y: row.get(1)? })
+    }
+    
+    fn get_health(&self, entity_id: i64) -> rusqlite::Result<f32> {
+        let mut stmt = self.prepare("SELECT current FROM healths WHERE entity_id = ?1")?;
+        let mut rows = stmt.query([entity_id])?;
+        let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
+        Ok(row.get(0)?)
     }
 }
 

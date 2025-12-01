@@ -14,6 +14,7 @@ pub mod db_migrations {
 pub trait GameDbHelpers {
     fn register_entity(&self, entity_id: i64) -> rusqlite::Result<usize>;
     fn save_grid_coords(&self, entity_id: i64, pos: GridCoords) -> rusqlite::Result<usize>;
+    fn save_health(&self, entity_id: i64, current: f32) -> rusqlite::Result<usize>;
     fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize>;
 }
 impl GameDbHelpers for rusqlite::Connection {
@@ -28,6 +29,13 @@ impl GameDbHelpers for rusqlite::Connection {
         self.execute(
             "INSERT INTO grid_coords (entity_id, x, y) VALUES (?1, ?2, ?3)",
             (entity_id, pos.x, pos.y),
+        )
+    }
+
+    fn save_health(&self, entity_id: i64, current: f32) -> rusqlite::Result<usize> {
+        self.execute(
+            "INSERT OR REPLACE INTO healths (entity_id, current) VALUES (?1, ?2)",
+            (entity_id, current),
         )
     }
 

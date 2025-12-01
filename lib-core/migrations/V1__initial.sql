@@ -25,3 +25,9 @@ CREATE TABLE main_bases (
     id INTEGER PRIMARY KEY,
     FOREIGN KEY(id) REFERENCES entities(id)
 );
+
+CREATE TABLE healths (
+    entity_id INTEGER PRIMARY KEY,
+    current REAL NOT NULL,
+    FOREIGN KEY(entity_id) REFERENCES entities(id)
+);

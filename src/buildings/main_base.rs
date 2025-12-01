@@ -18,29 +18,35 @@ impl Plugin for MainBasePlugin {
 pub const MAIN_BASE_BASE_IMAGE: &str = "buildings/main_base.png";
 
 
+
+#[derive(Clone, Copy, Debug)]
+pub struct MainBaseSaveData {
+    pub entity: Entity,
+    pub health: f32,
+}
+
 #[derive(Component, SSS)]
 pub struct BuilderMainBase {
     pub grid_position: GridCoords,
-    pub entity: Option<Entity>,
+    pub save_data: Option<MainBaseSaveData>,
 }
 impl Saveable for BuilderMainBase {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
-        let entity_index = self.entity.expect("BuilderMainBase for saving purpose must have an entity").index() as i64;
+        let save_data = self.save_data.expect("BuilderMainBase for saving purpose must have save_data");
+        let entity_index = save_data.entity.index() as i64;
 
-        // 1. Insert into main_base table (which stores the entity info)
         tx.save_marker("main_bases", entity_index)?;
-
-        // 2. Insert into grid_positions table
         tx.save_grid_coords(entity_index, self.grid_position)?;
+        tx.save_health(entity_index, save_data.health)?;
         Ok(())
     }
 }
 impl Loadable for BuilderMainBase {
     fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
-        // Singleton load - but we query by ID from the table now
         let mut stmt = ctx.conn.prepare(
-            "SELECT mb.id, gp.x, gp.y FROM main_bases mb
-             JOIN grid_coords gp ON mb.id = gp.entity_id"
+            "SELECT mb.id, gp.x, gp.y, eh.current FROM main_bases mb
+             JOIN grid_coords gp ON mb.id = gp.entity_id
+             JOIN healths eh ON mb.id = eh.entity_id"
         )?;
         let mut rows = stmt.query([])?;
         
@@ -48,10 +54,12 @@ impl Loadable for BuilderMainBase {
             let old_id: u64 = row.get(0)?;
             let x: i32 = row.get(1)?;
             let y: i32 = row.get(2)?;
+            let health: f32 = row.get(3)?;
             let grid_position = GridCoords { x, y };
             
             if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
-                ctx.commands.entity(new_entity).insert(BuilderMainBase::new_for_saving(grid_position, new_entity));
+                let save_data = MainBaseSaveData { entity: new_entity, health };
+                ctx.commands.entity(new_entity).insert(BuilderMainBase::new_for_saving(grid_position, save_data));
             } else {
                 eprintln!("Warning: MainBase with old ID {} has no corresponding new entity", old_id);
             }
@@ -62,18 +70,22 @@ impl Loadable for BuilderMainBase {
 }
 impl BuilderMainBase {
     pub fn new(grid_position: GridCoords) -> Self {
-        Self { grid_position, entity: None }
+        Self { grid_position, save_data: None }
     }
-    pub fn new_for_saving(grid_position: GridCoords, entity: Entity) -> Self {
-        Self { grid_position, entity: Some(entity) }
+    pub fn new_for_saving(grid_position: GridCoords, save_data: MainBaseSaveData) -> Self {
+        Self { grid_position, save_data: Some(save_data) }
     }
 
     fn on_game_save(
         mut commands: Commands,
-        main_base: Query<(Entity, &GridCoords), With<MainBase>>,
+        main_base: Query<(Entity, &GridCoords, &Health), With<MainBase>>,
     ) {
-        if let Ok((entity, coords)) = main_base.single() {
-            commands.queue(SaveableBatchCommand::from_single(BuilderMainBase::new_for_saving(*coords, entity)));
+        if let Ok((entity, coords, health)) = main_base.single() {
+            let save_data = MainBaseSaveData {
+                entity,
+                health: health.get_current(),
+            };
+            commands.queue(SaveableBatchCommand::from_single(BuilderMainBase::new_for_saving(*coords, save_data)));
         }
     }
 
@@ -89,7 +101,17 @@ impl BuilderMainBase {
 
         let building_info = almanach.get_building_info(BuildingType::MainBase);
         let grid_imprint = building_info.grid_imprint;
-        commands.entity(entity)
+        
+        let mut entity_commands = commands.entity(entity);
+        if let Some(save_data) = &builder.save_data {
+            // Save data
+            entity_commands
+                .insert((
+                    Health::new(save_data.health),
+                ));
+        }
+        // Common
+        entity_commands
             .remove::<BuilderMainBase>()
             .insert((
                 Sprite {

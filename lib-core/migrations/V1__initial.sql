@@ -36,6 +36,11 @@ CREATE TABLE energy_relays (
     FOREIGN KEY(id) REFERENCES entities(id)
 );
 
+CREATE TABLE mining_complexes (
+    id INTEGER PRIMARY KEY,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);
+
 CREATE TABLE healths (
     entity_id INTEGER PRIMARY KEY,
     current REAL NOT NULL,

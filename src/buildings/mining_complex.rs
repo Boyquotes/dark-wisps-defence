@@ -12,7 +12,9 @@ impl Plugin for MiningComplexPlugin {
             .add_systems(Update, (
                 mine_ore_system.run_if(in_state(GameState::Running)),
             ))
-            .add_observer(BuilderMiningComplex::on_add);
+            .add_observer(BuilderMiningComplex::on_add)
+            .register_db_loader::<BuilderMiningComplex>(MapLoadingStage2::SpawnMapElements)
+            .register_db_saver(BuilderMiningComplex::on_game_save);
     }
 }
 
@@ -22,13 +24,73 @@ pub const MINING_COMPLEX_BASE_IMAGE: &str = "buildings/mining_complex.png";
 #[derive(Component)]
 pub struct MiningComplexDeliveryTimer(pub Timer);
 
-#[derive(Component)]
+#[derive(Clone, Copy, Debug)]
+pub struct MiningComplexSaveData {
+    pub entity: Entity,
+    pub health: f32,
+}
+
+#[derive(Component, SSS)]
 pub struct BuilderMiningComplex {
-    grid_position: GridCoords,
+    pub grid_position: GridCoords,
+    pub save_data: Option<MiningComplexSaveData>,
+}
+impl Saveable for BuilderMiningComplex {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let save_data = self.save_data.expect("BuilderMiningComplex for saving purpose must have save_data");
+        let entity_index = save_data.entity.index() as i64;
+
+        tx.save_marker("mining_complexes", entity_index)?;
+        tx.save_grid_coords(entity_index, self.grid_position)?;
+        tx.save_health(entity_index, save_data.health)?;
+        Ok(())
+    }
+}
+impl Loadable for BuilderMiningComplex {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stmt = ctx.conn.prepare("SELECT id FROM mining_complexes LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
+        
+        let mut count = 0;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let grid_position = ctx.conn.get_grid_coords(old_id)?;
+            let health = ctx.conn.get_health(old_id)?;
+            
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                let save_data = MiningComplexSaveData { entity: new_entity, health };
+                ctx.commands.entity(new_entity).insert(BuilderMiningComplex::new_for_saving(grid_position, save_data));
+            } else {
+                eprintln!("Warning: MiningComplex with old ID {} has no corresponding new entity", old_id);
+            }
+            count += 1;
+        }
+
+        Ok(count.into())
+    }
 }
 impl BuilderMiningComplex {
     pub fn new(grid_position: GridCoords) -> Self {
-        Self { grid_position }
+        Self { grid_position, save_data: None }
+    }
+    pub fn new_for_saving(grid_position: GridCoords, save_data: MiningComplexSaveData) -> Self {
+        Self { grid_position, save_data: Some(save_data) }
+    }
+
+    fn on_game_save(
+        mut commands: Commands,
+        mining_complexes: Query<(Entity, &GridCoords, &Health), With<MiningComplex>>,
+    ) {
+        if mining_complexes.is_empty() { return; }
+        println!("Creating batch of BuilderMiningComplex for saving. {} items", mining_complexes.iter().count());
+        let batch = mining_complexes.iter().map(|(entity, coords, health)| {
+            let save_data = MiningComplexSaveData {
+                entity,
+                health: health.get_current(),
+            };
+            BuilderMiningComplex::new_for_saving(*coords, save_data)
+        }).collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
     }
 
     pub fn on_add(
@@ -43,7 +105,14 @@ impl BuilderMiningComplex {
         
         let building_info = almanach.get_building_info(BuildingType::MiningComplex);
         let grid_imprint = building_info.grid_imprint;
-        commands.entity(entity)
+        
+        let mut entity_commands = commands.entity(entity);
+        if let Some(save_data) = &builder.save_data {
+            // Save data
+            entity_commands.insert(Health::new(save_data.health));
+        }
+
+        entity_commands
             .remove::<BuilderMiningComplex>()
             .insert((
                 MiningComplex,

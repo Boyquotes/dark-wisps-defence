@@ -9,19 +9,81 @@ pub struct EnergyRelayPlugin;
 impl Plugin for EnergyRelayPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_observer(BuilderEnergyRelay::on_add);
+            .add_observer(BuilderEnergyRelay::on_add)
+            .register_db_loader::<BuilderEnergyRelay>(MapLoadingStage2::SpawnMapElements)
+            .register_db_saver(BuilderEnergyRelay::on_game_save);
     }
 }
 
 pub const ENERGY_RELAY_BASE_IMAGE: &str = "buildings/energy_relay.png";
 
-#[derive(Component)]
+#[derive(Clone, Copy, Debug)]
+pub struct EnergyRelaySaveData {
+    pub entity: Entity,
+    pub health: f32,
+}
+
+#[derive(Component, SSS)]
 pub struct BuilderEnergyRelay {
-    grid_position: GridCoords,
+    pub grid_position: GridCoords,
+    pub save_data: Option<EnergyRelaySaveData>,
+}
+impl Saveable for BuilderEnergyRelay {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let save_data = self.save_data.expect("BuilderEnergyRelay for saving purpose must have save_data");
+        let entity_index = save_data.entity.index() as i64;
+
+        tx.save_marker("energy_relays", entity_index)?;
+        tx.save_grid_coords(entity_index, self.grid_position)?;
+        tx.save_health(entity_index, save_data.health)?;
+        Ok(())
+    }
+}
+impl Loadable for BuilderEnergyRelay {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stmt = ctx.conn.prepare("SELECT id FROM energy_relays LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
+        
+        let mut count = 0;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let grid_position = ctx.conn.get_grid_coords(old_id)?;
+            let health = ctx.conn.get_health(old_id)?;
+            
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                let save_data = EnergyRelaySaveData { entity: new_entity, health };
+                ctx.commands.entity(new_entity).insert(BuilderEnergyRelay::new_for_saving(grid_position, save_data));
+            } else {
+                eprintln!("Warning: EnergyRelay with old ID {} has no corresponding new entity", old_id);
+            }
+            count += 1;
+        }
+
+        Ok(count.into())
+    }
 }
 impl BuilderEnergyRelay {
     pub fn new(grid_position: GridCoords) -> Self {
-        Self { grid_position }
+        Self { grid_position, save_data: None }
+    }
+    pub fn new_for_saving(grid_position: GridCoords, save_data: EnergyRelaySaveData) -> Self {
+        Self { grid_position, save_data: Some(save_data) }
+    }
+
+    fn on_game_save(
+        mut commands: Commands,
+        relays: Query<(Entity, &GridCoords, &Health), With<EnergyRelay>>,
+    ) {
+        if relays.is_empty() { return; }
+        println!("Creating batch of BuilderEnergyRelay for saving. {} items", relays.iter().count());
+        let batch = relays.iter().map(|(entity, coords, health)| {
+            let save_data = EnergyRelaySaveData {
+                entity,
+                health: health.get_current(),
+            };
+            BuilderEnergyRelay::new_for_saving(*coords, save_data)
+        }).collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
     }
 
     pub fn on_add(
@@ -35,7 +97,14 @@ impl BuilderEnergyRelay {
         let Ok(builder) = builders.get(entity) else { return; };
         
         let building_info = almanach.get_building_info(BuildingType::EnergyRelay);
-        commands.entity(entity)
+        
+        let mut entity_commands = commands.entity(entity);
+        if let Some(save_data) = &builder.save_data {
+            // Save data
+            entity_commands.insert(Health::new(save_data.health));
+        }
+
+        entity_commands
             .remove::<BuilderEnergyRelay>()
             .insert((
                 EnergyRelay,

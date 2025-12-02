@@ -35,7 +35,7 @@ pub fn path_find_energy_beckon(
                 if delta_x.abs() == delta_y.abs() {
                     let adjacent_x = (coords.x + delta_x, coords.y).into();
                     let adjacent_y = (coords.x, coords.y + delta_y).into();
-                    if !obstacle_grid[adjacent_x].has_structure() || !obstacle_grid[adjacent_y].has_structure() {
+                    if obstacle_grid[adjacent_x].has_structure() || obstacle_grid[adjacent_y].has_structure() {
                         continue;
                     }
                 }

@@ -43,9 +43,10 @@ impl Saveable for BuilderMainBase {
 }
 impl Loadable for BuilderMainBase {
     fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
-        let mut stmt = ctx.conn.prepare("SELECT id FROM main_bases")?;
-        let mut rows = stmt.query([])?;
+        let mut stmt = ctx.conn.prepare("SELECT id FROM main_bases LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
         
+        let mut count = 0;
         while let Some(row) = rows.next()? {
             let old_id: i64 = row.get(0)?;
             let grid_position = ctx.conn.get_grid_coords(old_id)?;
@@ -57,9 +58,10 @@ impl Loadable for BuilderMainBase {
             } else {
                 eprintln!("Warning: MainBase with old ID {} has no corresponding new entity", old_id);
             }
+            count += 1;
         }
 
-        Ok(LoadResult::Finished)
+        Ok(count.into())
     }
 }
 impl BuilderMainBase {

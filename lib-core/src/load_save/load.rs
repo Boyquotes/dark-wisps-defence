@@ -68,6 +68,17 @@ pub struct DbEntityMap {
     pub map: HashMap<i64, Entity>,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct Pagination {
+    pub limit: usize,
+    pub offset: usize,
+}
+impl Pagination {
+    pub fn as_params(&self) -> [usize; 2] {
+        [self.limit, self.offset]
+    }
+}
+
 pub enum LoadResult {
     Progressed(usize),
     Finished,
@@ -86,7 +97,7 @@ pub struct LoadContext<'a, 'w, 's> {
     pub conn: &'a rusqlite::Connection,
     pub commands: &'a mut Commands<'w, 's>,
     pub entity_map: &'a DbEntityMap,
-    pub offset: usize,
+    pub pagination: Pagination,
 }
 impl<'a, 'w, 's> LoadContext<'a, 'w, 's> {
     pub fn get_new_entity_for_old(&self, old_id: i64) -> Option<Entity> {
@@ -110,7 +121,7 @@ impl GameLoadRegistry {
 #[derive(Component, Clone)]
 pub struct DbLoadingTask {
     pub loader: LoaderFn,
-    pub offset: usize,
+    pub pagination: Pagination,
 }
 
 struct PopulateDbEntityMapTask;
@@ -156,7 +167,7 @@ pub fn process_loading_tasks_system(
                          conn,
                          commands: &mut cmd,
                          entity_map: &entity_map,
-                         offset: task.offset,
+                         pagination: task.pagination,
                      };
                      
                      match (task.loader)(&mut ctx) {
@@ -165,7 +176,7 @@ pub fn process_loading_tasks_system(
                              break; // Task done
                          },
                          Ok(LoadResult::Progressed(count)) => {
-                             task.offset += count;
+                             task.pagination.offset += count;
                              // Continue loop to process more if time permits
                          },
                          Err(e) => {
@@ -204,7 +215,7 @@ fn spawn_loading_tasks(
         for loader in loaders {
             commands.spawn(DbLoadingTask {
                 loader: *loader,
-                offset: 0,
+                pagination: Pagination { limit: 100, offset: 0 },
             });
         }
     }

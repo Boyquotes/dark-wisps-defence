@@ -44,14 +44,9 @@ impl Saveable for BuilderWall {
 }
 impl Loadable for BuilderWall {
     fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
-        const LIMIT: usize = 100;
-        let offset = ctx.offset;
+        let mut stmt = ctx.conn.prepare_cached("SELECT id FROM walls LIMIT ?1 OFFSET ?2")?;
 
-        let mut stmt = ctx.conn.prepare_cached(
-            "SELECT id FROM walls LIMIT ?1 OFFSET ?2"
-        )?;
-
-        let mut rows = stmt.query([LIMIT, offset])?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
 
         let mut batch = Vec::new();
         while let Some(row) = rows.next()? {

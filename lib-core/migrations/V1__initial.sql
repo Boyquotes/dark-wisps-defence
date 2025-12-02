@@ -41,6 +41,12 @@ CREATE TABLE mining_complexes (
     FOREIGN KEY(id) REFERENCES entities(id)
 );
 
+CREATE TABLE dark_ores (
+    id INTEGER PRIMARY KEY,
+    amount INTEGER NOT NULL,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);
+
 CREATE TABLE healths (
     entity_id INTEGER PRIMARY KEY,
     current REAL NOT NULL,

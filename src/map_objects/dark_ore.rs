@@ -16,6 +16,8 @@ impl Plugin for DarkOrePlugin {
             .add_observer(BuilderDarkOre::on_add)
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_add)
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_remove_dark_ore)
+            .register_db_loader::<BuilderDarkOre>(MapLoadingStage2::SpawnMapElements)
+            .register_db_saver(BuilderDarkOre::on_game_save)
             ;
     }
 }
@@ -42,13 +44,76 @@ impl DarkOre {
 
 }
 
-#[derive(Component)]
+#[derive(Clone, Copy, Debug)]
+pub struct DarkOreSaveData {
+    pub entity: Entity,
+}
+
+#[derive(Component, SSS)]
 pub struct BuilderDarkOre {
     pub grid_position: GridCoords,
+    pub amount: u32,
+    pub save_data: Option<DarkOreSaveData>,
+}
+impl Saveable for BuilderDarkOre {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let save_data = self.save_data.expect("BuilderDarkOre for saving purpose must have save_data");
+        let entity_index = save_data.entity.index() as i64;
+
+        // 1. Insert into dark_ores table
+        tx.register_entity(entity_index)?;
+        tx.execute(
+            "INSERT OR REPLACE INTO dark_ores (id, amount) VALUES (?1, ?2)",
+            (entity_index, self.amount),
+        )?;
+
+        // 2. Insert into grid_positions table
+        tx.save_grid_coords(entity_index, self.grid_position)?;
+        Ok(())
+    }
+}
+impl Loadable for BuilderDarkOre {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stmt = ctx.conn.prepare("SELECT id, amount FROM dark_ores LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
+        
+        let mut count = 0;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let amount: u32 = row.get(1)?;
+            let grid_position = ctx.conn.get_grid_coords(old_id)?;
+            
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                let save_data = DarkOreSaveData { entity: new_entity };
+                ctx.commands.entity(new_entity).insert(BuilderDarkOre::new_for_saving(grid_position, amount, save_data));
+            } else {
+                eprintln!("Warning: DarkOre with old ID {} has no corresponding new entity", old_id);
+            }
+            count += 1;
+        }
+
+        Ok(count.into())
+    }
 }
 impl BuilderDarkOre {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self { grid_position }
+    pub fn new(grid_position: GridCoords, amount: u32) -> Self {
+        Self { grid_position, amount, save_data: None }
+    }
+    pub fn new_for_saving(grid_position: GridCoords, amount: u32, save_data: DarkOreSaveData) -> Self {
+        Self { grid_position, amount, save_data: Some(save_data) }
+    }
+
+    fn on_game_save(
+        mut commands: Commands,
+        dark_ores: Query<(Entity, &GridCoords, &DarkOre)>,
+    ) {
+        if dark_ores.is_empty() { return; }
+        println!("Creating batch of BuilderDarkOre for saving. {} items", dark_ores.iter().count());
+        let batch = dark_ores.iter().map(|(entity, coords, dark_ore)| {
+            let save_data = DarkOreSaveData { entity };
+            BuilderDarkOre::new_for_saving(*coords, dark_ore.amount as u32, save_data)
+        }).collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
     }
     
     fn on_add(
@@ -76,7 +141,7 @@ impl BuilderDarkOre {
                     ..default()
                 },
                 builder.grid_position,
-                DarkOre { amount: 1000 },
+                DarkOre { amount: builder.amount as i32 },
                 DARK_ORE_GRID_IMPRINT,
             ));
     }
@@ -96,7 +161,7 @@ fn onclick_spawn_system(
     if mouse.pressed(MouseButton::Left) {
         // Place a dark_ore
         if obstacle_grid.query_imprint_all(mouse_coords, DARK_ORE_GRID_IMPRINT, |field| !field.has_dark_ore()) && !reserved_coords.any_reserved(mouse_coords, DARK_ORE_GRID_IMPRINT) {
-            commands.spawn(BuilderDarkOre::new(mouse_coords));
+            commands.spawn(BuilderDarkOre::new(mouse_coords, 1000));
             reserved_coords.reserve(mouse_coords, DARK_ORE_GRID_IMPRINT);
         }
     } else if mouse.pressed(MouseButton::Right) {

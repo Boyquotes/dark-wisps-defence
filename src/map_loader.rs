@@ -172,7 +172,7 @@ impl MapFile {
             commands.spawn(BuilderWall::new(*wall_coords));
         });
         self.dark_ores.iter().for_each(|dark_ore_coords| {
-            commands.spawn(BuilderDarkOre::new(*dark_ore_coords));
+            commands.spawn(BuilderDarkOre::new(*dark_ore_coords, 1000));
         });
         self.buildings.iter().for_each(|building| {
             match building.building_type {

@@ -16,6 +16,7 @@ impl Plugin for DarkOrePlugin {
             .add_observer(BuilderDarkOre::on_add)
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_add)
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_remove_dark_ore)
+            .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_add_dark_ore)
             .register_db_loader::<BuilderDarkOre>(MapLoadingStage2::SpawnMapElements)
             .register_db_saver(BuilderDarkOre::on_game_save)
             ;
@@ -236,6 +237,28 @@ pub mod dark_ore_area_scanner {
                 }
                 if dark_ore_in_range.0.is_empty() {
                     commands.entity(scanner_entity).insert(NoOreInScannerRange).remove::<HasOreInScannerRange>();
+                }
+            }
+        }
+
+        pub fn on_add_dark_ore(
+            trigger: On<Add, DarkOre>,
+            mut commands: Commands,
+            dark_ores: Query<&GridCoords, With<DarkOre>>,
+            mut scanners: Query<(Entity, &DarkOreAreaScanner, &mut DarkOreInRange, &GridCoords)>,
+        ) {
+            let entity = trigger.entity;
+            let Ok(dark_ore_grid_coords) = dark_ores.get(entity) else { return; };
+            
+            for (scanner_entity, scanner, mut dark_ore_in_range, scanner_grid_coords) in scanners.iter_mut() {
+                if scanner.range_imprint.covers_coords(*scanner_grid_coords, *dark_ore_grid_coords) {
+                    if !dark_ore_in_range.0.contains(&entity) {
+                        let was_empty = dark_ore_in_range.0.is_empty();
+                        dark_ore_in_range.0.push(entity);
+                        if was_empty {
+                            commands.entity(scanner_entity).insert(HasOreInScannerRange).remove::<NoOreInScannerRange>();
+                        }
+                    }
                 }
             }
         }

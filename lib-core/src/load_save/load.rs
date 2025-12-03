@@ -49,7 +49,7 @@ impl LoadGameSignal {
         save_executor.save_name = trigger.event().0.clone();
         
         // Run migrations synchronously on main thread before parallel loading starts
-        with_db_connection(&save_executor.save_name, |conn| {
+        GameDbConnection::with_db_connection(&save_executor.save_name, |conn| {
             db_migrations::migrations::runner().run(conn)?;
             Ok(())
         }).expect("Failed to run migrations on load");
@@ -156,7 +156,7 @@ pub fn process_loading_tasks_system(
 
     tasks.par_iter_mut().for_each(|(entity, mut task)| {
         par_commands.command_scope(|mut cmd| {
-             let _ = with_db_connection(&save_executor.save_name, |conn| {
+             let _ = GameDbConnection::with_db_connection(&save_executor.save_name, |conn| {
                  loop {
                      // Check global system budget
                      if start_time.elapsed() > time_budget {

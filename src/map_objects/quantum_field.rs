@@ -137,7 +137,6 @@ impl Saveable for BuilderQuantumField {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
         let save_data = self.save_data.expect("BuilderQuantumField for saving purpose must have save_data");
         let entity_index = save_data.entity.index() as i64;
-        println!("DEBUG: Saving QuantumField ID {}: layer {}, progress {}, target {}", entity_index, save_data.current_layer, save_data.current_layer_progress, save_data.is_expedition_target);
 
         // 1. Insert into quantum_fields table
         tx.register_entity(entity_index)?;
@@ -166,8 +165,6 @@ impl Loadable for BuilderQuantumField {
             let current_layer: usize = row.get(1)?;
             let current_layer_progress: i32 = row.get(2)?;
             let is_expedition_target: bool = row.get(3)?;
-            
-            println!("DEBUG: Loading QuantumField ID {}: layer {}, progress {}, target {}", old_id, current_layer, current_layer_progress, is_expedition_target);
             
             let grid_position = ctx.conn.get_grid_coords(old_id)?;
             let grid_imprint = ctx.conn.get_grid_imprint(old_id)?;
@@ -244,7 +241,6 @@ impl BuilderQuantumField {
         };
         
         if let Some(save_data) = &builder.save_data {
-            println!("DEBUG: Restoring QuantumField on_add Entity {:?}: layer {}, progress {}", entity, save_data.current_layer, save_data.current_layer_progress);
             quantum_field.current_layer = save_data.current_layer;
             quantum_field.current_layer_progress = save_data.current_layer_progress;
             

@@ -1,9 +1,71 @@
 use bevy::ecs::system::ScheduleSystem;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::lib_prelude::*;
 
-thread_local! {
-    static DB_CONNECTION: std::cell::RefCell<Option<(String, rusqlite::Connection)>> = std::cell::RefCell::new(None);
+pub static DB_GENERATION: AtomicUsize = AtomicUsize::new(0);
+pub fn increment_db_generation() {
+    DB_GENERATION.fetch_add(1, Ordering::SeqCst);
+}
+
+struct ConnectionState {
+    path: String,
+    connection: rusqlite::Connection,
+    generation: usize,
+}
+
+pub struct GameDbConnection {
+    state: Option<ConnectionState>,
+}
+
+impl GameDbConnection {
+    fn new() -> Self {
+        Self { state: None }
+    }
+
+    fn needs_reconnect(&self, path: &str, current_gen: usize) -> bool {
+        match &self.state {
+            Some(state) => state.path != path || state.generation != current_gen,
+            None => true,
+        }
+    }
+
+    fn reconnect(&mut self, path: &str, generation: usize) -> rusqlite::Result<()> {
+        println!("Opening new connection");
+        let connection = rusqlite::Connection::open(path)?;
+        self.state = Some(ConnectionState {
+            path: path.to_string(),
+            connection,
+            generation,
+        });
+        Ok(())
+    }
+
+    fn get_mut(&mut self) -> &mut rusqlite::Connection {
+        &mut self.state.as_mut().expect("Connection should be open").connection
+    }
+
+    /// Helper to access a thread-local database connection.
+    /// It opens the connection if it's not open or if the path has changed.
+    pub fn with_db_connection<F>(path: &str, f: F) -> Result<(), Box<dyn std::error::Error>>
+    where
+        F: FnOnce(&mut rusqlite::Connection) -> Result<(), Box<dyn std::error::Error>>,
+    {
+        thread_local! {
+            static DB_CONNECTION: std::cell::RefCell<GameDbConnection> = std::cell::RefCell::new(GameDbConnection::new());
+        }
+
+        DB_CONNECTION.with(|cell| {
+            let mut db_conn = cell.borrow_mut();
+            let current_gen = DB_GENERATION.load(Ordering::SeqCst);
+            
+            if db_conn.needs_reconnect(path, current_gen) {
+                db_conn.reconnect(path, current_gen)?;
+            }
+
+            f(db_conn.get_mut())
+        })
+    }
 }
 
 pub mod db_migrations {
@@ -92,35 +154,6 @@ impl GameDbHelpers for rusqlite::Connection {
             _ => Err(rusqlite::Error::InvalidColumnType(0, "Unknown shape type".into(), rusqlite::types::Type::Text)),
         }
     }
-}
-
-/// Helper to access a thread-local database connection.
-/// It opens the connection if it's not open or if the path has changed.
-pub fn with_db_connection<F>(path: &str, f: F) -> Result<(), Box<dyn std::error::Error>> 
-where
-    F: FnOnce(&mut rusqlite::Connection) -> Result<(), Box<dyn std::error::Error>>,
-{
-    DB_CONNECTION.with(|cell| {
-        let mut current = cell.borrow_mut();
-        
-        // Check if we need to open a new connection
-        let needs_open = match *current {
-            Some((ref p, _)) => p != path,
-            None => true,
-        };
-
-        if needs_open {
-            let conn = rusqlite::Connection::open(path)?;
-            *current = Some((path.to_string(), conn));
-        }
-
-        // Now we are sure we have a connection
-        if let Some((_, ref mut conn)) = *current {
-            f(conn)
-        } else {
-            unreachable!("Connection should be open")
-        }
-    })
 }
 
 pub trait AppGameLoadSaveExtension {

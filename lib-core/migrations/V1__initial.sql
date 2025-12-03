@@ -68,3 +68,16 @@ CREATE TABLE healths (
     current REAL NOT NULL,
     FOREIGN KEY(entity_id) REFERENCES entities(id)
 );
+
+CREATE TABLE world_positions (
+    entity_id INTEGER PRIMARY KEY,
+    x REAL NOT NULL,
+    y REAL NOT NULL,
+    FOREIGN KEY(entity_id) REFERENCES entities(id)
+);
+
+CREATE TABLE expedition_drones (
+    id INTEGER PRIMARY KEY,
+    target_id INTEGER NOT NULL,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);

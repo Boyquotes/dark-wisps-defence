@@ -8,7 +8,9 @@ impl Plugin for ExpeditionDronePlugin {
             .add_systems(Update, (
                 move_expedition_drone_system.run_if(in_state(GameState::Running)),
             ))
-            .add_observer(BuilderExpeditionDrone::on_add);
+            .add_observer(BuilderExpeditionDrone::on_add)
+            .register_db_loader::<BuilderExpeditionDrone>(MapLoadingStage2::SpawnMapElements)
+            .register_db_saver(BuilderExpeditionDrone::on_game_save);
     }
 }
 
@@ -20,14 +22,67 @@ pub struct ExpeditionDrone {
     target: Entity, // Entity having ExpeditionZone component
 }
 
-#[derive(Component)]
+#[derive(Component, SSS)]
 pub struct BuilderExpeditionDrone {
     world_position: Vec2,
     target_entity: Entity,
+    entity: Option<Entity>,
+}
+impl Saveable for BuilderExpeditionDrone {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let entity = self.entity.expect("BuilderExpeditionDrone for saving must have entity");
+        let entity_id = entity.index() as i64;
+        let target_id = self.target_entity.index() as i64;
+
+        tx.register_entity(entity_id)?;
+        tx.save_world_position(entity_id, self.world_position)?;
+        tx.execute(
+            "INSERT OR REPLACE INTO expedition_drones (id, target_id) VALUES (?1, ?2)",
+            rusqlite::params![entity_id, target_id],
+        )?;
+        Ok(())
+    }
+}
+impl Loadable for BuilderExpeditionDrone {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stmt = ctx.conn.prepare("SELECT id, target_id FROM expedition_drones LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
+        
+        let mut count = 0;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let target_old_id: i64 = row.get(1)?;
+            let world_position = ctx.conn.get_world_position(old_id)?;
+            
+            let Some(new_entity) = ctx.get_new_entity_for_old(old_id) else { continue; };
+            let Some(new_target_entity) = ctx.get_new_entity_for_old(target_old_id) else { continue; }; 
+            ctx.commands.entity(new_entity).insert(BuilderExpeditionDrone::new_for_saving(world_position,new_target_entity,new_entity));
+            count += 1;
+        }
+        Ok(count.into())
+    }
 }
 impl BuilderExpeditionDrone {
     pub fn new(world_position: Vec2, target_entity: Entity) -> Self {
-        Self { world_position, target_entity }
+        Self { world_position, target_entity, entity: None }
+    }
+    pub fn new_for_saving(world_position: Vec2, target_entity: Entity, entity: Entity) -> Self {
+        Self { world_position, target_entity, entity: Some(entity) }
+    }
+
+    fn on_game_save(
+        mut commands: Commands,
+        drones: Query<(Entity, &Transform, &ExpeditionDrone)>,
+    ) {
+        if drones.is_empty() { return; }
+        let batch = drones.iter().map(|(entity, transform, drone)| {
+             BuilderExpeditionDrone::new_for_saving(
+                 transform.translation.xy(),
+                 drone.target,
+                 entity
+             )
+        }).collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
     }
 
     fn on_add(

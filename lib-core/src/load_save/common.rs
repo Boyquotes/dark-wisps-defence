@@ -76,13 +76,15 @@ pub mod db_migrations {
 pub trait GameDbHelpers {
     fn register_entity(&self, entity_id: i64) -> rusqlite::Result<usize>;
     fn save_grid_coords(&self, entity_id: i64, pos: GridCoords) -> rusqlite::Result<usize>;
-    fn save_health(&self, entity_id: i64, current: f32) -> rusqlite::Result<usize>;
+    fn save_world_position(&self, entity_id: i64, pos: Vec2) -> rusqlite::Result<usize>;
+    fn save_health(&self, entity_id: i64, current: f32) -> rusqlite::Result<usize>;    
+    fn save_grid_imprint(&self, entity_id: i64, imprint: GridImprint) -> rusqlite::Result<usize>;
+    
     fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize>;
     
     fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords>;
+    fn get_world_position(&self, entity_id: i64) -> rusqlite::Result<Vec2>;
     fn get_health(&self, entity_id: i64) -> rusqlite::Result<f32>;
-    
-    fn save_grid_imprint(&self, entity_id: i64, imprint: GridImprint) -> rusqlite::Result<usize>;
     fn get_grid_imprint(&self, entity_id: i64) -> rusqlite::Result<GridImprint>;
 }
 impl GameDbHelpers for rusqlite::Connection {
@@ -100,12 +102,31 @@ impl GameDbHelpers for rusqlite::Connection {
         )
     }
 
+    fn save_world_position(&self, entity_id: i64, pos: Vec2) -> rusqlite::Result<usize> {
+        self.execute(
+            "INSERT INTO world_positions (entity_id, x, y) VALUES (?1, ?2, ?3)",
+            (entity_id, pos.x, pos.y),
+        )
+    }
+
     fn save_health(&self, entity_id: i64, current: f32) -> rusqlite::Result<usize> {
         self.execute(
             "INSERT OR REPLACE INTO healths (entity_id, current) VALUES (?1, ?2)",
             (entity_id, current),
         )
     }
+
+    fn save_grid_imprint(&self, entity_id: i64, imprint: GridImprint) -> rusqlite::Result<usize> {
+        let (shape, width, height) = match imprint {
+            GridImprint::Rectangle { width, height } => ("Rectangle", Some(width), Some(height)),
+        };
+        
+        self.execute(
+            "INSERT OR REPLACE INTO grid_imprints (id, shape, width, height) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![entity_id, shape, width, height],
+        )
+    }
+
 
     /// Save entity of the object in its dedicated table. Calls register_entity()
     fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize> {
@@ -120,23 +141,19 @@ impl GameDbHelpers for rusqlite::Connection {
         let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
         Ok(GridCoords { x: row.get(0)?, y: row.get(1)? })
     }
+
+    fn get_world_position(&self, entity_id: i64) -> rusqlite::Result<Vec2> {
+        let mut stmt = self.prepare("SELECT x, y FROM world_positions WHERE entity_id = ?1")?;
+        let mut rows = stmt.query([entity_id])?;
+        let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
+        Ok(Vec2::new(row.get(0)?, row.get(1)?))
+    }
     
     fn get_health(&self, entity_id: i64) -> rusqlite::Result<f32> {
         let mut stmt = self.prepare("SELECT current FROM healths WHERE entity_id = ?1")?;
         let mut rows = stmt.query([entity_id])?;
         let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
         Ok(row.get(0)?)
-    }
-
-    fn save_grid_imprint(&self, entity_id: i64, imprint: GridImprint) -> rusqlite::Result<usize> {
-        let (shape, width, height) = match imprint {
-            GridImprint::Rectangle { width, height } => ("Rectangle", Some(width), Some(height)),
-        };
-        
-        self.execute(
-            "INSERT OR REPLACE INTO grid_imprints (id, shape, width, height) VALUES (?1, ?2, ?3, ?4)",
-            rusqlite::params![entity_id, shape, width, height],
-        )
     }
 
     fn get_grid_imprint(&self, entity_id: i64) -> rusqlite::Result<GridImprint> {

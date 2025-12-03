@@ -8,22 +8,84 @@ pub struct TowerCannonPlugin;
 impl Plugin for TowerCannonPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_observer(BuilderTowerCannon::on_add).add_systems(Update, (
+            .add_systems(Update, (
                 shooting_system.run_if(in_state(GameState::Running)),
-            ));
+            ))
+            .add_observer(BuilderTowerCannon::on_add)
+            .register_db_loader::<BuilderTowerCannon>(MapLoadingStage2::SpawnMapElements)
+            .register_db_saver(BuilderTowerCannon::on_game_save);
     }
 }
 
 pub const TOWER_CANNON_BASE_IMAGE: &str = "buildings/tower_cannon.png";
 
-#[derive(Component)]
+#[derive(Clone, Copy, Debug)]
+pub struct TowerCannonSaveData {
+    entity: Entity,
+    health: f32,
+}
+
+#[derive(Component, SSS)]
 pub struct BuilderTowerCannon {
     grid_position: GridCoords,
+    save_data: Option<TowerCannonSaveData>,
+}
+
+impl Saveable for BuilderTowerCannon {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let save_data = self.save_data.expect("BuilderTowerCannon for saving must have save_data");
+        let entity_index = save_data.entity.index() as i64;
+
+        tx.save_marker("tower_cannons", entity_index)?;
+        tx.save_grid_coords(entity_index, self.grid_position)?;
+        tx.save_health(entity_index, save_data.health)?;
+        Ok(())
+    }
+}
+
+impl Loadable for BuilderTowerCannon {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stmt = ctx.conn.prepare("SELECT id FROM tower_cannons LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
+        
+        let mut count = 0;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let grid_position = ctx.conn.get_grid_coords(old_id)?;
+            let health = ctx.conn.get_health(old_id)?;
+            
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                let save_data = TowerCannonSaveData { entity: new_entity, health };
+                ctx.commands.entity(new_entity).insert(BuilderTowerCannon::new_for_saving(grid_position, save_data));
+            }
+            count += 1;
+        }
+
+        Ok(count.into())
+    }
 }
 
 impl BuilderTowerCannon {
     pub fn new(grid_position: GridCoords) -> Self {
-        Self { grid_position }
+        Self { grid_position, save_data: None }
+    }
+    pub fn new_for_saving(grid_position: GridCoords, save_data: TowerCannonSaveData) -> Self {
+        Self { grid_position, save_data: Some(save_data) }
+    }
+
+    fn on_game_save(
+        mut commands: Commands,
+        towers: Query<(Entity, &GridCoords, &Health), With<TowerCannon>>,
+    ) {
+        if towers.is_empty() { return; }
+        let batch = towers.iter().map(|(entity, coords, health)| {
+            let save_data = TowerCannonSaveData {
+                entity,
+                health: health.get_current(),
+            };
+            BuilderTowerCannon::new_for_saving(*coords, save_data)
+        }).collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
     }
 
     pub fn on_add(
@@ -38,7 +100,13 @@ impl BuilderTowerCannon {
         
         let building_info = almanach.get_building_info(BuildingType::Tower(TowerType::Cannon));
         let grid_imprint = building_info.grid_imprint;
-        commands.entity(entity)
+
+        let mut entity_commands = commands.entity(entity);
+        if let Some(save_data) = &builder.save_data {
+            entity_commands.insert(Health::new(save_data.health));
+        }
+
+        entity_commands
             .remove::<BuilderTowerCannon>()
             .insert((
                 TowerCannon,

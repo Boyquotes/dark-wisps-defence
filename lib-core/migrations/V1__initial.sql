@@ -81,3 +81,12 @@ CREATE TABLE expedition_drones (
     target_id INTEGER NOT NULL,
     FOREIGN KEY(id) REFERENCES entities(id)
 );
+
+CREATE TABLE cannonballs (
+    id INTEGER PRIMARY KEY,
+    target_x REAL NOT NULL,
+    target_y REAL NOT NULL,
+    damage REAL NOT NULL,
+    initial_distance REAL NOT NULL,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);

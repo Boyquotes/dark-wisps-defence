@@ -99,3 +99,11 @@ CREATE TABLE laser_darts (
     damage REAL NOT NULL,
     FOREIGN KEY(id) REFERENCES entities(id)
 );
+
+CREATE TABLE rockets (
+    id INTEGER PRIMARY KEY,
+    target_wisp_id INTEGER,
+    rotation_z REAL NOT NULL,
+    damage REAL NOT NULL,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);

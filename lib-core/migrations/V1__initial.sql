@@ -122,3 +122,8 @@ CREATE TABLE tower_rocket_launchers (
     id INTEGER PRIMARY KEY,
     FOREIGN KEY(id) REFERENCES entities(id)
 );
+
+CREATE TABLE tower_emitters (
+    id INTEGER PRIMARY KEY,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);

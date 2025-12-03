@@ -33,7 +33,10 @@ impl Plugin for QuantumFieldPlugin {
             .add_observer(GridPlacerUiForQuantumField::on_add)
             .add_observer(ArrowButton::on_add)
             .add_observer(QuantumFieldActionButton::on_add)
-            .add_observer(on_ui_map_object_focus_changed_trigger);
+            .add_observer(on_ui_map_object_focus_changed_trigger)
+            .register_db_loader::<BuilderQuantumField>(MapLoadingStage2::SpawnMapElements)
+            .register_db_saver(BuilderQuantumField::on_game_save)
+            ;
     }
 }
 
@@ -115,15 +118,102 @@ pub struct QuantumFieldLayer {
     pub costs: Vec<Cost>,
 }
 
-#[derive(Component)]
+#[derive(Clone, Copy, Debug)]
+pub struct QuantumFieldSaveData {
+    pub entity: Entity,
+    pub current_layer: usize,
+    pub current_layer_progress: i32,
+    pub is_expedition_target: bool,
+}
+
+#[derive(Component, SSS)]
 pub struct BuilderQuantumField {
     pub grid_position: GridCoords,
     pub grid_imprint: GridImprint,
+    pub save_data: Option<QuantumFieldSaveData>,
+}
+
+impl Saveable for BuilderQuantumField {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let save_data = self.save_data.expect("BuilderQuantumField for saving purpose must have save_data");
+        let entity_index = save_data.entity.index() as i64;
+        println!("DEBUG: Saving QuantumField ID {}: layer {}, progress {}, target {}", entity_index, save_data.current_layer, save_data.current_layer_progress, save_data.is_expedition_target);
+
+        // 1. Insert into quantum_fields table
+        tx.register_entity(entity_index)?;
+        tx.execute(
+            "INSERT OR REPLACE INTO quantum_fields (id, current_layer, current_layer_progress, is_expedition_target) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![entity_index, save_data.current_layer, save_data.current_layer_progress, save_data.is_expedition_target],
+        )?;
+
+        // 2. Insert into grid_positions table
+        tx.save_grid_coords(entity_index, self.grid_position)?;
+        
+        // 3. Insert into grid_imprints table
+        tx.save_grid_imprint(entity_index, self.grid_imprint)?;
+        
+        Ok(())
+    }
+}
+impl Loadable for BuilderQuantumField {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stmt = ctx.conn.prepare("SELECT id, current_layer, current_layer_progress, is_expedition_target FROM quantum_fields LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
+        
+        let mut count = 0;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let current_layer: usize = row.get(1)?;
+            let current_layer_progress: i32 = row.get(2)?;
+            let is_expedition_target: bool = row.get(3)?;
+            
+            println!("DEBUG: Loading QuantumField ID {}: layer {}, progress {}, target {}", old_id, current_layer, current_layer_progress, is_expedition_target);
+            
+            let grid_position = ctx.conn.get_grid_coords(old_id)?;
+            let grid_imprint = ctx.conn.get_grid_imprint(old_id)?;
+            
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                let save_data = QuantumFieldSaveData { 
+                    entity: new_entity,
+                    current_layer,
+                    current_layer_progress,
+                    is_expedition_target,
+                };
+                ctx.commands.entity(new_entity).insert(BuilderQuantumField::new_for_saving(grid_position, grid_imprint, save_data));
+            } else {
+                eprintln!("Warning: QuantumField with old ID {} has no corresponding new entity", old_id);
+            }
+            count += 1;
+        }
+
+        Ok(count.into())
+    }
 }
 
 impl BuilderQuantumField {
     pub fn new(grid_position: GridCoords, grid_imprint: GridImprint) -> Self {
-        Self { grid_position, grid_imprint }
+        Self { grid_position, grid_imprint, save_data: None }
+    }
+    pub fn new_for_saving(grid_position: GridCoords, grid_imprint: GridImprint, save_data: QuantumFieldSaveData) -> Self {
+        Self { grid_position, grid_imprint, save_data: Some(save_data) }
+    }
+    
+    fn on_game_save(
+        mut commands: Commands,
+        quantum_fields: Query<(Entity, &GridCoords, &GridImprint, &QuantumField, Has<ExpeditionTargetMarker>)>,
+    ) {
+        if quantum_fields.is_empty() { return; }
+        println!("Creating batch of BuilderQuantumField for saving. {} items", quantum_fields.iter().count());
+        let batch = quantum_fields.iter().map(|(entity, coords, imprint, quantum_field, is_expedition_target)| {
+            let save_data = QuantumFieldSaveData {
+                entity,
+                current_layer: quantum_field.current_layer,
+                current_layer_progress: quantum_field.current_layer_progress,
+                is_expedition_target,
+            };
+            BuilderQuantumField::new_for_saving(*coords, *imprint, save_data)
+        }).collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
     }
     
     fn on_add(
@@ -134,6 +224,38 @@ impl BuilderQuantumField {
         let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
+        let mut quantum_field = QuantumField {
+            current_layer: 0,
+            current_layer_progress: 0,
+            layers: vec![
+                QuantumFieldLayer {
+                    value: 15000,
+                    costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 100}, Cost{ resource_type: ResourceType::DarkOre, amount: 100}, Cost{ resource_type: ResourceType::DarkOre, amount: 100}],
+                },
+                QuantumFieldLayer {
+                    value: 30000,
+                    costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 200}],
+                },
+                QuantumFieldLayer {
+                    value: 45000,
+                    costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 300}],
+                },
+            ],
+        };
+        
+        if let Some(save_data) = &builder.save_data {
+            println!("DEBUG: Restoring QuantumField on_add Entity {:?}: layer {}, progress {}", entity, save_data.current_layer, save_data.current_layer_progress);
+            quantum_field.current_layer = save_data.current_layer;
+            quantum_field.current_layer_progress = save_data.current_layer_progress;
+            
+            if save_data.is_expedition_target {
+                commands.entity(entity).insert(ExpeditionTargetMarker);
+            }
+            if quantum_field.is_solved() {
+                commands.entity(entity).insert(Solved);
+            }
+        }
+
         commands.entity(entity)
             .remove::<BuilderQuantumField>()
             .insert((
@@ -145,24 +267,7 @@ impl BuilderQuantumField {
                 Transform::from_translation(builder.grid_position.to_world_position_centered(builder.grid_imprint).extend(Z_OBSTACLE)),
                 builder.grid_position,
                 builder.grid_imprint,
-                QuantumField {
-                    current_layer: 0,
-                    current_layer_progress: 0,
-                    layers: vec![
-                        QuantumFieldLayer {
-                            value: 15000,
-                            costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 100}, Cost{ resource_type: ResourceType::DarkOre, amount: 100}, Cost{ resource_type: ResourceType::DarkOre, amount: 100}],
-                        },
-                        QuantumFieldLayer {
-                            value: 30000,
-                            costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 200}],
-                        },
-                        QuantumFieldLayer {
-                            value: 45000,
-                            costs: vec![Cost{ resource_type: ResourceType::DarkOre, amount: 300}],
-                        },
-                    ],
-                },
+                quantum_field,
                 ExpeditionZone::default(),
             ));
     }

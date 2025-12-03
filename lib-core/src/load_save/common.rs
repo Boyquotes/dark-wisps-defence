@@ -19,6 +19,9 @@ pub trait GameDbHelpers {
     
     fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords>;
     fn get_health(&self, entity_id: i64) -> rusqlite::Result<f32>;
+    
+    fn save_grid_imprint(&self, entity_id: i64, imprint: GridImprint) -> rusqlite::Result<usize>;
+    fn get_grid_imprint(&self, entity_id: i64) -> rusqlite::Result<GridImprint>;
 }
 impl GameDbHelpers for rusqlite::Connection {
     fn register_entity(&self, entity_id: i64) -> rusqlite::Result<usize> {
@@ -61,6 +64,33 @@ impl GameDbHelpers for rusqlite::Connection {
         let mut rows = stmt.query([entity_id])?;
         let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
         Ok(row.get(0)?)
+    }
+
+    fn save_grid_imprint(&self, entity_id: i64, imprint: GridImprint) -> rusqlite::Result<usize> {
+        let (shape, width, height) = match imprint {
+            GridImprint::Rectangle { width, height } => ("Rectangle", Some(width), Some(height)),
+        };
+        
+        self.execute(
+            "INSERT OR REPLACE INTO grid_imprints (id, shape, width, height) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![entity_id, shape, width, height],
+        )
+    }
+
+    fn get_grid_imprint(&self, entity_id: i64) -> rusqlite::Result<GridImprint> {
+        let mut stmt = self.prepare("SELECT shape, width, height FROM grid_imprints WHERE id = ?1")?;
+        let mut rows = stmt.query([entity_id])?;
+        let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
+        
+        let shape: String = row.get(0)?;
+        match shape.as_str() {
+            "Rectangle" => {
+                let width: i32 = row.get(1)?;
+                let height: i32 = row.get(2)?;
+                Ok(GridImprint::Rectangle { width, height })
+            },
+            _ => Err(rusqlite::Error::InvalidColumnType(0, "Unknown shape type".into(), rusqlite::types::Type::Text)),
+        }
     }
 }
 

@@ -47,6 +47,22 @@ CREATE TABLE dark_ores (
     FOREIGN KEY(id) REFERENCES entities(id)
 );
 
+CREATE TABLE grid_imprints (
+    id INTEGER PRIMARY KEY,
+    shape TEXT NOT NULL,
+    width INTEGER,
+    height INTEGER,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);
+
+CREATE TABLE quantum_fields (
+    id INTEGER PRIMARY KEY,
+    current_layer INTEGER NOT NULL,
+    current_layer_progress INTEGER NOT NULL,
+    is_expedition_target BOOLEAN NOT NULL,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);
+
 CREATE TABLE healths (
     entity_id INTEGER PRIMARY KEY,
     current REAL NOT NULL,

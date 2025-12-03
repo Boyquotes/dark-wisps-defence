@@ -7,15 +7,87 @@ use super::materials::WispMaterial;
 
 pub const WISP_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
 
-#[derive(Component)]
+#[derive(Clone, Copy, Debug)]
+pub struct WispSaveData {
+    pub entity: Entity,
+    pub health: f32,
+    pub world_position: Vec2,
+}
+
+#[derive(Component, SSS)]
 pub struct BuilderWisp {
-    wisp_type: WispType,
-    grid_coords: GridCoords,
+    pub wisp_type: WispType,
+    pub grid_coords: GridCoords,
+    pub save_data: Option<WispSaveData>,
+}
+
+impl Saveable for BuilderWisp {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let save_data = self.save_data.expect("BuilderWisp for saving must have save_data");
+        let entity_index = save_data.entity.index() as i64;
+
+        tx.register_entity(entity_index)?;
+        tx.save_world_position(entity_index, save_data.world_position)?;
+        tx.save_grid_coords(entity_index, self.grid_coords)?;
+        tx.save_health(entity_index, save_data.health)?;
+
+        let type_str = self.wisp_type.as_str();
+        tx.execute(
+            "INSERT OR REPLACE INTO wisps (id, wisp_type) VALUES (?1, ?2)",
+            rusqlite::params![entity_index, type_str],
+        )?;
+        Ok(())
+    }
+}
+
+impl Loadable for BuilderWisp {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stmt = ctx.conn.prepare("SELECT id, wisp_type FROM wisps LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
+        
+        let mut count = 0;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let type_str: String = row.get(1)?;
+            
+            let Some(wisp_type) = WispType::from_str(&type_str) else { continue; };
+
+            let grid_coords = ctx.conn.get_grid_coords(old_id)?;
+            let health = ctx.conn.get_health(old_id)?;
+            let world_position = ctx.conn.get_world_position(old_id)?;
+
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                let save_data = WispSaveData { entity: new_entity, health, world_position };
+                ctx.commands.entity(new_entity).insert(BuilderWisp::new_for_saving(wisp_type, grid_coords, save_data));
+            }
+            count += 1;
+        }
+        Ok(count.into())
+    }
 }
 
 impl BuilderWisp {
     pub fn new(wisp_type: WispType, grid_coords: GridCoords) -> Self {
-        Self { wisp_type, grid_coords }
+        Self { wisp_type, grid_coords, save_data: None }
+    }
+    pub fn new_for_saving(wisp_type: WispType, grid_coords: GridCoords, save_data: WispSaveData) -> Self {
+        Self { wisp_type, grid_coords, save_data: Some(save_data) }
+    }
+
+    pub fn on_game_save(
+        mut commands: Commands,
+        wisps: Query<(Entity, &WispType, &GridCoords, &Health, &Transform), With<Wisp>>,
+    ) {
+        if wisps.is_empty() { return; }
+        let batch = wisps.iter().map(|(entity, wisp_type, coords, health, transform)| {
+            let save_data = WispSaveData {
+                entity,
+                health: health.get_current(),
+                world_position: transform.translation.xy(),
+            };
+            BuilderWisp::new_for_saving(*wisp_type, *coords, save_data)
+        }).collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
     }
 
     pub fn on_add(
@@ -29,12 +101,23 @@ impl BuilderWisp {
         
         let mut rng = nanorand::tls_rng();
         let mut entity_commands = commands.entity(entity);
+        
+        if let Some(save_data) = &builder.save_data {
+             entity_commands.insert(Health::new(save_data.health));
+        }
+
+        let translation = if let Some(save_data) = &builder.save_data {
+             save_data.world_position.extend(Z_WISP)
+        } else {
+             builder.grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP)
+        };
+
         entity_commands
             .remove::<BuilderWisp>()
             .insert((
                 builder.grid_coords,
                 Transform {
-                    translation: builder.grid_coords.to_world_position_centered(WISP_GRID_IMPRINT).extend(Z_WISP),
+                    translation,
                     rotation: Quat::from_rotation_z(rng.generate::<f32>() * 2. * std::f32::consts::PI),
                     ..default()
                 },

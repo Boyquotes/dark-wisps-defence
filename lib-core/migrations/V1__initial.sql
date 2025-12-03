@@ -134,3 +134,9 @@ CREATE TABLE ripples (
     current_radius REAL NOT NULL,
     FOREIGN KEY(id) REFERENCES entities(id)
 );
+
+CREATE TABLE wisps (
+    id INTEGER PRIMARY KEY,
+    wisp_type TEXT NOT NULL,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);

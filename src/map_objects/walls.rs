@@ -34,10 +34,7 @@ impl Saveable for BuilderWall {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
         let entity_index = self.entity.expect("BuilderWall for saving purpose must have an entity").index() as i64;
 
-        // 1. Insert into walls table
         tx.save_marker("walls", entity_index)?;
-
-        // 2. Insert into grid_positions table
         tx.save_grid_coords(entity_index, self.grid_position)?;
         Ok(())
     }

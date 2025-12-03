@@ -112,3 +112,8 @@ CREATE TABLE tower_cannons (
     id INTEGER PRIMARY KEY,
     FOREIGN KEY(id) REFERENCES entities(id)
 );
+
+CREATE TABLE tower_blasters (
+    id INTEGER PRIMARY KEY,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);

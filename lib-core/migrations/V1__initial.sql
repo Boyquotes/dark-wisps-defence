@@ -127,3 +127,10 @@ CREATE TABLE tower_emitters (
     id INTEGER PRIMARY KEY,
     FOREIGN KEY(id) REFERENCES entities(id)
 );
+
+CREATE TABLE ripples (
+    id INTEGER PRIMARY KEY,
+    max_radius REAL NOT NULL,
+    current_radius REAL NOT NULL,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);

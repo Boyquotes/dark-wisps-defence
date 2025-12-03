@@ -23,21 +23,91 @@ impl Plugin for RipplePlugin {
                     ripple_hit_system,
                 ).run_if(in_state(GameState::Running)),
             ))
-            .add_observer(BuilderRipple::on_add);
+            .add_observer(BuilderRipple::on_add)
+            .register_db_loader::<BuilderRipple>(MapLoadingStage2::SpawnMapElements)
+            .register_db_saver(BuilderRipple::on_game_save);
     }
 }
 
-#[derive(Component)]
+#[derive(Clone, Copy, Debug)]
+pub struct RippleSaveData {
+    pub entity: Entity,
+    pub current_radius: f32,
+}
+
+#[derive(Component, SSS)]
 pub struct BuilderRipple {
     pub world_position: Vec2,
     pub radius: f32, // in world size
+    pub save_data: Option<RippleSaveData>,
+}
+impl Saveable for BuilderRipple {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let save_data = self.save_data.expect("BuilderRipple for saving must have save_data");
+        let entity_id = save_data.entity.index() as i64;
+
+        tx.register_entity(entity_id)?;
+        tx.save_world_position(entity_id, self.world_position)?;
+        tx.execute(
+            "INSERT OR REPLACE INTO ripples (id, max_radius, current_radius) VALUES (?1, ?2, ?3)",
+            rusqlite::params![entity_id, self.radius, save_data.current_radius],
+        )?;
+        Ok(())
+    }
+}
+impl Loadable for BuilderRipple {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stmt = ctx.conn.prepare("SELECT id, max_radius, current_radius FROM ripples LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
+        
+        let mut count = 0;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let max_radius: f32 = row.get(1)?;
+            let current_radius: f32 = row.get(2)?;
+            let world_position = ctx.conn.get_world_position(old_id)?;
+            
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                let save_data = RippleSaveData { entity: new_entity, current_radius };
+                ctx.commands.entity(new_entity).insert(BuilderRipple::new_for_saving(
+                    world_position,
+                    max_radius,
+                    save_data
+                ));
+            }
+            count += 1;
+        }
+        Ok(count.into())
+    }
 }
 
 impl BuilderRipple {
     pub fn new(world_position: Vec2, radius: f32) -> Self {
-        Self { world_position, radius }
+        Self { world_position, radius, save_data: None }
+    }
+    pub fn new_for_saving(world_position: Vec2, radius: f32, save_data: RippleSaveData) -> Self {
+        Self { world_position, radius, save_data: Some(save_data) }
     }
     
+    fn on_game_save(
+        mut commands: Commands,
+        ripples: Query<(Entity, &Transform, &Ripple)>,
+    ) {
+        if ripples.is_empty() { return; }
+        let batch = ripples.iter().map(|(entity, transform, ripple)| {
+             let save_data = RippleSaveData {
+                 entity,
+                 current_radius: ripple.current_radius,
+             };
+             BuilderRipple::new_for_saving(
+                 transform.translation.xy(),
+                 ripple.max_radius,
+                 save_data
+             )
+        }).collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
+    }
+
     fn on_add(
         trigger: On<Add, BuilderRipple>,
         mut commands: Commands,
@@ -48,17 +118,19 @@ impl BuilderRipple {
         let entity = trigger.entity;
         let Ok(builder) = builders.get(entity) else { return; };
         
+        let current_radius = builder.save_data.as_ref().map_or(0., |d| d.current_radius);
+
         commands.entity(entity)
             .remove::<BuilderRipple>()
             .insert((
                 Mesh2d(meshes.add(Circle::new(builder.radius))),
                 MeshMaterial2d(ripple_materials.add(RippleMaterial {
-                    current_radius: 0.0,
+                    current_radius: current_radius / (builder.radius * 2.),
                     wave_width: 0.35,
                     wave_exponent: 0.8,
                 })),
                 Transform::from_translation(builder.world_position.extend(Z_GROUND_EFFECT)),
-                Ripple{ max_radius: builder.radius, current_radius: 0. },
+                Ripple{ max_radius: builder.radius, current_radius },
                 MovementSpeed(70.0),
             ));
     }

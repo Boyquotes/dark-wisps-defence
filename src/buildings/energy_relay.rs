@@ -21,6 +21,7 @@ pub const ENERGY_RELAY_BASE_IMAGE: &str = "buildings/energy_relay.png";
 pub struct EnergyRelaySaveData {
     pub entity: Entity,
     pub health: f32,
+    pub disabled_by_player: bool,
 }
 
 #[derive(Component, SSS)]
@@ -36,6 +37,9 @@ impl Saveable for BuilderEnergyRelay {
         tx.save_marker("energy_relays", entity_index)?;
         tx.save_grid_coords(entity_index, self.grid_position)?;
         tx.save_health(entity_index, save_data.health)?;
+        if save_data.disabled_by_player {
+            tx.save_disabled_by_player(entity_index)?;
+        }
         Ok(())
     }
 }
@@ -49,9 +53,10 @@ impl Loadable for BuilderEnergyRelay {
             let old_id: i64 = row.get(0)?;
             let grid_position = ctx.conn.get_grid_coords(old_id)?;
             let health = ctx.conn.get_health(old_id)?;
+            let disabled_by_player = ctx.conn.get_disabled_by_player(old_id)?;
             
             if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
-                let save_data = EnergyRelaySaveData { entity: new_entity, health };
+                let save_data = EnergyRelaySaveData { entity: new_entity, health, disabled_by_player };
                 ctx.commands.entity(new_entity).insert(BuilderEnergyRelay::new_for_saving(grid_position, save_data));
             } else {
                 eprintln!("Warning: EnergyRelay with old ID {} has no corresponding new entity", old_id);
@@ -72,14 +77,15 @@ impl BuilderEnergyRelay {
 
     fn on_game_save(
         mut commands: Commands,
-        relays: Query<(Entity, &GridCoords, &Health), With<EnergyRelay>>,
+        relays: Query<(Entity, &GridCoords, &Health, Has<DisabledByPlayer>), With<EnergyRelay>>,
     ) {
         if relays.is_empty() { return; }
         println!("Creating batch of BuilderEnergyRelay for saving. {} items", relays.iter().count());
-        let batch = relays.iter().map(|(entity, coords, health)| {
+        let batch = relays.iter().map(|(entity, coords, health, disabled_by_player)| {
             let save_data = EnergyRelaySaveData {
                 entity,
                 health: health.get_current(),
+                disabled_by_player,
             };
             BuilderEnergyRelay::new_for_saving(*coords, save_data)
         }).collect::<SaveableBatchCommand<_>>();
@@ -102,6 +108,9 @@ impl BuilderEnergyRelay {
         if let Some(save_data) = &builder.save_data {
             // Save data
             entity_commands.insert(Health::new(save_data.health));
+            if save_data.disabled_by_player {
+                entity_commands.insert(DisabledByPlayer);
+            }
         }
 
         entity_commands

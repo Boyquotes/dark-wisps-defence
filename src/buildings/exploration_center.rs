@@ -26,6 +26,7 @@ pub struct ExplorationCenterNewExpeditionTimer(pub Timer);
 pub struct ExplorationCenterSaveData {
     pub entity: Entity,
     pub health: f32,
+    pub disabled_by_player: bool,
 }
 
 #[derive(Component, SSS)]
@@ -41,6 +42,9 @@ impl Saveable for BuilderExplorationCenter {
         tx.save_marker("exploration_centers", entity_index)?;
         tx.save_grid_coords(entity_index, self.grid_position)?;
         tx.save_health(entity_index, save_data.health)?;
+        if save_data.disabled_by_player {
+            tx.save_disabled_by_player(entity_index)?;
+        }
         Ok(())
     }
 }
@@ -55,9 +59,10 @@ impl Loadable for BuilderExplorationCenter {
             let old_id: i64 = row.get(0)?;
             let grid_position = ctx.conn.get_grid_coords(old_id)?;
             let health = ctx.conn.get_health(old_id)?;
+            let disabled_by_player = ctx.conn.get_disabled_by_player(old_id)?;
             
             if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
-                let save_data = ExplorationCenterSaveData { entity: new_entity, health };
+                let save_data = ExplorationCenterSaveData { entity: new_entity, health, disabled_by_player };
                 ctx.commands.entity(new_entity).insert(BuilderExplorationCenter::new_for_saving(grid_position, save_data));
             } else {
                 eprintln!("Warning: ExplorationCenter with old ID {} has no corresponding new entity", old_id);
@@ -78,14 +83,15 @@ impl BuilderExplorationCenter {
 
     fn on_game_save(
         mut commands: Commands,
-        exploration_centers: Query<(Entity, &GridCoords, &Health), With<ExplorationCenter>>,
+        exploration_centers: Query<(Entity, &GridCoords, &Health, Has<DisabledByPlayer>), With<ExplorationCenter>>,
     ) {
         if exploration_centers.is_empty() { return; }
         println!("Creating batch of BuilderExplorationCenter for saving. {} items", exploration_centers.iter().count());
-        let batch = exploration_centers.iter().map(|(entity, coords, health)| {
+        let batch = exploration_centers.iter().map(|(entity, coords, health, disabled_by_player)| {
             let save_data = ExplorationCenterSaveData {
                 entity,
                 health: health.get_current(),
+                disabled_by_player,
             };
             BuilderExplorationCenter::new_for_saving(*coords, save_data)
         }).collect::<SaveableBatchCommand<_>>();
@@ -109,6 +115,9 @@ impl BuilderExplorationCenter {
         if let Some(save_data) = &builder.save_data {
             // Save data
             entity_commands.insert(Health::new(save_data.health));
+            if save_data.disabled_by_player {
+                entity_commands.insert(DisabledByPlayer);
+            }
         }
 
         entity_commands

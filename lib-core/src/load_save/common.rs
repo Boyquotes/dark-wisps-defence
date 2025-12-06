@@ -81,8 +81,10 @@ pub trait GameDbHelpers {
     fn save_grid_imprint(&self, entity_id: i64, imprint: GridImprint) -> rusqlite::Result<usize>;
     
     fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize>;
+    fn save_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<usize>;
     
     fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords>;
+    fn get_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<bool>;
     fn get_world_position(&self, entity_id: i64) -> rusqlite::Result<Vec2>;
     fn get_health(&self, entity_id: i64) -> rusqlite::Result<f32>;
     fn get_grid_imprint(&self, entity_id: i64) -> rusqlite::Result<GridImprint>;
@@ -133,6 +135,19 @@ impl GameDbHelpers for rusqlite::Connection {
         self.register_entity(entity_id)?;
         let query = format!("INSERT OR REPLACE INTO {} (id) VALUES (?1)", table_name);
         self.execute(&query, [entity_id])
+    }
+
+    fn save_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<usize> {
+        self.execute(
+            "INSERT INTO disabled_by_player (entity_id) VALUES (?1)",
+            [entity_id],
+        )
+    }
+
+    fn get_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<bool> {
+        let mut stmt = self.prepare("SELECT 1 FROM disabled_by_player WHERE entity_id = ?1")?;
+        let exists = stmt.exists([entity_id])?;
+        Ok(exists)
     }
     
     fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords> {

@@ -23,6 +23,7 @@ pub const TOWER_CANNON_BASE_IMAGE: &str = "buildings/tower_cannon.png";
 pub struct TowerCannonSaveData {
     entity: Entity,
     health: f32,
+    disabled_by_player: bool,
 }
 
 #[derive(Component, SSS)]
@@ -39,6 +40,9 @@ impl Saveable for BuilderTowerCannon {
         tx.save_marker("tower_cannons", entity_index)?;
         tx.save_grid_coords(entity_index, self.grid_position)?;
         tx.save_health(entity_index, save_data.health)?;
+        if save_data.disabled_by_player {
+            tx.save_disabled_by_player(entity_index)?;
+        }
         Ok(())
     }
 }
@@ -53,9 +57,10 @@ impl Loadable for BuilderTowerCannon {
             let old_id: i64 = row.get(0)?;
             let grid_position = ctx.conn.get_grid_coords(old_id)?;
             let health = ctx.conn.get_health(old_id)?;
+            let disabled_by_player = ctx.conn.get_disabled_by_player(old_id)?;
             
             if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
-                let save_data = TowerCannonSaveData { entity: new_entity, health };
+                let save_data = TowerCannonSaveData { entity: new_entity, health, disabled_by_player };
                 ctx.commands.entity(new_entity).insert(BuilderTowerCannon::new_for_saving(grid_position, save_data));
             }
             count += 1;
@@ -75,13 +80,14 @@ impl BuilderTowerCannon {
 
     fn on_game_save(
         mut commands: Commands,
-        towers: Query<(Entity, &GridCoords, &Health), With<TowerCannon>>,
+        towers: Query<(Entity, &GridCoords, &Health, Has<DisabledByPlayer>), With<TowerCannon>>,
     ) {
         if towers.is_empty() { return; }
-        let batch = towers.iter().map(|(entity, coords, health)| {
+        let batch = towers.iter().map(|(entity, coords, health, disabled_by_player)| {
             let save_data = TowerCannonSaveData {
                 entity,
                 health: health.get_current(),
+                disabled_by_player,
             };
             BuilderTowerCannon::new_for_saving(*coords, save_data)
         }).collect::<SaveableBatchCommand<_>>();
@@ -104,6 +110,9 @@ impl BuilderTowerCannon {
         let mut entity_commands = commands.entity(entity);
         if let Some(save_data) = &builder.save_data {
             entity_commands.insert(Health::new(save_data.health));
+            if save_data.disabled_by_player {
+                entity_commands.insert(DisabledByPlayer);
+            }
         }
 
         entity_commands

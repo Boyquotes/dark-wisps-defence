@@ -76,6 +76,11 @@ CREATE TABLE world_positions (
     FOREIGN KEY(entity_id) REFERENCES entities(id)
 );
 
+CREATE TABLE disabled_by_player (
+    entity_id INTEGER PRIMARY KEY,
+    FOREIGN KEY(entity_id) REFERENCES entities(id)
+);
+
 CREATE TABLE expedition_drones (
     id INTEGER PRIMARY KEY,
     target_id INTEGER NOT NULL,

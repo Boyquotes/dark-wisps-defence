@@ -145,3 +145,19 @@ CREATE TABLE wisps (
     wisp_type TEXT NOT NULL,
     FOREIGN KEY(id) REFERENCES entities(id)
 );
+
+CREATE TABLE objectives (
+    id INTEGER PRIMARY KEY,
+    id_name TEXT NOT NULL,
+    objective_type TEXT NOT NULL,
+    activation_event TEXT NOT NULL,
+    state TEXT NOT NULL,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);
+
+CREATE TABLE objective_kill_wisps (
+    id INTEGER PRIMARY KEY,
+    target_amount INTEGER NOT NULL,
+    started_amount INTEGER NOT NULL,
+    FOREIGN KEY(id) REFERENCES objectives(id)
+);

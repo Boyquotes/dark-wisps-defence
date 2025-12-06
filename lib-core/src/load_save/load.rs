@@ -8,7 +8,7 @@ impl Plugin for MapLoadPlugin {
             .init_resource::<DbEntityMap>()
             .init_resource::<GameLoadRegistry>()
             .add_systems(OnEnter(MapLoadingStage2::LoadMapInfo), spawn_loading_tasks)
-            //.add_systems(OnEnter(MapLoadingStage2::LoadResources), spawn_reset_grids_and_resources_stage_tasks)
+            .add_systems(OnEnter(MapLoadingStage2::LoadResources), spawn_loading_tasks)
             .add_systems(OnEnter(MapLoadingStage2::SpawnMapElements), spawn_loading_tasks)
             .add_systems(OnEnter(MapLoadingStage2::Ready), |mut commands: Commands, mut next_game_state: ResMut<NextState<GameState>>| { 
                 commands.trigger(DynamicGameEvent::game_started());

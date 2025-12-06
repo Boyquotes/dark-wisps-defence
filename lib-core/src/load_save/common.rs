@@ -82,6 +82,7 @@ pub trait GameDbHelpers {
     
     fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize>;
     fn save_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<usize>;
+    fn save_objective(&self, entity_id: i64, id_name: &str, objective_type: &str, activation_event: &str, state: &str) -> rusqlite::Result<usize>;
     
     fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords>;
     fn get_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<bool>;
@@ -141,6 +142,14 @@ impl GameDbHelpers for rusqlite::Connection {
         self.execute(
             "INSERT INTO disabled_by_player (entity_id) VALUES (?1)",
             [entity_id],
+        )
+    }
+
+    fn save_objective(&self, entity_id: i64, id_name: &str, objective_type: &str, activation_event: &str, state: &str) -> rusqlite::Result<usize> {
+        self.register_entity(entity_id)?;
+        self.execute(
+            "INSERT INTO objectives (id, id_name, objective_type, activation_event, state) VALUES (?1, ?2, ?3, ?4, ?5)",
+            (entity_id, id_name, objective_type, activation_event, state),
         )
     }
 

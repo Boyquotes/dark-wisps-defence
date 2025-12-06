@@ -15,7 +15,7 @@ use crate::buildings::tower_blaster::BuilderTowerBlaster;
 use crate::buildings::tower_cannon::BuilderTowerCannon;
 use crate::buildings::tower_emitter::BuilderTowerEmitter;
 use crate::buildings::tower_rocket_launcher::BuilderTowerRocketLauncher;
-use crate::objectives::ObjectiveDetails;
+use crate::objectives::{BuilderObjective, ObjectiveDetails};
 use crate::map_objects::dark_ore::BuilderDarkOre;
 use crate::map_objects::quantum_field::BuilderQuantumField;
 use crate::map_objects::walls::BuilderWall;
@@ -201,7 +201,7 @@ impl MapFile {
             commands.spawn(BuilderQuantumField::new(quantum_field.coords, grid_imprint));
         });
         self.objectives.iter().cloned().for_each(|objective_details| {
-            commands.spawn(objective_details);
+            commands.spawn(BuilderObjective::new(objective_details));
         });
         self.summonings.iter().cloned().for_each(|summoning| {
             commands.spawn(summoning);

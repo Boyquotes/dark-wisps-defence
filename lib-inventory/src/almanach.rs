@@ -64,23 +64,23 @@ impl AlmanachRequestPotentialUpgradesInsertion {
         let entity = trigger.entity;
         let Ok(building_type) = buildings.get(entity) else { return; };
 
-        commands.entity(entity).with_related_entities::<PotentialUpgradeOf>(|parent|
+        commands.entity(entity).with_related_entities::<PotentialUpgradeOf>(|related|
             almanach.get_building_info(*building_type).upgrades.values().for_each(|upgrade| {
                 match upgrade.upgrade_type {
                     ModifierType::AttackSpeed => {
-                        parent.spawn((ModifierAttackSpeed(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                        related.spawn((ModifierAttackSpeed(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::AttackRange => {
-                        parent.spawn((ModifierAttackRange(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                        related.spawn((ModifierAttackRange(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::AttackDamage => {
-                        parent.spawn((ModifierAttackDamage(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                        related.spawn((ModifierAttackDamage(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::MaxHealth => {
-                        parent.spawn((ModifierMaxHealth(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                        related.spawn((ModifierMaxHealth(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::EnergySupplyRange => {
-                        parent.spawn((ModifierEnergySupplyRange(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
+                        related.spawn((ModifierEnergySupplyRange(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
                     }
                     ModifierType::MovementSpeed => {
                         panic!("Building is trying to run away!");

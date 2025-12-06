@@ -97,7 +97,6 @@ fn recalculate_on_modifier_inserted<T: Component + Modifier, U: Component + Prop
 
 
 #[derive(Component)]
-//#[require(ApplyPotentialUpgradeObserver)]
 #[relationship(relationship_target = PotentialUpgrades)]
 pub struct PotentialUpgradeOf(pub Entity);
 
@@ -114,7 +113,6 @@ impl ApplyPotentialUpgrade {
         trigger: On<ApplyPotentialUpgrade>,
         mut commands: Commands,
         mut potential_upgrades: Query<(&ModifierType, &mut ModifierSourceUpgrade, &PotentialUpgradeOf)>,
-        // Modifier value components
     ) {
         let entity = trigger.entity;
         let Ok((modifier_type, mut modifier_source_upgrade, parent)) = potential_upgrades.get_mut(entity) else { return; };

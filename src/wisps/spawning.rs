@@ -2,7 +2,7 @@ use lib_grid::grids::wisps::WispsGrid;
 
 use crate::prelude::*;
 
-use super::components::{Wisp, WispElectricType, WispFireType, WispLightType, WispType, WispWaterType};
+use super::components::{Wisp, WispElectricType, WispFireType, WispLightType, WispState, WispType, WispWaterType};
 use super::materials::WispMaterial;
 
 pub const WISP_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
@@ -76,14 +76,21 @@ impl BuilderWisp {
 
     pub fn on_game_save(
         mut commands: Commands,
-        wisps: Query<(Entity, &WispType, &GridCoords, &Health, &Transform), With<Wisp>>,
+        wisps: Query<(Entity, &WispType, &GridCoords, &Health, &Transform, &WispState), With<Wisp>>,
     ) {
         if wisps.is_empty() { return; }
-        let batch = wisps.iter().map(|(entity, wisp_type, coords, health, transform)| {
+        let batch = wisps.iter().map(|(entity, wisp_type, coords, health, transform, wisp_state)| {
+            // TODO: Once the wisps logic is mature, save the full wisp state properly. Right now we are ignoring some states(for exmple, attacking) and simply allow wisp to retarget on spawn, and continue from there.
+            let world_position = if matches!(wisp_state, WispState::Attacking) {
+                coords.to_world_position_centered(WISP_GRID_IMPRINT)
+            } else {
+                transform.translation.xy()
+            };
+            
             let save_data = WispSaveData {
                 entity,
                 health: health.get_current(),
-                world_position: transform.translation.xy(),
+                world_position,
             };
             BuilderWisp::new_for_saving(*wisp_type, *coords, save_data)
         }).collect::<SaveableBatchCommand<_>>();

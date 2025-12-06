@@ -161,3 +161,8 @@ CREATE TABLE objective_kill_wisps (
     started_amount INTEGER NOT NULL,
     FOREIGN KEY(id) REFERENCES objectives(id)
 );
+
+CREATE TABLE stats (
+    stat_name TEXT PRIMARY KEY,
+    stat_value REAL NOT NULL
+);

@@ -82,13 +82,14 @@ pub trait GameDbHelpers {
     
     fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize>;
     fn save_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<usize>;
-    fn save_objective(&self, entity_id: i64, id_name: &str, objective_type: &str, activation_event: &str, state: &str) -> rusqlite::Result<usize>;
+    fn save_stat(&self, stat_name: &str, stat_value: f32) -> rusqlite::Result<usize>;
     
     fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords>;
     fn get_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<bool>;
     fn get_world_position(&self, entity_id: i64) -> rusqlite::Result<Vec2>;
     fn get_health(&self, entity_id: i64) -> rusqlite::Result<f32>;
     fn get_grid_imprint(&self, entity_id: i64) -> rusqlite::Result<GridImprint>;
+    fn get_stat(&self, stat_name: &str) -> rusqlite::Result<f32>;
 }
 impl GameDbHelpers for rusqlite::Connection {
     fn register_entity(&self, entity_id: i64) -> rusqlite::Result<usize> {
@@ -145,11 +146,10 @@ impl GameDbHelpers for rusqlite::Connection {
         )
     }
 
-    fn save_objective(&self, entity_id: i64, id_name: &str, objective_type: &str, activation_event: &str, state: &str) -> rusqlite::Result<usize> {
-        self.register_entity(entity_id)?;
+    fn save_stat(&self, stat_name: &str, stat_value: f32) -> rusqlite::Result<usize> {
         self.execute(
-            "INSERT INTO objectives (id, id_name, objective_type, activation_event, state) VALUES (?1, ?2, ?3, ?4, ?5)",
-            (entity_id, id_name, objective_type, activation_event, state),
+            "INSERT OR REPLACE INTO stats (stat_name, stat_value) VALUES (?1, ?2)",
+            (stat_name, stat_value),
         )
     }
 
@@ -157,6 +157,13 @@ impl GameDbHelpers for rusqlite::Connection {
         let mut stmt = self.prepare("SELECT 1 FROM disabled_by_player WHERE entity_id = ?1")?;
         let exists = stmt.exists([entity_id])?;
         Ok(exists)
+    }
+
+    fn get_stat(&self, stat_name: &str) -> rusqlite::Result<f32> {
+        let mut stmt = self.prepare("SELECT stat_value FROM stats WHERE stat_name = ?1")?;
+        let mut rows = stmt.query([stat_name])?;
+        let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
+        Ok(row.get(0)?)
     }
     
     fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords> {

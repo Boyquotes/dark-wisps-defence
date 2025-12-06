@@ -200,12 +200,11 @@ impl Saveable for BuilderObjective {
             ObjectiveType::KillWisps(_) => "kill_wisps",
         };
 
-        tx.save_objective(
-            entity_index,
-            &self.objective_details.id_name,
-            objective_type_str,
-            &self.objective_details.activation_event,
-            save_data.state.to_str(),
+        // Save objective to DB
+        tx.register_entity(entity_index)?;
+        tx.execute(
+            "INSERT INTO objectives (id, id_name, objective_type, activation_event, state) VALUES (?1, ?2, ?3, ?4, ?5)",
+            (entity_index, &self.objective_details.id_name, objective_type_str, &self.objective_details.activation_event, save_data.state.to_str()),
         )?;
 
         // Save type-specific data

@@ -83,6 +83,7 @@ pub trait GameDbHelpers {
     fn save_marker(&self, table_name: &str, entity_id: i64) -> rusqlite::Result<usize>;
     fn save_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<usize>;
     fn save_stat(&self, stat_name: &str, stat_value: f32) -> rusqlite::Result<usize>;
+    fn save_stock_resource(&self, resource_name: &str, amount: i32) -> rusqlite::Result<usize>;
     
     fn get_grid_coords(&self, entity_id: i64) -> rusqlite::Result<GridCoords>;
     fn get_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<bool>;
@@ -90,6 +91,7 @@ pub trait GameDbHelpers {
     fn get_health(&self, entity_id: i64) -> rusqlite::Result<f32>;
     fn get_grid_imprint(&self, entity_id: i64) -> rusqlite::Result<GridImprint>;
     fn get_stat(&self, stat_name: &str) -> rusqlite::Result<f32>;
+    fn get_stock_resource(&self, resource_name: &str) -> rusqlite::Result<i32>;
 }
 impl GameDbHelpers for rusqlite::Connection {
     fn register_entity(&self, entity_id: i64) -> rusqlite::Result<usize> {
@@ -153,6 +155,13 @@ impl GameDbHelpers for rusqlite::Connection {
         )
     }
 
+    fn save_stock_resource(&self, resource_name: &str, amount: i32) -> rusqlite::Result<usize> {
+        self.execute(
+            "INSERT OR REPLACE INTO stock (resource_name, amount) VALUES (?1, ?2)",
+            (resource_name, amount),
+        )
+    }
+
     fn get_disabled_by_player(&self, entity_id: i64) -> rusqlite::Result<bool> {
         let mut stmt = self.prepare("SELECT 1 FROM disabled_by_player WHERE entity_id = ?1")?;
         let exists = stmt.exists([entity_id])?;
@@ -162,6 +171,13 @@ impl GameDbHelpers for rusqlite::Connection {
     fn get_stat(&self, stat_name: &str) -> rusqlite::Result<f32> {
         let mut stmt = self.prepare("SELECT stat_value FROM stats WHERE stat_name = ?1")?;
         let mut rows = stmt.query([stat_name])?;
+        let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
+        Ok(row.get(0)?)
+    }
+
+    fn get_stock_resource(&self, resource_name: &str) -> rusqlite::Result<i32> {
+        let mut stmt = self.prepare("SELECT amount FROM stock WHERE resource_name = ?1")?;
+        let mut rows = stmt.query([resource_name])?;
         let row = rows.next()?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
         Ok(row.get(0)?)
     }

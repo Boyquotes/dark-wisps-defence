@@ -166,3 +166,8 @@ CREATE TABLE stats (
     stat_name TEXT PRIMARY KEY,
     stat_value REAL NOT NULL
 );
+
+CREATE TABLE stock (
+    resource_name TEXT PRIMARY KEY,
+    amount INTEGER NOT NULL
+);

@@ -12,7 +12,9 @@ impl Plugin for ResourcesPlugin {
             .init_resource::<Stock>()
             .add_message::<StockChangedEvent>()
             .add_systems(PostUpdate, emit_delta_events_system.run_if(resource_changed::<Stock>))
-            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(Stock::default()); });
+            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(Stock::default()); })
+            .register_db_loader::<StockLoader>(MapLoadingStage2::LoadResources)
+            .register_db_saver(Stock::on_game_save);
     }
 }
 
@@ -76,12 +78,13 @@ pub struct Cost {
     pub amount: i32,
 }
 
+#[derive(Clone)]
 struct StockInfo {
     amount: i32,
     max_amount: i32,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Clone, SSS)]
 pub struct Stock {
     current: HashMap<ResourceType, StockInfo>,
     delta: HashMap<ResourceType, i32>,
@@ -104,6 +107,12 @@ impl Stock {
         let info = self.get_info_mut(resource_type);
         info.amount = std::cmp::min(info.max_amount, info.amount + amount);
         self.add_delta(resource_type, amount);
+    }
+    pub fn set(&mut self, resource_type: ResourceType, amount: i32) {
+        let info = self.get_info_mut(resource_type);
+        let delta = amount - info.amount;
+        info.amount = std::cmp::min(info.max_amount, amount);
+        self.add_delta(resource_type, delta);
     }
     pub fn try_pay_cost(&mut self, cost: Cost) -> bool {
         self.try_remove(cost.resource_type, cost.amount)
@@ -143,6 +152,51 @@ impl Default for Stock {
             delta.insert(ResourceType::Essence(*essence_type), 0);
         }
         Self { current, delta }
+    }
+}
+
+impl Saveable for Stock {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        tx.save_stock_resource("dark_ore", self.get(ResourceType::DarkOre))?;
+        tx.save_stock_resource("essence_fire", self.get(ResourceType::Essence(EssenceType::Fire)))?;
+        tx.save_stock_resource("essence_water", self.get(ResourceType::Essence(EssenceType::Water)))?;
+        tx.save_stock_resource("essence_light", self.get(ResourceType::Essence(EssenceType::Light)))?;
+        tx.save_stock_resource("essence_electric", self.get(ResourceType::Essence(EssenceType::Electric)))?;
+        Ok(())
+    }
+}
+
+impl Stock {
+    fn on_game_save(
+        mut commands: Commands,
+        stock: Res<Stock>,
+    ) {
+        commands.queue(SaveableBatchCommand::from_single(stock.clone()));
+    }
+}
+
+struct StockLoader;
+impl Loadable for StockLoader {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stock = Stock::default();
+        
+        // Load DarkOre
+        let dark_ore_amount = ctx.conn.get_stock_resource("dark_ore").unwrap_or(5555);
+        stock.set(ResourceType::DarkOre, dark_ore_amount);
+        // Load Essences
+        for essence_type in EssenceType::VARIANTS.iter() {
+            let resource_name = match essence_type {
+                EssenceType::Fire => "essence_fire",
+                EssenceType::Water => "essence_water",
+                EssenceType::Light => "essence_light",
+                EssenceType::Electric => "essence_electric",
+            };
+            let amount = ctx.conn.get_stock_resource(resource_name).unwrap_or(0);
+            stock.set(ResourceType::Essence(*essence_type), amount);
+        }
+        
+        ctx.commands.insert_resource(stock);
+        Ok(LoadResult::Finished)
     }
 }
 

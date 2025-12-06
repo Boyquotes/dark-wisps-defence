@@ -171,3 +171,12 @@ CREATE TABLE stock (
     resource_name TEXT PRIMARY KEY,
     amount INTEGER NOT NULL
 );
+
+CREATE TABLE summonings (
+    id INTEGER PRIMARY KEY,
+    summoning_json TEXT NOT NULL,
+    produced INTEGER NOT NULL,
+    next_spawn_time REAL NOT NULL,
+    is_active INTEGER NOT NULL,
+    FOREIGN KEY(id) REFERENCES entities(id)
+);

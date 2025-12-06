@@ -2028,6 +2028,7 @@ dependencies = [
  "lib-ui",
  "nanorand",
  "serde",
+ "serde_json",
  "serde_yaml",
 ]
 

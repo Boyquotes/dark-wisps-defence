@@ -19,7 +19,7 @@ use crate::objectives::{BuilderObjective, ObjectiveDetails};
 use crate::map_objects::dark_ore::BuilderDarkOre;
 use crate::map_objects::quantum_field::BuilderQuantumField;
 use crate::map_objects::walls::BuilderWall;
-use crate::wisps::summoning::Summoning;
+use crate::wisps::summoning::{BuilderSummoning, Summoning};
 
 pub struct MapLoaderPlugin;
 impl Plugin for MapLoaderPlugin {
@@ -204,7 +204,7 @@ impl MapFile {
             commands.spawn(BuilderObjective::new(objective_details));
         });
         self.summonings.iter().cloned().for_each(|summoning| {
-            commands.spawn(summoning);
+            commands.spawn(BuilderSummoning::new(summoning));
         });
     }
 }

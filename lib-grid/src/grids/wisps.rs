@@ -16,7 +16,7 @@ impl WispsGrid {
         self.version = self.version.wrapping_add(1);
     }
     pub fn wisp_remove(&mut self, coords: GridCoords, wisp: Entity) {
-        let pos = self[coords].iter().position(|x| *x == wisp).unwrap();
+        let Some(pos) = self[coords].iter().position(|x| *x == wisp) else { return; };
         self[coords].swap_remove(pos);
         self.version = self.version.wrapping_add(1);
     }

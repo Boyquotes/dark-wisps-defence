@@ -92,10 +92,6 @@ impl TowerShootingTimer {
         let Ok((mut timer, attack_speed)) = timers.get_mut(entity) else { return; };
         if attack_speed.0 == 0. { return; }
         timer.0.set_duration(Duration::from_secs_f32(1. / attack_speed.0));
-        // Set to fire right away if it's first shot ever. This is not fault-proof solution as if it happens the AttackSpeed occurs exactly at 0. we can get double-shot.
-        if timer.0.elapsed_secs() == 0. {
-            timer.0.set_elapsed(Duration::from_secs_f32(1. / attack_speed.0));
-        }
     }
 }
 

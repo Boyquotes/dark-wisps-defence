@@ -12,7 +12,11 @@ impl Plugin for SummoningPlugin {
             .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(SummoningClock::default());})
             .add_systems(Update, tick_active_summoning_system.run_if(in_state(GameState::Running)))
             .add_observer(on_summoning_activation_event)
-            ;
+            .add_observer(BuilderSummoning::on_add)
+            .register_db_loader::<BuilderSummoning>(MapLoadingStage2::LoadResources)
+            .register_db_loader::<SummoningClock>(MapLoadingStage2::LoadResources)
+            .register_db_saver(BuilderSummoning::on_game_save)
+            .register_db_saver(SummoningClock::on_game_save);
     }
 }
 
@@ -111,9 +115,148 @@ struct SummoningRuntime {
     next_spawn_time: f32,
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, SSS)]
 struct SummoningClock(f32);
+impl Saveable for SummoningClock {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        tx.save_stat("summoning_clock", self.0)?;
+        Ok(())
+    }
+}
 
+impl Loadable for SummoningClock {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let clock_value = ctx.conn.get_stat("summoning_clock").unwrap_or(0.0);
+        ctx.commands.insert_resource(SummoningClock(clock_value));
+        Ok(LoadResult::Finished)
+    }
+}
+impl SummoningClock {
+    fn on_game_save(
+        mut commands: Commands,
+        clock: Res<SummoningClock>,
+    ) {
+        commands.queue(SaveableBatchCommand::from_single(clock.clone()));
+    }
+}
+
+
+// --------------- BUILDER PATTERN FOR SAVE/LOAD ---------------
+
+#[derive(Clone, Copy, Debug)]
+pub struct SummoningSaveData {
+    pub entity: Entity,
+    pub produced: i32,
+    pub next_spawn_time: f32,
+    pub is_active: bool,
+}
+
+#[derive(Component, SSS)]
+pub struct BuilderSummoning {
+    pub summoning: Summoning,
+    pub save_data: Option<SummoningSaveData>,
+}
+impl Saveable for BuilderSummoning {
+    fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
+        let save_data = self.save_data.expect("BuilderSummoning for saving must have save_data");
+        let entity_index = save_data.entity.index() as i64;
+
+        tx.register_entity(entity_index)?;
+        
+        let summoning_json = serde_json::to_string(&self.summoning)
+            .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+        
+        tx.execute(
+            "INSERT OR REPLACE INTO summonings (id, summoning_json, produced, next_spawn_time, is_active) VALUES (?1, ?2, ?3, ?4, ?5)",
+            (entity_index, summoning_json, save_data.produced, save_data.next_spawn_time, if save_data.is_active { 1 } else { 0 }),
+        )?;
+        Ok(())
+    }
+}
+impl Loadable for BuilderSummoning {
+    fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
+        let mut stmt = ctx.conn.prepare("SELECT id, summoning_json, produced, next_spawn_time, is_active FROM summonings LIMIT ?1 OFFSET ?2")?;
+        let mut rows = stmt.query(ctx.pagination.as_params())?;
+        
+        let mut count = 0;
+        while let Some(row) = rows.next()? {
+            let old_id: i64 = row.get(0)?;
+            let summoning_json: String = row.get(1)?;
+            let produced: i32 = row.get(2)?;
+            let next_spawn_time: f32 = row.get(3)?;
+            let is_active: i32 = row.get(4)?;
+            
+            let summoning: Summoning = serde_json::from_str(&summoning_json)
+                .map_err(|e| rusqlite::Error::FromSqlConversionFailure(1, rusqlite::types::Type::Text, Box::new(e)))?;
+            
+            if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
+                let save_data = SummoningSaveData {
+                    entity: new_entity,
+                    produced,
+                    next_spawn_time,
+                    is_active: is_active != 0,
+                };
+                ctx.commands.entity(new_entity).insert(BuilderSummoning::new_for_saving(summoning, save_data));
+            }
+            count += 1;
+        }
+        Ok(count.into())
+    }
+}
+impl BuilderSummoning {
+    pub fn new(summoning: Summoning) -> Self {
+        Self { summoning, save_data: None }
+    }
+    
+    pub fn new_for_saving(summoning: Summoning, save_data: SummoningSaveData) -> Self {
+        Self { summoning, save_data: Some(save_data) }
+    }
+    
+    fn on_game_save(
+        mut commands: Commands,
+        summonings: Query<(Entity, &Summoning, &SummoningRuntime, Has<SummoningMarkerActive>)>,
+    ) {
+        if summonings.is_empty() { return; }
+        let batch = summonings.iter().map(|(entity, summoning, runtime, is_active)| {
+            let save_data = SummoningSaveData {
+                entity,
+                produced: runtime.produced,
+                next_spawn_time: runtime.next_spawn_time,
+                is_active,
+            };
+            BuilderSummoning::new_for_saving(summoning.clone(), save_data)
+        }).collect::<SaveableBatchCommand<_>>();
+        commands.queue(batch);
+    }
+    
+    fn on_add(
+        trigger: On<Add, BuilderSummoning>,
+        mut commands: Commands,
+        builders: Query<&BuilderSummoning>,
+    ) {
+        let entity = trigger.entity;
+        let Ok(builder) = builders.get(entity) else { return; };
+        
+        let mut entity_commands = commands.entity(entity);
+        
+        // Restore runtime state if loading from save
+        if let Some(save_data) = &builder.save_data {
+            entity_commands.insert(SummoningRuntime {
+                produced: save_data.produced,
+                next_spawn_time: save_data.next_spawn_time,
+            });
+            
+            if save_data.is_active {
+                entity_commands.insert(SummoningMarkerActive);
+            }
+        }
+        
+        // Insert the actual Summoning component and remove builder
+        entity_commands
+            .remove::<BuilderSummoning>()
+            .insert(builder.summoning.clone());
+    }
+}
 
 fn tick_active_summoning_system(
     time: Res<Time>,

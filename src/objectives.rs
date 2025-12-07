@@ -1,3 +1,6 @@
+use std::str::FromStr;
+use strum::{AsRefStr, EnumString};
+
 use crate::map_objects::quantum_field::QuantumField;
 use crate::prelude::*;
 
@@ -47,31 +50,12 @@ struct ObjectiveSaveData {
     kill_wisps_data: Option<(usize, usize)>, // (target_amount, started_amount)
 }
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, EnumString, AsRefStr)]
 pub enum ObjectiveState {
     Inactive,
     InProgress,
     Completed,
     Failed,
-}
-impl ObjectiveState {
-    fn to_str(&self) -> &str {
-        match self {
-            ObjectiveState::Inactive => "inactive",
-            ObjectiveState::InProgress => "in_progress",
-            ObjectiveState::Completed => "completed",
-            ObjectiveState::Failed => "failed",
-        }
-    }
-    fn from_str(s: &str) -> Self {
-        match s {
-            "inactive" => ObjectiveState::Inactive,
-            "in_progress" => ObjectiveState::InProgress,
-            "completed" => ObjectiveState::Completed,
-            "failed" => ObjectiveState::Failed,
-            _ => ObjectiveState::Inactive,
-        }
-    }
 }
 
 #[derive(Component, SSS)]
@@ -202,7 +186,7 @@ impl Saveable for BuilderObjective {
         tx.register_entity(entity_index)?;
         tx.execute(
             "INSERT INTO objectives (id, id_name, objective_type, activation_event, state) VALUES (?1, ?2, ?3, ?4, ?5)",
-            (entity_index, &self.objective_details.id_name, objective_type_str, &self.objective_details.activation_event, save_data.state.to_str()),
+            (entity_index, &self.objective_details.id_name, objective_type_str, &self.objective_details.activation_event, save_data.state.as_ref()),
         )?;
 
         // Save type-specific data
@@ -236,7 +220,7 @@ impl Loadable for BuilderObjective {
             let activation_event: String = row.get(3)?;
             let state_str: String = row.get(4)?;
 
-            let state = ObjectiveState::from_str(&state_str);
+            let state = ObjectiveState::from_str(state_str.as_str()).unwrap();
 
             // Load type-specific data
             let (objective_type, kill_wisps_data) = match objective_type_str.as_str() {

@@ -1,3 +1,4 @@
+use strum::{AsRefStr, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::lib_prelude::*;
 
@@ -32,15 +33,12 @@ impl From<EssenceType> for ResourceType {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, EnumString, AsRefStr, EnumIter)]
 pub enum EssenceType {
     Fire,
     Water,
     Light,
     Electric,
-}
-impl EssenceType {
-    pub const VARIANTS: [EssenceType; 4] = [EssenceType::Fire, EssenceType::Water, EssenceType::Light, EssenceType::Electric];
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -147,9 +145,9 @@ impl Default for Stock {
         let mut delta = HashMap::new();
         current.insert(ResourceType::DarkOre, StockInfo { amount: 5555, max_amount: MAX_DARK_ORE_STOCK });
         delta.insert(ResourceType::DarkOre, 0);
-        for essence_type in EssenceType::VARIANTS.iter() {
-            current.insert(ResourceType::Essence(*essence_type), StockInfo { amount: 0, max_amount: MAX_ESSENCE_STOCK });
-            delta.insert(ResourceType::Essence(*essence_type), 0);
+        for essence_type in EssenceType::iter() {
+            current.insert(ResourceType::Essence(essence_type), StockInfo { amount: 0, max_amount: MAX_ESSENCE_STOCK });
+            delta.insert(ResourceType::Essence(essence_type), 0);
         }
         Self { current, delta }
     }
@@ -157,11 +155,11 @@ impl Default for Stock {
 
 impl Saveable for Stock {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
-        tx.save_stock_resource("dark_ore", self.get(ResourceType::DarkOre))?;
-        tx.save_stock_resource("essence_fire", self.get(ResourceType::Essence(EssenceType::Fire)))?;
-        tx.save_stock_resource("essence_water", self.get(ResourceType::Essence(EssenceType::Water)))?;
-        tx.save_stock_resource("essence_light", self.get(ResourceType::Essence(EssenceType::Light)))?;
-        tx.save_stock_resource("essence_electric", self.get(ResourceType::Essence(EssenceType::Electric)))?;
+        tx.save_stock_resource("DarkOre", self.get(ResourceType::DarkOre))?;
+        for essence_type in EssenceType::iter() {
+            let resource_key = essence_type.as_ref();
+            tx.save_stock_resource(&resource_key, self.get(ResourceType::Essence(essence_type)))?;
+        }
         Ok(())
     }
 }
@@ -181,18 +179,13 @@ impl Loadable for StockLoader {
         let mut stock = Stock::default();
         
         // Load DarkOre
-        let dark_ore_amount = ctx.conn.get_stock_resource("dark_ore").unwrap_or(5555);
+        let dark_ore_amount = ctx.conn.get_stock_resource("DarkOre").unwrap_or(5555);
         stock.set(ResourceType::DarkOre, dark_ore_amount);
         // Load Essences
-        for essence_type in EssenceType::VARIANTS.iter() {
-            let resource_name = match essence_type {
-                EssenceType::Fire => "essence_fire",
-                EssenceType::Water => "essence_water",
-                EssenceType::Light => "essence_light",
-                EssenceType::Electric => "essence_electric",
-            };
-            let amount = ctx.conn.get_stock_resource(resource_name).unwrap_or(0);
-            stock.set(ResourceType::Essence(*essence_type), amount);
+        for essence_type in EssenceType::iter() {
+            let resource_key = essence_type.as_ref();
+            let amount = ctx.conn.get_stock_resource(&resource_key).unwrap_or(0);
+            stock.set(ResourceType::Essence(essence_type), amount);
         }
         
         ctx.commands.insert_resource(stock);

@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use lib_grid::grids::wisps::WispsGrid;
 
 use crate::prelude::*;
@@ -31,7 +33,7 @@ impl Saveable for BuilderWisp {
         tx.save_grid_coords(entity_index, self.grid_coords)?;
         tx.save_health(entity_index, save_data.health)?;
 
-        let type_str = self.wisp_type.as_str();
+        let type_str = self.wisp_type.as_ref();
         tx.execute(
             "INSERT OR REPLACE INTO wisps (id, wisp_type) VALUES (?1, ?2)",
             rusqlite::params![entity_index, type_str],
@@ -50,7 +52,10 @@ impl Loadable for BuilderWisp {
             let old_id: i64 = row.get(0)?;
             let type_str: String = row.get(1)?;
             
-            let Some(wisp_type) = WispType::from_str(&type_str) else { continue; };
+            let Ok(wisp_type) = WispType::from_str(&type_str) else { 
+                eprintln!("Failed to parse WispType '{}'", type_str);
+                continue; 
+            };
 
             let grid_coords = ctx.conn.get_grid_coords(old_id)?;
             let health = ctx.conn.get_health(old_id)?;

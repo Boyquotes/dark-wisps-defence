@@ -10,6 +10,7 @@ nanorand = "0.7.0"
 serde = "1.0.*"
 serde_yaml = "0.9.*"
 serde_json = "1.0.*"
+strum = { version = "0.27.*", features = ["derive"] }
 
 [dependencies.lib-core]
 path = "lib-core"

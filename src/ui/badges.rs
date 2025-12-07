@@ -1,5 +1,6 @@
-use lib_ui::utils::recolor_background_on;
+use strum::IntoEnumIterator;
 
+use lib_ui::utils::recolor_background_on;
 
 use crate::prelude::*;
 
@@ -112,7 +113,7 @@ fn initialize_badges_system(
             BorderColor::from(Color::linear_rgba(0., 0.3, 0.9, 0.3)),
             BorderRadius::all(Val::Px(2.)),
         )).with_children(|parent| {
-            for essence_type in EssenceType::VARIANTS {
+            for essence_type in EssenceType::iter() {
                 let essence_badge = parent
                     .spawn((
                         Node {

@@ -1,32 +1,13 @@
+use strum::{AsRefStr, EnumString};
+
 use crate::prelude::*;
 
-#[derive(Component, Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Component, Copy, Clone, Debug, Serialize, Deserialize, EnumString, AsRefStr)]
 pub enum WispType {
     Fire,
     Water,
     Light,
     Electric,
-}
-
-impl WispType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            WispType::Fire => "Fire",
-            WispType::Water => "Water",
-            WispType::Light => "Light",
-            WispType::Electric => "Electric",
-        }
-    }
-    
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "Fire" => Some(WispType::Fire),
-            "Water" => Some(WispType::Water),
-            "Light" => Some(WispType::Light),
-            "Electric" => Some(WispType::Electric),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Component)]

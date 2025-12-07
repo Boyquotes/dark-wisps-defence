@@ -9,13 +9,13 @@ impl Plugin for ObjectivesPlugin {
         app
             .add_systems(Update, (
                 (
-                    update_clear_all_quantum_fields_system,
-                    update_kill_wisps_system,
+                    ObjectiveClearAllQuantumFields::update,
+                    ObjectiveKillWisps::update,
                 ).run_if(in_state(GameState::Running)),
             ))
             .add_observer(BuilderObjective::on_add)
-            .add_observer(on_objective_state_changed)
-            .add_observer(on_reassess_inactive_objectives_event)
+            .add_observer(Objective::on_objective_state_changed)
+            .add_observer(Objective::reassess_inactive_objectives_on_dynamic_event)
             .register_db_loader::<BuilderObjective>(MapLoadingStage2::LoadResources)
             .register_db_saver(BuilderObjective::on_game_save)
             ;
@@ -41,10 +41,10 @@ impl ObjectiveDetails {
 }
 
 #[derive(Clone, Debug)]
-pub struct ObjectiveSaveData {
-    pub entity: Entity,
-    pub state: ObjectiveState,
-    pub kill_wisps_data: Option<(usize, usize)>, // (target_amount, started_amount)
+struct ObjectiveSaveData {
+    entity: Entity,
+    state: ObjectiveState,
+    kill_wisps_data: Option<(usize, usize)>, // (target_amount, started_amount)
 }
 
 #[derive(Component, Clone, Debug)]
@@ -76,15 +76,14 @@ impl ObjectiveState {
 
 #[derive(Component, SSS)]
 pub struct BuilderObjective {
-    pub objective_details: ObjectiveDetails,
-    pub save_data: Option<ObjectiveSaveData>,
+    objective_details: ObjectiveDetails,
+    save_data: Option<ObjectiveSaveData>,
 }
-
 impl BuilderObjective {
     pub fn new(objective_details: ObjectiveDetails) -> Self {
         Self { objective_details, save_data: None }
     }
-    pub fn new_for_saving(objective_details: ObjectiveDetails, save_data: ObjectiveSaveData) -> Self {
+    fn new_for_saving(objective_details: ObjectiveDetails, save_data: ObjectiveSaveData) -> Self {
         Self { objective_details, save_data: Some(save_data) }
     }
 
@@ -189,7 +188,6 @@ impl BuilderObjective {
         }
     }
 }
-
 impl Saveable for BuilderObjective {
     fn save(self, tx: &rusqlite::Transaction) -> rusqlite::Result<()> {
         let save_data = self.save_data.expect("BuilderObjective for saving must have save_data");
@@ -225,7 +223,6 @@ impl Saveable for BuilderObjective {
         Ok(())
     }
 }
-
 impl Loadable for BuilderObjective {
     fn load(ctx: &mut LoadContext) -> rusqlite::Result<LoadResult> {
         let mut stmt = ctx.conn.prepare("SELECT id, id_name, objective_type, activation_event, state FROM objectives LIMIT ?1 OFFSET ?2")?;
@@ -292,50 +289,50 @@ pub struct Objective {
     pub checkmark: Entity,
     pub text: Entity,
 }
-
-fn on_reassess_inactive_objectives_event(
-    trigger: On<DynamicGameEvent>,
-    mut commands: Commands,
-    objectives: Query<(Entity, &ObjectiveDetails, &ObjectiveState)>,
-) {
-    let event = &trigger.event().0;
-    for (objective_entity, objective_details, state) in objectives.iter() {
-        if !matches!(state, ObjectiveState::Inactive) { continue; }
-        if event != &objective_details.activation_event { continue; }
-        commands.entity(objective_entity).insert(ObjectiveState::InProgress);
+impl Objective {
+    fn reassess_inactive_objectives_on_dynamic_event(
+        trigger: On<DynamicGameEvent>,
+        mut commands: Commands,
+        objectives: Query<(Entity, &ObjectiveDetails, &ObjectiveState)>,
+    ) {
+        let event = &trigger.event().0;
+        for (objective_entity, objective_details, state) in objectives.iter() {
+            if !matches!(state, ObjectiveState::Inactive) { continue; }
+            if event != &objective_details.activation_event { continue; }
+            commands.entity(objective_entity).insert(ObjectiveState::InProgress);
+        }
     }
-}
-
-fn on_objective_state_changed(
-    trigger: On<Insert, ObjectiveState>,
-    objectives: Query<(&Objective, &ObjectiveState)>,
-    mut bg_colors: Query<&mut BackgroundColor>,
-    mut border_colors: Query<&mut BorderColor>,
-    mut checkmarks: Query<&mut ImageNode, With<ObjectiveCheckmark>>,
-    asset_server: Res<AssetServer>,
-) {
-    let entity = trigger.entity;
-    let Ok((objective, state)) = objectives.get(entity) else { return; };
-    
-    let Ok(mut checkmark) = checkmarks.get_mut(objective.checkmark) else { return; };
-    let Ok(mut bg) = bg_colors.get_mut(entity) else { return; };
-    let Ok(mut border) = border_colors.get_mut(entity) else { return; };
-    
-    match state {
-        ObjectiveState::Inactive | ObjectiveState::InProgress => {
-            checkmark.image = asset_server.load("ui/objectives_check_active.png");
-            *bg = Color::linear_rgba(0.1, 0.3, 0.8, 0.7).into();
-            *border = Color::linear_rgba(0., 0.2, 0.8, 0.9).into();
-        }
-        ObjectiveState::Completed => {
-            checkmark.image = asset_server.load("ui/objectives_check_completed.png");
-            *bg = Color::linear_rgba(0.1, 0.8, 0.3, 0.7).into();
-            *border = Color::linear_rgba(0., 0.8, 0.2, 0.9).into();
-        }
-        ObjectiveState::Failed => {
-            checkmark.image = asset_server.load("ui/objectives_check_failed.png");
-            *bg = Color::linear_rgba(0.8, 0.1, 0.3, 0.7).into();
-            *border = Color::linear_rgba(0.8, 0., 0.2, 0.9).into();
+    fn on_objective_state_changed(
+        trigger: On<Insert, ObjectiveState>,
+        objectives: Query<(&Objective, &ObjectiveState)>,
+        mut bg_colors: Query<&mut BackgroundColor>,
+        mut border_colors: Query<&mut BorderColor>,
+        mut checkmarks: Query<&mut ImageNode, With<ObjectiveCheckmark>>,
+        asset_server: Res<AssetServer>,
+    ) {
+        let entity = trigger.entity;
+        let Ok((objective, state)) = objectives.get(entity) else { return; };
+        
+        let Ok(mut checkmark) = checkmarks.get_mut(objective.checkmark) else { return; };
+        let Ok(mut bg) = bg_colors.get_mut(entity) else { return; };
+        let Ok(mut border) = border_colors.get_mut(entity) else { return; };
+        
+        match state {
+            ObjectiveState::Inactive | ObjectiveState::InProgress => {
+                checkmark.image = asset_server.load("ui/objectives_check_active.png");
+                *bg = Color::linear_rgba(0.1, 0.3, 0.8, 0.7).into();
+                *border = Color::linear_rgba(0., 0.2, 0.8, 0.9).into();
+            }
+            ObjectiveState::Completed => {
+                checkmark.image = asset_server.load("ui/objectives_check_completed.png");
+                *bg = Color::linear_rgba(0.1, 0.8, 0.3, 0.7).into();
+                *border = Color::linear_rgba(0., 0.8, 0.2, 0.9).into();
+            }
+            ObjectiveState::Failed => {
+                checkmark.image = asset_server.load("ui/objectives_check_failed.png");
+                *bg = Color::linear_rgba(0.8, 0.1, 0.3, 0.7).into();
+                *border = Color::linear_rgba(0.8, 0., 0.2, 0.9).into();
+            }
         }
     }
 }
@@ -346,51 +343,53 @@ fn on_objective_state_changed(
 pub struct ObjectiveClearAllQuantumFields {
     completed_quantum_fields: usize,
 }
+impl ObjectiveClearAllQuantumFields {
+    // TODO: make it trigger only on quantum fieds change event
+    fn update(
+        mut commands: Commands,
+        mut objectives: Query<(Entity, &Objective, &mut ObjectiveClearAllQuantumFields, &ObjectiveState)>,
+        quantum_fields: Query<&QuantumField>,
+        mut texts: Query<&mut Text, With<ObjectiveText>>,
+    ) {
+        for (objective_entity, objective, mut objective_clear_all_quantum_fields, state) in &mut objectives {
+            if !matches!(state, ObjectiveState::InProgress) { continue; }
+            
+            objective_clear_all_quantum_fields.completed_quantum_fields = 0;
+            let total_quantum_fields = quantum_fields.iter().count();
 
-// TODO: make it trigger only on quantum fieds change event
-fn update_clear_all_quantum_fields_system(
-    mut commands: Commands,
-    mut objectives: Query<(Entity, &Objective, &mut ObjectiveClearAllQuantumFields, &ObjectiveState)>,
-    quantum_fields: Query<&QuantumField>,
-    mut texts: Query<&mut Text, With<ObjectiveText>>,
-) {
-    for (objective_entity, objective, mut objective_clear_all_quantum_fields, state) in &mut objectives {
-        if !matches!(state, ObjectiveState::InProgress) { continue; }
-        
-        objective_clear_all_quantum_fields.completed_quantum_fields = 0;
-        let total_quantum_fields = quantum_fields.iter().count();
+            let mut text = texts.get_mut(objective.text).unwrap();
+            text.0 = format!("Clear All Quantum Fields: {}/{}", objective_clear_all_quantum_fields.completed_quantum_fields, total_quantum_fields);
 
-        let mut text = texts.get_mut(objective.text).unwrap();
-        text.0 = format!("Clear All Quantum Fields: {}/{}", objective_clear_all_quantum_fields.completed_quantum_fields, total_quantum_fields);
-
-        if objective_clear_all_quantum_fields.completed_quantum_fields == total_quantum_fields {
-            commands.entity(objective_entity).insert(ObjectiveState::Completed);
+            if objective_clear_all_quantum_fields.completed_quantum_fields == total_quantum_fields {
+                commands.entity(objective_entity).insert(ObjectiveState::Completed);
+            }
         }
     }
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Clone)]
 pub struct ObjectiveKillWisps {
     target_amount: usize,
     started_amount: usize,
 }
+impl ObjectiveKillWisps {
+    fn update(
+        mut commands: Commands,
+        stats_wisps_killed: Res<StatsWispsKilled>,
+        mut objectives: Query<(Entity, &Objective, &ObjectiveKillWisps, &ObjectiveState)>,
+        mut texts: Query<&mut Text, With<ObjectiveText>>,
+    ) {
+        for (objective_entity, objective, objective_kill_wisps, state)  in &mut objectives {
+            if !matches!(state, ObjectiveState::InProgress) { continue; }
+            
+            let current_amount = std::cmp::min(stats_wisps_killed.0 - objective_kill_wisps.started_amount, objective_kill_wisps.target_amount);
+            let mut text = texts.get_mut(objective.text).unwrap();
+            text.0 = format!("Kill Wisps: {}/{}", current_amount, objective_kill_wisps.target_amount);
 
-fn update_kill_wisps_system(
-    mut commands: Commands,
-    stats_wisps_killed: Res<StatsWispsKilled>,
-    mut objectives: Query<(Entity, &Objective, &ObjectiveKillWisps, &ObjectiveState)>,
-    mut texts: Query<&mut Text, With<ObjectiveText>>,
-) {
-    for (objective_entity, objective, objective_kill_wisps, state)  in &mut objectives {
-        if !matches!(state, ObjectiveState::InProgress) { continue; }
-        
-        let current_amount = std::cmp::min(stats_wisps_killed.0 - objective_kill_wisps.started_amount, objective_kill_wisps.target_amount);
-        let mut text = texts.get_mut(objective.text).unwrap();
-        text.0 = format!("Kill Wisps: {}/{}", current_amount, objective_kill_wisps.target_amount);
+            if current_amount == objective_kill_wisps.target_amount {
+                commands.entity(objective_entity).insert(ObjectiveState::Completed);
+            }
 
-        if current_amount == objective_kill_wisps.target_amount {
-            commands.entity(objective_entity).insert(ObjectiveState::Completed);
         }
-
     }
 }

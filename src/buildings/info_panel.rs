@@ -12,7 +12,6 @@ impl Plugin for InfoPanelPlugin {
             .add_systems(Update, update_building_info_panel_system.run_if(in_state(UiInteraction::DisplayInfoPanel)))
             .add_observer(on_ui_map_object_focus_changed_trigger)
             .add_observer(on_building_info_panel_enabled_for_towers_trigger)
-            .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<Insert, ModifierSourceUpgrade>) // Refresh upgrade text on new upgrade
             .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<BuildingInfoPanelEnabledTrigger, ()>) // Refresh upgrade text on panel enabled
             .add_observer(BuildingInfoPanelDisableButton::on_add)
             ;
@@ -38,15 +37,15 @@ impl BuildingInfoPanelTowerUpgradeCountText {
     fn refresh_upgrade_count_on<T: Event, B: Bundle> (
         _trigger: On<T, B>,
         display_info_panel: Single<&DisplayInfoPanel>,
-        modifiers: Query<&Modifiers>,
-        upgrades: Query<(), With<ModifierSourceUpgrade>>,
+        upgrades_query: Query<&Upgrades>,
         upgrade_count_text: Single<&mut Text, With<BuildingInfoPanelTowerUpgradeCountText>>,
     ) {
         let focused_entity = display_info_panel.into_inner().current_focus;
-        let Ok(modifiers) = modifiers.get(focused_entity) else { return; };
-        let upgrade_count = modifiers.iter().filter(|upgrade_entity| upgrades.contains(*upgrade_entity)).count();
+        let Ok(upgrades) = upgrades_query.get(focused_entity) else { return; };
+        let purchased = upgrades.total_upgrades_purchased();
+        let available = upgrades.total_upgrades_available();
 
-        upgrade_count_text.into_inner().0 = format!("--- Upgrades {} / 3 ---", upgrade_count);
+        upgrade_count_text.into_inner().0 = format!("--- Upgrades {} / {} ---", purchased, available);
     }
 }
 #[derive(Component)]
@@ -169,11 +168,11 @@ fn on_building_info_panel_enabled_for_towers_trigger(
     trigger: On<BuildingInfoPanelEnabledTrigger>,
     mut commands: Commands,
     tower_subpanel_root: Single<&mut Node, With<BuildingInfoPanelTowerRoot>>,
-    towers: Query<&PotentialUpgrades, With<Tower>>,
+    towers: Query<&Upgrades, With<Tower>>,
     upgrades_container: Single<Entity, With<BuildingInfoPanelTowerUpgradesContainer>>,
 ){
     let focused_entity = trigger.entity;
-    let Ok(potential_upgrades) = towers.get(focused_entity) else {
+    let Ok(upgrades) = towers.get(focused_entity) else {
         tower_subpanel_root.into_inner().display = Display::None;
         return;
     };
@@ -185,9 +184,12 @@ fn on_building_info_panel_enabled_for_towers_trigger(
         .despawn_related::<Children>()
         // Create upgrade buttons for each available upgrade
         .with_children(|parent| {
-            potential_upgrades.iter().for_each(|potential_upgrade_entity| {
-                parent.spawn(UpgradeLineBuilder { potential_upgrade_entity });
-            });
+            for upgrade_type in upgrades.upgrades.keys().copied() {
+                parent.spawn(UpgradeLineBuilder {
+                    target_entity: focused_entity,
+                    upgrade_type,
+                });
+            }
         });
 }
 

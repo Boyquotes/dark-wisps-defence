@@ -133,9 +133,7 @@ impl BuilderExplorationCenter {
                 grid_imprint,
                 NeedsPower::default(),
                 ExplorationCenterNewExpeditionTimer(Timer::from_seconds(3.0, TimerMode::Repeating)),
-                related![Modifiers[
-                    (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
-                ]],
+                ModifiersBank::from_baseline(&building_info.baseline),
                 related![Indicators[
                     IndicatorType::NoPower,
                     IndicatorType::DisabledByPlayer,

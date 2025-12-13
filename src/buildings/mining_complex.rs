@@ -135,9 +135,7 @@ impl BuilderMiningComplex {
                 NeedsPower::default(),
                 DarkOreAreaScanner{range_imprint: grid_imprint},
                 MiningComplexDeliveryTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
-                related![Modifiers[
-                    (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
-                ]],
+                ModifiersBank::from_baseline(&building_info.baseline),
                 related![Indicators[
                     IndicatorType::NoPower,
                     IndicatorType::OreDepleted,

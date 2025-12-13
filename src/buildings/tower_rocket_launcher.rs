@@ -129,12 +129,8 @@ impl BuilderTowerRocketLauncher {
                 grid_imprint,
                 TowerTopRotation { speed: 1.0, current_angle: 0. },
                 NeedsPower::default(),
-                related![Modifiers[
-                    (ModifierAttackRange::from_baseline(building_info), ModifierSourceBaseline),
-                    (ModifierAttackSpeed::from_baseline(building_info), ModifierSourceBaseline),
-                    (ModifierAttackDamage::from_baseline(building_info), ModifierSourceBaseline),
-                    (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
-                ]],
+                ModifiersBank::from_baseline(&building_info.baseline),
+                Upgrades::from_almanach(&building_info.upgrades),
                 related![Indicators[
                     IndicatorType::NoPower,
                     IndicatorType::DisabledByPlayer,
@@ -155,7 +151,6 @@ impl BuilderTowerRocketLauncher {
             MarkerTowerRotationalTop(tower_base_entity),
         )).id();
         commands.entity(entity).add_child(tower_top);
-        commands.trigger(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion { entity });
     }
 }
 

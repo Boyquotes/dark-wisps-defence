@@ -43,8 +43,7 @@ buildings:
       AttackSpeed: 5
       AttackDamage: 1
     upgrades:
-      AttackSpeed:
-        upgrade_type: AttackSpeed
+      !Modifier AttackSpeed:
         levels:
           - value: 0.1
             cost: 
@@ -55,8 +54,7 @@ buildings:
           - value: 0.1
             cost: 
               - { resource_type: DarkOre, amount: 300 }
-      AttackDamage:
-        upgrade_type: AttackDamage
+      !Modifier AttackDamage:
         levels:
           - value: 1
             cost: 
@@ -78,8 +76,7 @@ buildings:
       AttackSpeed: 0.5
       AttackDamage: 50
     upgrades:
-      AttackRange:
-        upgrade_type: AttackRange
+      !Modifier AttackRange:
         levels:
           - value: 1
             cost: 
@@ -90,8 +87,7 @@ buildings:
           - value: 3
             cost: 
               - { resource_type: DarkOre, amount: 300 }
-      AttackDamage:
-        upgrade_type: AttackDamage
+      !Modifier AttackDamage:
         levels:
           - value: 5
             cost: 
@@ -113,8 +109,7 @@ buildings:
       AttackSpeed: 0.5
       AttackDamage: 1
     upgrades:
-      AttackRange:
-        upgrade_type: AttackRange
+      !Modifier AttackRange:
         levels:
           - value: 1
             cost: 
@@ -125,8 +120,7 @@ buildings:
           - value: 3
             cost: 
               - { resource_type: DarkOre, amount: 300 }
-      AttackSpeed:
-        upgrade_type: AttackSpeed
+      !Modifier AttackSpeed:
         levels:
           - value: 0.1
             cost: 
@@ -148,8 +142,7 @@ buildings:
       AttackSpeed: 0.33
       AttackDamage: 50
     upgrades:
-      AttackRange:
-        upgrade_type: AttackRange
+      !Modifier AttackRange:
         levels:
           - value: 2
             cost: 
@@ -160,8 +153,7 @@ buildings:
           - value: 5
             cost: 
               - { resource_type: DarkOre, amount: 300 }
-      AttackSpeed:
-        upgrade_type: AttackSpeed
+      !Modifier AttackSpeed:
         levels:
           - value: 0.1
             cost: 

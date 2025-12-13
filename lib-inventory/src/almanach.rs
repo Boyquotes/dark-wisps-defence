@@ -9,7 +9,7 @@ impl Plugin for AlmanachPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(Almanach::default()); })
-            .add_observer(AlmanachRequestPotentialUpgradesInsertion::on_trigger);
+;
     }
 }
 
@@ -24,13 +24,12 @@ pub struct AlmanachBuildingInfo {
     pub name: String,
     pub cost: Vec<Cost>,
     pub grid_imprint: GridImprint,
-    pub upgrades: HashMap<ModifierType, AlmanachUpgradeInfo>,
+    pub upgrades: HashMap<UpgradeType, AlmanachUpgradeInfo>,
     pub baseline: HashMap<ModifierType, f32>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct AlmanachUpgradeInfo {
-    pub upgrade_type: ModifierType,
     pub levels: Vec<AlmanachUpgradeLevelInfo>,
 }
 
@@ -47,46 +46,5 @@ impl Almanach {
     }
     pub fn add_building_info(&mut self, building_info: AlmanachBuildingInfo) {
         self.buildings.insert(building_info.building_type, building_info);
-    }
-}
-
-#[derive(EntityEvent)]
-pub struct AlmanachRequestPotentialUpgradesInsertion{
-    pub entity: Entity,
-}
-impl AlmanachRequestPotentialUpgradesInsertion {
-    fn on_trigger(
-        trigger: On<Self>,
-        mut commands: Commands,
-        almanach: Res<Almanach>,
-        buildings: Query<&BuildingType>,
-    ) {
-        let entity = trigger.entity;
-        let Ok(building_type) = buildings.get(entity) else { return; };
-
-        commands.entity(entity).with_related_entities::<PotentialUpgradeOf>(|related|
-            almanach.get_building_info(*building_type).upgrades.values().for_each(|upgrade| {
-                match upgrade.upgrade_type {
-                    ModifierType::AttackSpeed => {
-                        related.spawn((ModifierAttackSpeed(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
-                    }
-                    ModifierType::AttackRange => {
-                        related.spawn((ModifierAttackRange(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
-                    }
-                    ModifierType::AttackDamage => {
-                        related.spawn((ModifierAttackDamage(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
-                    }
-                    ModifierType::MaxHealth => {
-                        related.spawn((ModifierMaxHealth(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
-                    }
-                    ModifierType::EnergySupplyRange => {
-                        related.spawn((ModifierEnergySupplyRange(upgrade.levels[0].value), ModifierSourceUpgrade{ current_level: 0, upgrade_info: upgrade.clone() }));
-                    }
-                    ModifierType::MovementSpeed => {
-                        panic!("Building is trying to run away!");
-                    }
-                }
-            })
-        );
     }
 }

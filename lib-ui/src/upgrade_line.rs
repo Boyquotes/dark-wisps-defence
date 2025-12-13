@@ -6,118 +6,80 @@ pub struct CommonPlugin;
 impl Plugin for CommonPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_observer(UpgradeLineBuilder::on_add_attack_speed_builder)
-            .add_observer(UpgradeLineBuilder::on_add_attack_range_builder)
-            .add_observer(UpgradeLineBuilder::on_add_attack_damage_builder)
-            .add_observer(UpgradeLineBuilder::on_add_sanity_check)
-            .add_observer(UpgradeLine::on_add);
+            .add_observer(UpgradeLineBuilder::on_add)
+            .add_observer(UpgradeLine::on_insert);
     }
 }
 
+/// Builder component that triggers creation of an upgrade line UI.
+/// Takes a target entity and an upgrade type to display.
 #[derive(Component)]
 pub struct UpgradeLineBuilder {
-    pub potential_upgrade_entity: Entity,
+    pub target_entity: Entity,
+    pub upgrade_type: UpgradeType,
 }
 impl UpgradeLineBuilder {
-    fn on_add_sanity_check(
+    fn on_add(
         trigger: On<Add, UpgradeLineBuilder>,
         mut commands: Commands,
-        upgrade_lines: Query<&UpgradeLineBuilder>,
-        all_potential_upgrades: Query<(), With<PotentialUpgradeOf>>,
+        builders: Query<&UpgradeLineBuilder>,
+        targets: Query<(&Upgrades, &ModifiersBank)>,
     ) {
-        let upgrade_line_entity = trigger.entity;
-        let upgrade_line = upgrade_lines.get(upgrade_line_entity).unwrap();
-        if !all_potential_upgrades.contains(upgrade_line.potential_upgrade_entity) {
-            // Upgrade was removed, remove the line as well
-            commands.entity(upgrade_line_entity).despawn();
+        let line_entity = trigger.entity;
+        let Ok(builder) = builders.get(line_entity) else { return; };
+        let Ok((upgrades, modifiers_bank)) = targets.get(builder.target_entity) else {
+            commands.entity(line_entity).despawn();
+            return;
+        };
+
+        let Some(upgrade_info) = upgrades.upgrades.get(&builder.upgrade_type) else {
+            commands.entity(line_entity).despawn();
+            return;
+        };
+
+        // Check if there are more levels available
+        let next_level = upgrade_info.current_level + 1;
+        if next_level >= upgrade_info.static_info.levels.len() {
+            // No more upgrades available for this type
+            commands.entity(line_entity).despawn();
             return;
         }
-    }
-    fn on_add_attack_speed_builder(
-        trigger: On<Add, UpgradeLineBuilder>,
-        mut commands: Commands,
-        upgrade_lines: Query<&UpgradeLineBuilder>,
-        potential_upgrades: Query<(&ModifierType, &ModifierAttackSpeed, &ModifierSourceUpgrade, &PotentialUpgradeOf)>,
-        attack_speeds: Query<&AttackSpeed>,
-    ) {
-        let upgrade_line_entity = trigger.entity;
-        let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
-        let Ok((modifier_type, modifier, modifier_source, parent)) = potential_upgrades.get(upgrade_line.potential_upgrade_entity) else { return; };
-        let Ok(current_attack_speed) = attack_speeds.get(parent.0) else { return; };
 
-        commands.entity(upgrade_line_entity)
+        // Get current and next values based on upgrade type
+        let UpgradeType::Modifier(modifier_type) = builder.upgrade_type;
+        let current_value = modifiers_bank.get_sum(modifier_type);
+        let next_level_info = &upgrade_info.static_info.levels[next_level];
+        let next_value = current_value + next_level_info.value;
+
+        commands.entity(line_entity)
             .remove::<UpgradeLineBuilder>()
             .insert(UpgradeLine {
-                potential_upgrade_entity: upgrade_line.potential_upgrade_entity,
-                upgrades_type: *modifier_type,
-                costs: modifier_source.current_cost().clone(),
-                current_value: current_attack_speed.0,
-                next_value: modifier.0 + current_attack_speed.0,
+                target_entity: builder.target_entity,
+                upgrade_type: builder.upgrade_type,
+                costs: next_level_info.cost.clone(),
+                current_value,
+                next_value,
             });
     }
-    fn on_add_attack_damage_builder(
-        trigger: On<Add, UpgradeLineBuilder>,
-        mut commands: Commands,
-        upgrade_lines: Query<&UpgradeLineBuilder>,
-        potential_upgrades: Query<(&ModifierType, &ModifierAttackDamage, &ModifierSourceUpgrade, &PotentialUpgradeOf)>,
-        attack_damages: Query<&AttackDamage>,
-    ) {
-        let upgrade_line_entity = trigger.entity;
-        let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
-        let Ok((modifier_type, modifier, modifier_source, parent)) = potential_upgrades.get(upgrade_line.potential_upgrade_entity) else { return; };
-        let Ok(current_attack_damage) = attack_damages.get(parent.0) else { return; };
-
-        commands.entity(upgrade_line_entity)
-            .remove::<UpgradeLineBuilder>()
-            .insert(UpgradeLine {
-                potential_upgrade_entity: upgrade_line.potential_upgrade_entity,
-                upgrades_type: *modifier_type,
-                costs: modifier_source.current_cost().clone(),
-                current_value: current_attack_damage.0 as f32,
-                next_value: (modifier.0 + current_attack_damage.0) as f32,
-            });
-    }
-    fn on_add_attack_range_builder(
-        trigger: On<Add, UpgradeLineBuilder>,
-        mut commands: Commands,
-        upgrade_lines: Query<&UpgradeLineBuilder>,
-        potential_upgrades: Query<(&ModifierType, &ModifierAttackRange, &ModifierSourceUpgrade, &PotentialUpgradeOf)>,
-        attack_ranges: Query<&AttackRange>,
-    ) {
-        let upgrade_line_entity = trigger.entity;
-        let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
-        let Ok((modifier_type, modifier, modifier_source, parent)) = potential_upgrades.get(upgrade_line.potential_upgrade_entity) else { return; };
-        let Ok(current_attack_range) = attack_ranges.get(parent.0) else { return; };
-
-        commands.entity(upgrade_line_entity)
-            .remove::<UpgradeLineBuilder>()
-            .insert(UpgradeLine {
-                potential_upgrade_entity: upgrade_line.potential_upgrade_entity,
-                upgrades_type: *modifier_type,
-                costs: modifier_source.current_cost().clone(),
-                current_value: current_attack_range.0 as f32,
-                next_value: (modifier.0 + current_attack_range.0) as f32,
-            });
-    }
-    
 }
 #[derive(Component)]
 #[require(Node)]
 pub struct UpgradeLine {
-    pub potential_upgrade_entity: Entity,
-    pub upgrades_type: ModifierType,
+    pub target_entity: Entity,
+    pub upgrade_type: UpgradeType,
     pub costs: Vec<Cost>,
     pub current_value: f32,
     pub next_value: f32
 }
 impl UpgradeLine {
-    fn on_add(
+    fn on_insert(
         trigger: On<Insert, UpgradeLine>,
         mut commands: Commands,
         upgrade_lines: Query<&UpgradeLine>,
     ) {
         let upgrade_line_entity = trigger.entity;
         let Ok(upgrade_line) = upgrade_lines.get(upgrade_line_entity) else { return; };
+        let UpgradeType::Modifier(modifier_type) = upgrade_line.upgrade_type;
 
         // Clear everything in case this is rebuild operation
         commands.entity(upgrade_line_entity).despawn_related::<Children>();
@@ -138,7 +100,7 @@ impl UpgradeLine {
             )).with_children(|parent| {
                 // Left: Upgrade name + current level
                 parent.spawn((
-                    Text::new(format!("{:?} {}", upgrade_line.upgrades_type, upgrade_line.current_value)),
+                    Text::new(format!("{:?} {:.2}", modifier_type, upgrade_line.current_value)),
                     TextColor::from(Color::WHITE),
                     TextLayout::new_with_linebreak(LineBreak::NoWrap),
                     Node {
@@ -163,7 +125,7 @@ impl UpgradeLine {
                     .observe(Self::on_click)
                     .with_children(|parent| {
                         parent.spawn((
-                            Text::new(format!("-> {:.0}", upgrade_line.next_value)),
+                            Text::new(format!("-> {:.2}", upgrade_line.next_value)),
                             TextColor::from(Color::WHITE),
                             TextLayout::new_with_linebreak(LineBreak::NoWrap),
                             Node {
@@ -209,10 +171,17 @@ impl UpgradeLine {
         let Ok((upgrade_line_entity, upgrade_line)) = upgrade_lines.get(upgrade_button.0) else { return; };
         if !stock.try_pay_costs(&upgrade_line.costs) { return; }
 
-        commands.trigger(ApplyPotentialUpgrade { entity: upgrade_line.potential_upgrade_entity });
+        // Send level up message
+        commands.queue(LevelUpUpgradeMessage {
+            entity: upgrade_line.target_entity,
+            upgrade_type: upgrade_line.upgrade_type,
+        });
 
-        // Rebuild the button
-        commands.entity(upgrade_line_entity).insert(UpgradeLineBuilder { potential_upgrade_entity: upgrade_line.potential_upgrade_entity });
+        // Rebuild the upgrade line UI
+        commands.entity(upgrade_line_entity).insert(UpgradeLineBuilder {
+            target_entity: upgrade_line.target_entity,
+            upgrade_type: upgrade_line.upgrade_type,
+        });
     }
 }
 

@@ -126,10 +126,7 @@ impl BuilderMainBase {
                 }),
                 GeneratorEnergy,
                 SupplierEnergy,
-                related![Modifiers[
-                    (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
-                    (ModifierEnergySupplyRange::from_baseline(building_info), ModifierSourceBaseline),
-                ]],
+                ModifiersBank::from_baseline(&building_info.baseline),
             ));
     }
 }

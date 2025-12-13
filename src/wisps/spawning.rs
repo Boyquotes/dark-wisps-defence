@@ -135,11 +135,11 @@ impl BuilderWisp {
                 },
                 Wisp,
                 builder.wisp_type,
-                related![Modifiers[
-                    (ModifierMaxHealth(10.), ModifierSourceBaseline),
-                    (ModifierAttackRange(1.), ModifierSourceBaseline),
-                    (ModifierMovementSpeed(60.), ModifierSourceBaseline),
-                ]],
+                ModifiersBank::from_baseline(&HashMap::from([
+                    (ModifierType::MaxHealth, 10.),
+                    (ModifierType::AttackRange, 1.),
+                    (ModifierType::MovementSpeed, 60.),
+                ])),
             ));
         match builder.wisp_type {
             WispType::Fire => entity_commands.insert((WispFireType, EssencesContainer::from(EssenceContainer::new(EssenceType::Fire, 1)))),

@@ -128,12 +128,8 @@ impl BuilderTowerCannon {
                 builder.grid_position,
                 grid_imprint,
                 NeedsPower::default(),
-                related![Modifiers[
-                    (ModifierAttackRange::from_baseline(building_info), ModifierSourceBaseline),
-                    (ModifierAttackSpeed::from_baseline(building_info), ModifierSourceBaseline),
-                    (ModifierAttackDamage::from_baseline(building_info), ModifierSourceBaseline),
-                    (ModifierMaxHealth::from_baseline(building_info), ModifierSourceBaseline),
-                ]],
+                ModifiersBank::from_baseline(&building_info.baseline),
+                Upgrades::from_almanach(&building_info.upgrades),
                 related![Indicators[
                     IndicatorType::NoPower,
                     IndicatorType::DisabledByPlayer,
@@ -142,7 +138,6 @@ impl BuilderTowerCannon {
                     IndicatorDisplay::default(),
                 ],
             ));
-        commands.trigger(lib_inventory::almanach::AlmanachRequestPotentialUpgradesInsertion { entity });
     }
 }
 

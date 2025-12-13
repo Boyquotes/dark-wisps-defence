@@ -7,7 +7,8 @@ impl Plugin for CommonPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_observer(UpgradeLineBuilder::on_add)
-            .add_observer(UpgradeLine::on_insert);
+            .add_observer(UpgradeLine::on_insert)
+            .add_observer(UpgradeLine::on_upgrade_applied);
     }
 }
 
@@ -37,9 +38,8 @@ impl UpgradeLineBuilder {
             return;
         };
 
-        // Check if there are more levels available
-        let next_level = upgrade_info.current_level + 1;
-        if next_level >= upgrade_info.static_info.levels.len() {
+        // Check if there are more levels available (current_level is the next level to purchase)
+        if upgrade_info.current_level >= upgrade_info.static_info.levels.len() {
             // No more upgrades available for this type
             commands.entity(line_entity).despawn();
             return;
@@ -48,7 +48,7 @@ impl UpgradeLineBuilder {
         // Get current and next values based on upgrade type
         let UpgradeType::Modifier(modifier_type) = builder.upgrade_type;
         let current_value = modifiers_bank.get_sum(modifier_type);
-        let next_level_info = &upgrade_info.static_info.levels[next_level];
+        let next_level_info = &upgrade_info.static_info.levels[upgrade_info.current_level];
         let next_value = current_value + next_level_info.value;
 
         commands.entity(line_entity)
@@ -164,24 +164,37 @@ impl UpgradeLine {
         mut commands: Commands,
         mut stock: ResMut<Stock>,
         upgrade_buttons: Query<&UpgradeButton>,
-        upgrade_lines: Query<(Entity, &UpgradeLine)>,
+        upgrade_lines: Query<&UpgradeLine>,
     ) {
         let entity = trigger.entity;
         let Ok(upgrade_button) = upgrade_buttons.get(entity) else { return; };
-        let Ok((upgrade_line_entity, upgrade_line)) = upgrade_lines.get(upgrade_button.0) else { return; };
+        let Ok(upgrade_line) = upgrade_lines.get(upgrade_button.0) else { return; };
         if !stock.try_pay_costs(&upgrade_line.costs) { return; }
 
-        // Send level up message
         commands.queue(LevelUpUpgradeMessage {
             entity: upgrade_line.target_entity,
             upgrade_type: upgrade_line.upgrade_type,
         });
+    }
 
-        // Rebuild the upgrade line UI
-        commands.entity(upgrade_line_entity).insert(UpgradeLineBuilder {
-            target_entity: upgrade_line.target_entity,
-            upgrade_type: upgrade_line.upgrade_type,
-        });
+    /// Observer for when an upgrade is applied - rebuilds the upgrade line UI
+    fn on_upgrade_applied(
+        trigger: On<LevelUpUpgradeAppliedEvent>,
+        mut commands: Commands,
+        upgrade_lines: Query<(Entity, &UpgradeLine)>,
+    ) {
+        let target_entity = trigger.entity;
+        let upgrade_type = trigger.upgrade_type;
+
+        // Find and rebuild all upgrade lines that match this target and upgrade type
+        for (line_entity, upgrade_line) in upgrade_lines.iter() {
+            if upgrade_line.target_entity == target_entity && upgrade_line.upgrade_type == upgrade_type {
+                commands.entity(line_entity).insert(UpgradeLineBuilder {
+                    target_entity,
+                    upgrade_type,
+                });
+            }
+        }
     }
 }
 

@@ -13,6 +13,7 @@ impl Plugin for InfoPanelPlugin {
             .add_observer(on_ui_map_object_focus_changed_trigger)
             .add_observer(on_building_info_panel_enabled_for_towers_trigger)
             .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<BuildingInfoPanelEnabledTrigger, ()>) // Refresh upgrade text on panel enabled
+            .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<LevelUpUpgradeAppliedEvent, ()>) // Refresh upgrade text after upgrade applied
             .add_observer(BuildingInfoPanelDisableButton::on_add)
             ;
     }

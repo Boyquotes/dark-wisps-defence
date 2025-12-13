@@ -66,8 +66,7 @@ impl RecalculateFromModifierBank {
         for message in reader.read() {
             let Ok(modifiers_bank) = objects.get(message.entity) else { continue; };
             let modifier_type = message.modifier_type;
-            let sum = modifiers_bank.bank[&modifier_type].values().copied().sum();
-            modifier_type.insert_value_component(&mut commands.entity(message.entity), sum);
+            modifier_type.insert_value_component(&mut commands.entity(message.entity), modifiers_bank.get_sum(modifier_type));
         }
     }
 }
@@ -208,6 +207,7 @@ pub struct LevelUpUpgradeMessage {
 }
 impl LevelUpUpgradeMessage {
     fn process(
+        mut commands: Commands,
         mut reader: MessageReader<Self>,
         mut writer: MessageWriter<RecalculateFromModifierBank>,
         mut objects: Query<(Entity, &mut Upgrades, &mut ModifiersBank)>,
@@ -216,16 +216,18 @@ impl LevelUpUpgradeMessage {
             let Ok((entity, mut upgrades, mut modifiers_bank)) = objects.get_mut(message.entity) else { continue; };
             let upgrade_type = message.upgrade_type;
             let Some(upgrade_runtime_info) = upgrades.upgrades.get_mut(&upgrade_type) else { continue; };
-            if upgrade_runtime_info.current_level >= upgrade_runtime_info.static_info.levels.len() - 1 { continue; }
+            if upgrade_runtime_info.current_level >= upgrade_runtime_info.static_info.levels.len() { continue; }
+            let level_info = &upgrade_runtime_info.static_info.levels[upgrade_runtime_info.current_level];
             upgrade_runtime_info.current_level += 1;
             match upgrade_type {
                 UpgradeType::Modifier(modifier_type) => {
                     let mut operator = ModifierBankOperator::new(entity, &mut modifiers_bank, &mut writer);
-                    operator.add_modifier(modifier_type, ModifierSource::Upgrade { level: upgrade_runtime_info.current_level }, upgrade_runtime_info.static_info.levels[upgrade_runtime_info.current_level].value);
+                    operator.add_modifier(modifier_type, ModifierSource::Upgrade { level: upgrade_runtime_info.current_level }, level_info.value);
                 }
             }
+            // Notify that upgrade was applied
+            commands.trigger(LevelUpUpgradeAppliedEvent { entity, upgrade_type });
         }
-
     }
 }
 impl Command for LevelUpUpgradeMessage {
@@ -233,4 +235,13 @@ impl Command for LevelUpUpgradeMessage {
         let mut messages = world.resource_mut::<Messages<Self>>();
         messages.write(self);
     }
+}
+
+/// Event triggered on an entity after an upgrade has been applied.
+/// UI can observe this to refresh upgrade displays.
+#[derive(EntityEvent)]
+pub struct LevelUpUpgradeAppliedEvent {
+    #[event_target]
+    pub entity: Entity,
+    pub upgrade_type: UpgradeType,
 }

@@ -20,11 +20,12 @@ impl Plugin for TowerBlasterPlugin {
 pub const TOWER_BLASTER_BASE_IMAGE: &str = "buildings/tower_blaster.png";
 pub const TOWER_BLASTER_TOP_IMAGE: &str = "buildings/tower_blaster_top.png";
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct TowerBlasterSaveData {
     entity: Entity,
     health: f32,
     disabled_by_player: bool,
+    upgrade_levels: HashMap<UpgradeType, usize>,
 }
 
 #[derive(Component, SSS)]
@@ -43,6 +44,9 @@ impl Saveable for BuilderTowerBlaster {
         if save_data.disabled_by_player {
             tx.save_disabled_by_player(entity_index)?;
         }
+        for (upgrade_type, level) in &save_data.upgrade_levels {
+            tx.save_upgrade_level(entity_index, &upgrade_type.as_db_str(), *level)?;
+        }
         Ok(())
     }
 }
@@ -58,9 +62,16 @@ impl Loadable for BuilderTowerBlaster {
             let grid_position = ctx.conn.get_grid_coords(old_id)?;
             let health = ctx.conn.get_health(old_id)?;
             let disabled_by_player = ctx.conn.get_disabled_by_player(old_id)?;
+            let upgrade_levels_raw = ctx.conn.get_upgrade_levels_raw(old_id)?;
+            let upgrade_levels: HashMap<UpgradeType, usize> = upgrade_levels_raw
+                .into_iter()
+                .filter_map(|(type_str, level)| {
+                    UpgradeType::from_db_str(&type_str).map(|t| (t, level))
+                })
+                .collect();
             
             if let Some(new_entity) = ctx.get_new_entity_for_old(old_id) {
-                let save_data = TowerBlasterSaveData { entity: new_entity, health, disabled_by_player };
+                let save_data = TowerBlasterSaveData { entity: new_entity, health, disabled_by_player, upgrade_levels };
                 ctx.commands.entity(new_entity).insert(BuilderTowerBlaster::new_for_saving(grid_position, save_data));
             }
             count += 1;
@@ -80,14 +91,15 @@ impl BuilderTowerBlaster {
 
     fn on_game_save(
         mut commands: Commands,
-        towers: Query<(Entity, &GridCoords, &Health, Has<DisabledByPlayer>), With<TowerBlaster>>,
+        towers: Query<(Entity, &GridCoords, &Health, Has<DisabledByPlayer>, &Upgrades), With<TowerBlaster>>,
     ) {
         if towers.is_empty() { return; }
-        let batch = towers.iter().map(|(entity, coords, health, disabled_by_player)| {
+        let batch = towers.iter().map(|(entity, coords, health, disabled_by_player, upgrades)| {
             let save_data = TowerBlasterSaveData {
                 entity,
                 health: health.get_current(),
                 disabled_by_player,
+                upgrade_levels: upgrades.get_levels(),
             };
             BuilderTowerBlaster::new_for_saving(*coords, save_data)
         }).collect::<SaveableBatchCommand<_>>();
@@ -130,7 +142,7 @@ impl BuilderTowerBlaster {
                 TowerTopRotation { speed: 10.0, current_angle: 0. },
                 NeedsPower::default(),
                 ModifiersBank::from_baseline(&building_info.baseline),
-                Upgrades::from_almanach(&building_info.upgrades),
+                Upgrades::from_almanach(&building_info.upgrades, builder.save_data.as_ref().map(|d| &d.upgrade_levels)),
                 related![Indicators[
                     IndicatorType::NoPower,
                     IndicatorType::DisabledByPlayer,

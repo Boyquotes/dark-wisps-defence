@@ -180,3 +180,11 @@ CREATE TABLE summonings (
     is_active INTEGER NOT NULL,
     FOREIGN KEY(id) REFERENCES entities(id)
 );
+
+CREATE TABLE upgrade_levels (
+    entity_id INTEGER NOT NULL,
+    upgrade_type TEXT NOT NULL,
+    current_level INTEGER NOT NULL,
+    PRIMARY KEY (entity_id, upgrade_type),
+    FOREIGN KEY(entity_id) REFERENCES entities(id)
+);

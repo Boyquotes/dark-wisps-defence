@@ -1,3 +1,6 @@
+use std::str::FromStr;
+use strum::{AsRefStr, EnumString};
+
 use crate::lib_prelude::*;
 
 pub mod modifiers_prelude {
@@ -15,11 +18,12 @@ impl Plugin for ModifiersPlugin {
                 LevelUpUpgradeMessage::process.run_if(on_message::<LevelUpUpgradeMessage>),
             ))
             .add_observer(ModifiersBank::on_insert)
+            .add_observer(Upgrades::on_insert)
             ;
     }
 }
 
-#[derive(Component, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Component, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, AsRefStr, EnumString)]
 pub enum ModifierType {
     AttackSpeed,
     AttackRange,
@@ -166,6 +170,21 @@ impl ModifiersBank {
 pub enum UpgradeType {
     Modifier(ModifierType)
 }
+impl UpgradeType {
+    pub fn as_db_str(&self) -> String {
+        match self {
+            Self::Modifier(m) => format!("Modifier:{}", m.as_ref()),
+        }
+    }
+
+    pub fn from_db_str(s: &str) -> Option<Self> {
+        let (variant, inner) = s.split_once(':')?;
+        match variant {
+            "Modifier" => ModifierType::from_str(inner).ok().map(Self::Modifier),
+            _ => None,
+        }
+    }
+}
 
 pub struct UpgradeRuntimeInfo {
     pub current_level: usize,
@@ -178,15 +197,27 @@ pub struct Upgrades {
 }
 impl Upgrades {
     /// Creates an Upgrades component from almanach upgrade info.
-    /// All upgrades start at level 0 (not yet purchased).
-    pub fn from_almanach(almanach_upgrades: &HashMap<UpgradeType, AlmanachUpgradeInfo>) -> Self {
+    /// If `apply_levels` is provided, upgrades start at those levels.
+    /// On insert, the observer will apply modifiers for any non-zero levels.
+    pub fn from_almanach(
+        almanach_upgrades: &HashMap<UpgradeType, AlmanachUpgradeInfo>,
+        apply_levels: Option<&HashMap<UpgradeType, usize>>,
+    ) -> Self {
         let upgrades = almanach_upgrades.iter().map(|(upgrade_type, info)| {
+            let level = apply_levels.and_then(|l| l.get(upgrade_type).copied()).unwrap_or(0);
             (*upgrade_type, UpgradeRuntimeInfo {
-                current_level: 0,
+                current_level: level,
                 static_info: info.clone(),
             })
         }).collect();
         Self { upgrades }
+    }
+
+    /// Returns the current levels for all upgrades (for saving).
+    pub fn get_levels(&self) -> HashMap<UpgradeType, usize> {
+        self.upgrades.iter()
+            .map(|(upgrade_type, info)| (*upgrade_type, info.current_level))
+            .collect()
     }
 
     /// Returns the total number of upgrades purchased across all upgrade types.
@@ -197,6 +228,31 @@ impl Upgrades {
     /// Returns the maximum number of upgrades available across all upgrade types.
     pub fn total_upgrades_available(&self) -> usize {
         self.upgrades.values().map(|info| info.static_info.levels.len()).sum()
+    }
+
+    /// On insert, apply modifiers for any non-zero upgrade levels.
+    /// This handles restoring state when loading from save.
+    fn on_insert(
+        trigger: On<Insert, Self>,
+        mut writer: MessageWriter<RecalculateFromModifierBank>,
+        mut query: Query<(Entity, &Upgrades, &mut ModifiersBank)>,
+    ) {
+        let entity = trigger.entity;
+        let Ok((_, upgrades, mut modifiers_bank)) = query.get_mut(entity) else { return; };
+        
+        for (upgrade_type, runtime_info) in &upgrades.upgrades {
+            if runtime_info.current_level == 0 { continue; }
+            
+            let UpgradeType::Modifier(modifier_type) = upgrade_type;
+            
+            // Apply modifiers for each purchased level
+            for lvl in 0..runtime_info.current_level {
+                if let Some(level_info) = runtime_info.static_info.levels.get(lvl) {
+                    let mut operator = ModifierBankOperator::new(entity, &mut modifiers_bank, &mut writer);
+                    operator.add_modifier(*modifier_type, ModifierSource::Upgrade { level: lvl + 1 }, level_info.value);
+                }
+            }
+        }
     }
 }
 

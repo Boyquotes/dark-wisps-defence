@@ -14,11 +14,13 @@ impl Plugin for StatesPlugin {
             .init_state::<UiInteraction>()
             .init_state::<MapLoadingStage>()
             .init_state::<MapLoadingStage2>()
+            .init_state::<AdminMode>()
             .add_systems(PreUpdate, (
                 UiInteraction::on_escape.run_if(input_just_pressed(KeyCode::Escape)),
             ))
             .add_systems(Update, (
                 GameState::pause_resume_game.run_if(input_just_pressed(KeyCode::Space)),
+                AdminMode::toggle_admin_mode.run_if(input_just_pressed(KeyCode::Tab)),
             ));
     }
 }
@@ -41,6 +43,24 @@ impl GameState {
             GameState::Running => next_game_state.set(GameState::Paused),
             GameState::Loading => {}
             GameState::Loading2 => {}
+        }
+    }
+}
+
+#[derive(Default, Clone, Debug, States, PartialEq, Eq, Hash)]
+pub enum AdminMode {
+    #[default]
+    Disabled,
+    Enabled,
+}
+impl AdminMode {
+    fn toggle_admin_mode(
+        current_admin_mode: Res<State<AdminMode>>,
+        mut next_admin_mode: ResMut<NextState<AdminMode>>
+    ) {
+        match current_admin_mode.get() {
+            AdminMode::Disabled => next_admin_mode.set(AdminMode::Enabled),
+            AdminMode::Enabled => next_admin_mode.set(AdminMode::Disabled),
         }
     }
 }

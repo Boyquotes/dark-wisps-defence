@@ -5,7 +5,8 @@ edition = "2024"
 
 [dependencies]
 bevy = { version = "0.17.*", features = ["dynamic_linking"] }
-bytemuck = { version = "1.23.*", features = ["derive"] }
+bevy_egui = "0.38"
+bytemuck = { version = "1.24.*", features = ["derive"] }
 nanorand = "0.7.0"
 serde = "1.0.*"
 serde_yaml = "0.9.*"

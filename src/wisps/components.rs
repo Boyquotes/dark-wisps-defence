@@ -1,8 +1,8 @@
-use strum::{AsRefStr, EnumString};
+use strum::{AsRefStr, EnumIter, EnumString};
 
 use crate::prelude::*;
 
-#[derive(Component, Copy, Clone, Debug, Serialize, Deserialize, EnumString, AsRefStr)]
+#[derive(Component, Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, EnumString, EnumIter, AsRefStr)]
 pub enum WispType {
     Fire,
     Water,

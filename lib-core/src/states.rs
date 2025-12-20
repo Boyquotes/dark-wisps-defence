@@ -28,6 +28,7 @@ impl Plugin for StatesPlugin {
 #[derive(Default, Clone, Debug, States, PartialEq, Eq, Hash)]
 pub enum GameState {
     #[default]
+    Init,
     Running,
     Paused,
     Loading,
@@ -39,6 +40,7 @@ impl GameState {
         mut next_game_state: ResMut<NextState<GameState>>
     ) {
         match current_game_state.get() {
+            GameState::Init => {}
             GameState::Paused => next_game_state.set(GameState::Running),
             GameState::Running => next_game_state.set(GameState::Paused),
             GameState::Loading => {}

@@ -1,5 +1,6 @@
 mod buildings;
 mod data_loader;
+mod editor;
 mod effects;
 mod map_editor;
 mod map_loader;
@@ -20,7 +21,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
-                // VSync is causing a lot of issues with mouse events processing
+                // Warning: VSync is causing a lot of issues with mouse events processing
                 .set(WindowPlugin{ primary_window: Some(Window { present_mode: bevy::window::PresentMode::AutoNoVsync, ..default()}), ..default() }),
             MeshPickingPlugin,
             buildings::BuildingsPlugin,
@@ -41,9 +42,11 @@ fn main() {
         ))
         .add_plugins((
             data_loader::DataLoaderPlugin,
+            editor::EditorPlugin,
             map_editor::MapEditorPlugin,
             map_loader::MapLoaderPlugin,
         ))
-        .add_systems(Startup, |mut commands: Commands| commands.trigger(map_loader::LoadMapRequest("test_map".to_string())))
+        // Warning: Bevy behaves wierdly when there are many Startup systems. If some plugins begin to not run at all, watch out for Startup systems at all places. Use Post/Pre Startup instead.
+        .add_systems(PostStartup, |mut commands: Commands| commands.trigger(map_loader::LoadMapRequest("test_map".to_string())))
         .run();
 }

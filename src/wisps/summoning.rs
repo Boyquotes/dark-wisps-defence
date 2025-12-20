@@ -1,4 +1,5 @@
 use lib_grid::grids::obstacles::ObstacleGrid;
+use strum::{AsRefStr, EnumIter};
 
 use crate::prelude::*;
 
@@ -32,18 +33,33 @@ pub struct Summoning {
     pub limit_count: Option<i32>,
     pub activation_event: String,
 }
+
+impl Default for Summoning {
+    fn default() -> Self {
+        Self {
+            id_name: "new_summoning".to_string(),
+            wisp_types: vec![WispType::Fire],
+            area: SpawnArea::default(),
+            tempo: SpawnTempo::default(),
+            limit_count: None,
+            activation_event: "game-started".to_string(),
+        }
+    }
+}
+
 impl Summoning {
     fn get_random_wisp_type(&self, rng: &mut nanorand::tls::TlsWyRand) -> WispType {
         self.wisp_types[rng.generate_range(0..self.wisp_types.len())]
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, EnumIter, AsRefStr)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SpawnArea {
     Coords { coords: Vec<GridCoords> },
     Rect { origin: GridCoords, width: i32, height: i32 },
     Edge { side: EdgeSide },
+    #[default]
     EdgesAll,
 }
 
@@ -56,7 +72,7 @@ impl SpawnArea {
         // Nano-rand is off by 1 in i32! 
         match self {
             SpawnArea::Coords { coords } => {
-                let idx = rng.generate_range(1..=coords.len());
+                let idx = rng.generate_range(0..coords.len());
                 coords[idx]
             }
             SpawnArea::Rect { origin, width, height } => {
@@ -92,15 +108,27 @@ impl SpawnArea {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, EnumIter, AsRefStr)]
 #[serde(rename_all = "snake_case")]
-pub enum EdgeSide { Top, Bottom, Left, Right }
+pub enum EdgeSide {
+    #[default]
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SpawnTempo {
     /// Spawn `count` wisps every `seconds` (optional jitter). If `count` omitted -> 1.
     Continuous { seconds: f32, #[serde(default)] jitter: f32, #[serde(default = "default_one")] bulk_count: i32 },
+}
+
+impl Default for SpawnTempo {
+    fn default() -> Self {
+        Self::Continuous { seconds: 1.0, jitter: 0.0, bulk_count: 1 }
+    }
 }
 
 fn default_one() -> i32 { 1 }

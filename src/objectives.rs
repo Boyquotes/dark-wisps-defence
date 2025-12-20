@@ -10,6 +10,8 @@ pub struct ObjectivesPlugin;
 impl Plugin for ObjectivesPlugin {
     fn build(&self, app: &mut App) {
         app
+            .register_db_loader::<BuilderObjective>(MapLoadingStage2::LoadResources)
+            .register_db_saver(BuilderObjective::on_game_save)
             .add_systems(Update, (
                 (
                     ObjectiveClearAllQuantumFields::update,
@@ -19,8 +21,8 @@ impl Plugin for ObjectivesPlugin {
             .add_observer(BuilderObjective::on_add)
             .add_observer(Objective::on_objective_state_changed)
             .add_observer(Objective::reassess_inactive_objectives_on_dynamic_event)
-            .register_db_loader::<BuilderObjective>(MapLoadingStage2::LoadResources)
-            .register_db_saver(BuilderObjective::on_game_save)
+            .add_observer(ObjectiveClearAllQuantumFields::on_add)
+            .add_observer(ObjectiveKillWisps::on_add)
             ;
     }
 }
@@ -28,6 +30,7 @@ impl Plugin for ObjectivesPlugin {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum ObjectiveType {
     ClearAllQuantumFields,
+    // TODO: Get rid of this param once legacy load/save is removed
     KillWisps(usize),
 }
 
@@ -302,7 +305,12 @@ impl Objective {
         let Ok(mut border) = border_colors.get_mut(entity) else { return; };
         
         match state {
-            ObjectiveState::Inactive | ObjectiveState::InProgress => {
+            ObjectiveState::Inactive => {
+                checkmark.image = asset_server.load("ui/objectives_check_active.png");
+                *bg = Color::linear_rgba(0.3, 0.3, 0.3, 0.7).into();
+                *border = Color::linear_rgba(0.2, 0.2, 0.2, 0.9).into();
+            }
+            ObjectiveState::InProgress => {
                 checkmark.image = asset_server.load("ui/objectives_check_active.png");
                 *bg = Color::linear_rgba(0.1, 0.3, 0.8, 0.7).into();
                 *border = Color::linear_rgba(0., 0.2, 0.8, 0.9).into();
@@ -328,6 +336,18 @@ pub struct ObjectiveClearAllQuantumFields {
     completed_quantum_fields: usize,
 }
 impl ObjectiveClearAllQuantumFields {
+    fn on_add(
+        trigger: On<Add, ObjectiveClearAllQuantumFields>,
+        objectives: Query<&Objective>,
+        mut texts: Query<&mut Text, With<ObjectiveText>>,
+    ) {
+        let entity = trigger.entity;
+        let Ok(objective) = objectives.get(entity) else { return; };
+        
+        if let Ok(mut text) = texts.get_mut(objective.text) {
+            text.0 = format!("Clear All Quantum Fields: 0/?");
+        }
+    }
     // TODO: make it trigger only on quantum fieds change event
     fn update(
         mut commands: Commands,
@@ -353,10 +373,22 @@ impl ObjectiveClearAllQuantumFields {
 
 #[derive(Component, Default, Clone)]
 pub struct ObjectiveKillWisps {
-    target_amount: usize,
-    started_amount: usize,
+    pub target_amount: usize,
+    pub started_amount: usize,
 }
 impl ObjectiveKillWisps {
+    fn on_add(
+        trigger: On<Add, ObjectiveKillWisps>,
+        objectives: Query<(&Objective, &ObjectiveKillWisps)>,
+        mut texts: Query<&mut Text, With<ObjectiveText>>,
+    ) {
+        let entity = trigger.entity;
+        let Ok((objective, objective_kill_wisps)) = objectives.get(entity) else { return; };
+        
+        if let Ok(mut text) = texts.get_mut(objective.text) {
+            text.0 = format!("Kill Wisps: 0/{}", objective_kill_wisps.target_amount);
+        }
+    }
     fn update(
         mut commands: Commands,
         stats_wisps_killed: Res<StatsWispsKilled>,

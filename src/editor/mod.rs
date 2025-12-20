@@ -1,8 +1,10 @@
+mod objectives;
 mod summonings;
 
 use bevy_egui::{EguiContexts, EguiPrimaryContextPass, egui};
 use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
+use crate::objectives::{ObjectiveDetails, ObjectiveKillWisps};
 use crate::prelude::*;
 use crate::wisps::summoning::Summoning;
 
@@ -21,6 +23,7 @@ impl Plugin for EditorPlugin {
 pub struct EditorState {
     pub active_tab: EditorTab,
     pub selected_summoning: Option<Entity>,
+    pub selected_objective: Option<Entity>,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, EnumIter, AsRefStr)]
@@ -28,6 +31,7 @@ pub enum EditorTab {
     #[default]
     General,
     Summonings,
+    Objectives,
 }
 
 fn editor_ui(
@@ -35,6 +39,7 @@ fn editor_ui(
     mut state: ResMut<EditorState>,
     mut commands: Commands,
     mut summonings: Query<(Entity, &mut Summoning)>,
+    mut objectives_query: Query<(Entity, &mut ObjectiveDetails, Option<&mut ObjectiveKillWisps>)>,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
     egui::Window::new("Editor")
@@ -54,6 +59,7 @@ fn editor_ui(
             match state.active_tab {
                 EditorTab::General => tab_general(ui),
                 EditorTab::Summonings => summonings::tab_summonings(ui, &mut state, &mut commands, &mut summonings),
+                EditorTab::Objectives => objectives::tab_objectives(ui, &mut state, &mut commands, &mut objectives_query),
             }
         });
 }

@@ -33,7 +33,6 @@ pub struct Summoning {
     pub limit_count: Option<i32>,
     pub activation_event: String,
 }
-
 impl Default for Summoning {
     fn default() -> Self {
         Self {
@@ -46,7 +45,6 @@ impl Default for Summoning {
         }
     }
 }
-
 impl Summoning {
     fn get_random_wisp_type(&self, rng: &mut nanorand::tls::TlsWyRand) -> WispType {
         self.wisp_types[rng.generate_range(0..self.wisp_types.len())]

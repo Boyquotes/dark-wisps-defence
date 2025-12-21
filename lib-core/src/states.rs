@@ -55,11 +55,19 @@ pub enum AdminMode {
 impl AdminMode {
     fn toggle_admin_mode(
         current_admin_mode: Res<State<AdminMode>>,
-        mut next_admin_mode: ResMut<NextState<AdminMode>>
+        mut next_admin_mode: ResMut<NextState<AdminMode>>,
+        mut next_game_state: ResMut<NextState<GameState>>,
     ) {
+        // TODO: There is a risk of changing game state when loading etc.
         match current_admin_mode.get() {
-            AdminMode::Disabled => next_admin_mode.set(AdminMode::Enabled),
-            AdminMode::Enabled => next_admin_mode.set(AdminMode::Disabled),
+            AdminMode::Disabled => {
+                next_admin_mode.set(AdminMode::Enabled);
+                next_game_state.set(GameState::Paused);
+            },
+            AdminMode::Enabled => {
+                next_admin_mode.set(AdminMode::Disabled);
+                next_game_state.set(GameState::Running);
+            },
         }
     }
 }

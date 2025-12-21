@@ -23,8 +23,6 @@ impl Plugin for SummoningPlugin {
     }
 }
 
-// --------------- SUMMONING DEFINITIONS (YAML) ---------------
-
 #[derive(Component, Clone, Debug, Serialize, Deserialize)]
 #[require(MapBound, SummoningRuntime)]
 pub struct Summoning {

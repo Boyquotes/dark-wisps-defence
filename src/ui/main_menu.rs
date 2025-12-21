@@ -168,7 +168,7 @@ impl MapEntryButton {
         let entity = trigger.entity;
         let Ok(entry) = entries.get(entity) else { return; };
         println!("Map selected: {}", entry.name);
-        commands.trigger(lib_core::persistance::load::LoadGameSignal(format!("maps/{}.dwd", entry.name.clone())));
+        commands.trigger(lib_core::persistence::load::LoadGameSignal(format!("maps/{}.dwd", entry.name.clone())));
     }
 }
 

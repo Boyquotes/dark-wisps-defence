@@ -43,6 +43,6 @@ fn main() {
             editor::EditorPlugin,
         ))
         // Warning: Bevy behaves wierdly when there are many Startup systems. If some plugins begin to not run at all, watch out for Startup systems at all places. Use Post/Pre Startup instead.
-        .add_systems(PostStartup, |mut commands: Commands| commands.trigger(lib_core::persistance::load::LoadGameSignal("maps/test_map.dwd".to_string())))
+        .add_systems(PostStartup, |mut commands: Commands| commands.trigger(lib_core::persistence::load::LoadGameSignal("maps/test_map.dwd".to_string())))
         .run();
 }

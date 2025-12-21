@@ -10,7 +10,7 @@ impl Plugin for TowerEmitterPlugin {
             .add_observer(BuilderTowerEmitter::on_add).add_systems(Update, (
                 shooting_system.run_if(in_state(GameState::Running)),
             ))
-            .register_db_loader::<BuilderTowerEmitter>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderTowerEmitter>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderTowerEmitter::on_game_save);
     }
 }

@@ -10,7 +10,7 @@ impl Plugin for EnergyRelayPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_observer(BuilderEnergyRelay::on_add)
-            .register_db_loader::<BuilderEnergyRelay>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderEnergyRelay>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderEnergyRelay::on_game_save);
     }
 }

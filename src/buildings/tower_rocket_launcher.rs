@@ -14,7 +14,7 @@ impl Plugin for TowerRocketLauncherPlugin {
             .add_observer(BuilderTowerRocketLauncher::on_add).add_systems(Update, (
                 shooting_system.run_if(in_state(GameState::Running)),
             ))
-            .register_db_loader::<BuilderTowerRocketLauncher>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderTowerRocketLauncher>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderTowerRocketLauncher::on_game_save);
     }
 }

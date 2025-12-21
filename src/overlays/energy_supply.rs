@@ -26,7 +26,7 @@ impl Plugin for EnergySupplyOverlayPlugin {
             .add_plugins(Material2dPlugin::<EnergySupplyHeatmapMaterial>::default())
             .init_state::<EnergySupplyOverlayState>()
             .init_resource::<EnergySupplyOverlayConfig>()
-            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), EnergySupplyOverlay::create)
+            .add_systems(OnEnter(MapLoadingStage::LoadResources), EnergySupplyOverlay::create)
             .add_systems(OnEnter(EnergySupplyOverlayState::Show), |visiblitiy: Single<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.into_inner() = Visibility::Inherited; })
             .add_systems(OnExit(EnergySupplyOverlayState::Show), |visiblitiy: Single<&mut Visibility, With<EnergySupplyOverlay>>| { *visiblitiy.into_inner() = Visibility::Hidden; })
             .add_systems(OnExit(UiInteraction::PlaceGridObject), |mut config: ResMut<EnergySupplyOverlayConfig>| { config.secondary_mode = EnergySupplyOverlaySecondaryMode::None; })
@@ -122,7 +122,7 @@ pub struct EnergySupplyOverlay;
 impl EnergySupplyOverlay {
     fn create(
         mut commands: Commands,
-        map_info: Res<crate::map_editor::MapInfo>,
+        map_info: Res<MapInfo>,
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<EnergySupplyHeatmapMaterial>>,
         overlay: Query<Entity, With<EnergySupplyOverlay>>,

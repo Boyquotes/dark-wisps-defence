@@ -15,7 +15,7 @@ impl Plugin for LaserDartPlugin {
                 ).run_if(in_state(GameState::Running)),
             ))
             .add_observer(BuilderLaserDart::on_add)
-            .register_db_loader::<BuilderLaserDart>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderLaserDart>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderLaserDart::on_game_save);
     }
 }

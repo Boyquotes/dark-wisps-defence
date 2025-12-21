@@ -34,7 +34,7 @@ impl Plugin for QuantumFieldPlugin {
             .add_observer(ArrowButton::on_add)
             .add_observer(QuantumFieldActionButton::on_add)
             .add_observer(on_ui_map_object_focus_changed_trigger)
-            .register_db_loader::<BuilderQuantumField>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderQuantumField>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderQuantumField::on_game_save)
             ;
     }

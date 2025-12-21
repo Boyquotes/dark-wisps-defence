@@ -26,7 +26,7 @@ impl Plugin for TowersRangeOverlayPlugin {
             .add_plugins(Material2dPlugin::<TowersRangeMaterial>::default())
             .init_state::<TowersRangeOverlayState>()
             .init_resource::<TowersRangeOverlayConfig>()
-            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), TowersRangeOverlay::create)
+            .add_systems(OnEnter(MapLoadingStage::LoadResources), TowersRangeOverlay::create)
             .add_systems(OnEnter(TowersRangeOverlayState::Show), |visibility: Single<&mut Visibility, With<TowersRangeOverlay>>| { *visibility.into_inner() = Visibility::Inherited; },)
             .add_systems(OnExit(TowersRangeOverlayState::Show),|visibility: Single<&mut Visibility, With<TowersRangeOverlay>>| { *visibility.into_inner() = Visibility::Hidden; },)
             .add_systems(OnExit(UiInteraction::PlaceGridObject),|mut config: ResMut<TowersRangeOverlayConfig>| { config.secondary_mode = TowersRangeOverlaySecondaryMode::None; },)
@@ -130,7 +130,7 @@ pub struct TowersRangeOverlay;
 impl TowersRangeOverlay {
     fn create(
         mut commands: Commands,
-        map_info: Res<crate::map_editor::MapInfo>,
+        map_info: Res<MapInfo>,
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<TowersRangeMaterial>>,
         overlay: Query<Entity, With<TowersRangeOverlay>>,

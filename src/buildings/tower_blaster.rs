@@ -12,7 +12,7 @@ impl Plugin for TowerBlasterPlugin {
             .add_observer(BuilderTowerBlaster::on_add).add_systems(Update, (
                 shooting_system.run_if(in_state(GameState::Running)),
             ))
-            .register_db_loader::<BuilderTowerBlaster>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderTowerBlaster>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderTowerBlaster::on_game_save);
     }
 }

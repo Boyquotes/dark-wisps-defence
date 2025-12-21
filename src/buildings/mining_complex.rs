@@ -13,7 +13,7 @@ impl Plugin for MiningComplexPlugin {
                 mine_ore_system.run_if(in_state(GameState::Running)),
             ))
             .add_observer(BuilderMiningComplex::on_add)
-            .register_db_loader::<BuilderMiningComplex>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderMiningComplex>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderMiningComplex::on_game_save);
     }
 }

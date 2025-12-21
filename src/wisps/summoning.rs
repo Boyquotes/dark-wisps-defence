@@ -1,5 +1,7 @@
-use lib_grid::grids::obstacles::ObstacleGrid;
 use strum::{AsRefStr, EnumIter};
+use serde::{Deserialize, Serialize};
+
+use lib_grid::grids::obstacles::ObstacleGrid;
 
 use crate::prelude::*;
 
@@ -10,12 +12,12 @@ pub struct SummoningPlugin;
 impl Plugin for SummoningPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(SummoningClock::default());})
+            .add_systems(OnEnter(MapLoadingStage::LoadResources), |mut commands: Commands| { commands.insert_resource(SummoningClock::default());})
             .add_systems(Update, tick_active_summoning_system.run_if(in_state(GameState::Running)))
             .add_observer(on_summoning_activation_event)
             .add_observer(BuilderSummoning::on_add)
-            .register_db_loader::<BuilderSummoning>(MapLoadingStage2::LoadResources)
-            .register_db_loader::<SummoningClock>(MapLoadingStage2::LoadResources)
+            .register_db_loader::<BuilderSummoning>(MapLoadingStage::LoadResources)
+            .register_db_loader::<SummoningClock>(MapLoadingStage::LoadResources)
             .register_db_saver(BuilderSummoning::on_game_save)
             .register_db_saver(SummoningClock::on_game_save);
     }

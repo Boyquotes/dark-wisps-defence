@@ -17,7 +17,7 @@ impl Plugin for DarkOrePlugin {
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_add)
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_remove_dark_ore)
             .add_observer(dark_ore_area_scanner::DarkOreAreaScanner::on_add_dark_ore)
-            .register_db_loader::<BuilderDarkOre>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderDarkOre>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderDarkOre::on_game_save)
             ;
     }

@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, EnumIter, EnumString};
 
 use crate::prelude::*;

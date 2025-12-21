@@ -10,7 +10,7 @@ pub struct ObjectivesPlugin;
 impl Plugin for ObjectivesPlugin {
     fn build(&self, app: &mut App) {
         app
-            .register_db_loader::<BuilderObjective>(MapLoadingStage2::LoadResources)
+            .register_db_loader::<BuilderObjective>(MapLoadingStage::LoadResources)
             .register_db_saver(BuilderObjective::on_game_save)
             .add_systems(Update, (
                 (
@@ -27,14 +27,14 @@ impl Plugin for ObjectivesPlugin {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug)]
 pub enum ObjectiveType {
     ClearAllQuantumFields,
     // TODO: Get rid of this param once legacy load/save is removed
     KillWisps(usize),
 }
 
-#[derive(Component, Clone, Debug, Serialize, Deserialize)]
+#[derive(Component, Clone, Debug)]
 pub struct ObjectiveDetails {
     pub id_name: String,
     pub objective_type: ObjectiveType,

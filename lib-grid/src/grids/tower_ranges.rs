@@ -6,7 +6,7 @@ pub struct TowerRangesPlugin;
 impl Plugin for TowerRangesPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(TowerRangesGrid::new_empty())
+            .add_systems(OnExit(MapLoadingStage::LoadMapInfo), |mut commands: Commands, map_info: Res<MapInfo>| { commands.insert_resource(TowerRangesGrid::new_with_size(map_info.grid_width, map_info.grid_height)); })
             .add_observer(TowerRangesGrid::on_tower_added)
             .add_observer(TowerRangesGrid::on_tower_removed)
             ;

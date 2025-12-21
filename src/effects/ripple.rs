@@ -24,7 +24,7 @@ impl Plugin for RipplePlugin {
                 ).run_if(in_state(GameState::Running)),
             ))
             .add_observer(BuilderRipple::on_add)
-            .register_db_loader::<BuilderRipple>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderRipple>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderRipple::on_game_save);
     }
 }

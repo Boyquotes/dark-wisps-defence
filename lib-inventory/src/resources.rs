@@ -13,8 +13,8 @@ impl Plugin for ResourcesPlugin {
             .init_resource::<Stock>()
             .add_message::<StockChangedEvent>()
             .add_systems(PostUpdate, emit_delta_events_system.run_if(resource_changed::<Stock>))
-            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(Stock::default()); })
-            .register_db_loader::<StockLoader>(MapLoadingStage2::LoadResources)
+            .add_systems(OnEnter(MapLoadingStage::Init), |mut commands: Commands| { commands.insert_resource(Stock::default()); })
+            .register_db_loader::<StockLoader>(MapLoadingStage::LoadResources)
             .register_db_saver(Stock::on_game_save);
     }
 }

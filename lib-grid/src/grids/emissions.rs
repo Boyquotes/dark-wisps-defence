@@ -11,6 +11,7 @@ impl Plugin for EmissionsPlugin {
             .insert_resource(EmissionsGrid::new_empty())
             .init_resource::<EmissionsEnergyRecalculateAll>()
             .add_message::<EmitterChangedEvent>()
+            .add_systems(OnExit(MapLoadingStage::LoadMapInfo), |mut commands: Commands, map_info: Res<MapInfo>| { commands.insert_resource(EmissionsGrid::new_with_size(map_info.grid_width, map_info.grid_height)); })
             .add_systems(PostUpdate, (
                 emissions_calculations_system,
             ))

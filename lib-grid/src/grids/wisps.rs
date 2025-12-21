@@ -4,7 +4,9 @@ use crate::grids::base::BaseGrid;
 pub struct WispsGridPlugin;
 impl Plugin for WispsGridPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(WispsGrid::new_empty());
+        app
+            .add_systems(OnExit(MapLoadingStage::LoadMapInfo), |mut commands: Commands, map_info: Res<MapInfo>| { commands.insert_resource(WispsGrid::new_with_size(map_info.grid_width, map_info.grid_height)); })
+            ;
     }
 }
 

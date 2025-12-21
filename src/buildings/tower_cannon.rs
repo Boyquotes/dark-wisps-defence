@@ -12,7 +12,7 @@ impl Plugin for TowerCannonPlugin {
                 shooting_system.run_if(in_state(GameState::Running)),
             ))
             .add_observer(BuilderTowerCannon::on_add)
-            .register_db_loader::<BuilderTowerCannon>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderTowerCannon>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderTowerCannon::on_game_save);
     }
 }

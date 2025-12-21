@@ -243,11 +243,11 @@ impl GameDbHelpers for rusqlite::Connection {
 }
 
 pub trait AppGameLoadSaveExtension {
-    fn register_db_loader<T: Loadable>(&mut self, stage: MapLoadingStage2) -> &mut Self;
+    fn register_db_loader<T: Loadable>(&mut self, stage: MapLoadingStage) -> &mut Self;
     fn register_db_saver<M>(&mut self, save_system: impl IntoScheduleConfigs<ScheduleSystem, M>) -> &mut Self;
 }
 impl AppGameLoadSaveExtension for App {
-    fn register_db_loader<T: Loadable>(&mut self, stage: MapLoadingStage2) -> &mut Self {
+    fn register_db_loader<T: Loadable>(&mut self, stage: MapLoadingStage) -> &mut Self {
         if !self.world().contains_resource::<GameLoadRegistry>() {
             self.init_resource::<GameLoadRegistry>();
         }

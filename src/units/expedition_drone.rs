@@ -9,7 +9,7 @@ impl Plugin for ExpeditionDronePlugin {
                 move_expedition_drone_system.run_if(in_state(GameState::Running)),
             ))
             .add_observer(BuilderExpeditionDrone::on_add)
-            .register_db_loader::<BuilderExpeditionDrone>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderExpeditionDrone>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderExpeditionDrone::on_game_save);
     }
 }

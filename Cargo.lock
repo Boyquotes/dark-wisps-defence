@@ -3195,7 +3195,6 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "lib-core",
- "serde",
 ]
 
 [[package]]

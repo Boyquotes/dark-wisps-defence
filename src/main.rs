@@ -2,8 +2,6 @@ mod buildings;
 mod data_loader;
 mod editor;
 mod effects;
-mod map_editor;
-mod map_loader;
 mod map_objects;
 mod overlays;
 mod objectives;
@@ -43,10 +41,8 @@ fn main() {
         .add_plugins((
             data_loader::DataLoaderPlugin,
             editor::EditorPlugin,
-            map_editor::MapEditorPlugin,
-            map_loader::MapLoaderPlugin,
         ))
         // Warning: Bevy behaves wierdly when there are many Startup systems. If some plugins begin to not run at all, watch out for Startup systems at all places. Use Post/Pre Startup instead.
-        .add_systems(PostStartup, |mut commands: Commands| commands.trigger(map_loader::LoadMapRequest("test_map".to_string())))
+        .add_systems(PostStartup, |mut commands: Commands| commands.trigger(lib_core::persistance::load::LoadGameSignal("maps/test_map.dwd".to_string())))
         .run();
 }

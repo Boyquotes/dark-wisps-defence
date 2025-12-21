@@ -13,7 +13,7 @@ impl Plugin for WallPlugin {
                 onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
                 color_rotation_system,
             ))
-            .register_db_loader::<BuilderWall>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderWall>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderWall::on_game_save)
             .add_observer(BuilderWall::on_add);
     }

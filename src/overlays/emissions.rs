@@ -9,7 +9,6 @@ use bevy::{
 
 use lib_grid::grids::emissions::{EmissionsGrid, EmissionsType};
 
-use crate::map_editor::MapInfo;
 use crate::prelude::*;
 
 pub struct EmissionsPlugin;
@@ -18,7 +17,7 @@ impl Plugin for EmissionsPlugin {
         app
             .add_plugins(Material2dPlugin::<EmissionHeatmapMaterial>::default())
             .insert_resource(EmissionsOverlayMode::Energy) 
-            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), EmissionsOverlay::create)
+            .add_systems(OnEnter(MapLoadingStage::LoadResources), EmissionsOverlay::create)
             .add_systems(Update, (
                 update_emissions_overlay_system.run_if(resource_changed::<EmissionsOverlayMode>.or(resource_changed::<EmissionsGrid>)),
                 manage_emissions_overlay_mode_system.run_if(input_just_released(KeyCode::Digit6)), // Switch overlay on/off 

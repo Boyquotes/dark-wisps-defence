@@ -34,7 +34,7 @@ impl Plugin for WispsPlugin {
             .add_observer(spawning::on_wisp_spawn_attach_material::<components::WispWaterType, materials::WispWaterMaterial>)
             .add_observer(spawning::on_wisp_spawn_attach_material::<components::WispLightType, materials::WispLightMaterial>)
             .add_observer(spawning::on_wisp_spawn_attach_material::<components::WispElectricType, materials::WispElectricMaterial>)
-            .register_db_loader::<spawning::BuilderWisp>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<spawning::BuilderWisp>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(spawning::BuilderWisp::on_game_save);
     }
 }

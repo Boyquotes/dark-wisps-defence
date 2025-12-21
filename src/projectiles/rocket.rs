@@ -21,7 +21,7 @@ impl Plugin for RocketPlugin {
                 ).run_if(in_state(GameState::Running)),
             ))
             .add_observer(BuilderRocket::on_add)
-            .register_db_loader::<BuilderRocket>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderRocket>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderRocket::on_game_save);
     }
 }

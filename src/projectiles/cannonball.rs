@@ -19,7 +19,7 @@ impl Plugin for CannonballPlugin {
                 ).run_if(in_state(GameState::Running)),
             ))
             .add_observer(BuilderCannonball::on_add)
-            .register_db_loader::<BuilderCannonball>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderCannonball>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderCannonball::on_game_save);
     }
 }

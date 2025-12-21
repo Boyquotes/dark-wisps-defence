@@ -1,5 +1,4 @@
 pub use nanorand::Rng;
-pub use serde::{Deserialize, Serialize};
 
 pub use bevy::prelude::*;
 pub use bevy::platform::collections::{HashMap, HashSet};

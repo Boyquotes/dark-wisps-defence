@@ -10,7 +10,7 @@ impl Plugin for MainBasePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_observer(BuilderMainBase::on_add)
-            .register_db_loader::<BuilderMainBase>(MapLoadingStage2::SpawnMapElements)
+            .register_db_loader::<BuilderMainBase>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderMainBase::on_game_save);
     }
 }
@@ -65,9 +65,6 @@ impl Loadable for BuilderMainBase {
     }
 }
 impl BuilderMainBase {
-    pub fn new(grid_position: GridCoords) -> Self {
-        Self { grid_position, save_data: None }
-    }
     pub fn new_for_saving(grid_position: GridCoords, save_data: MainBaseSaveData) -> Self {
         Self { grid_position, save_data: Some(save_data) }
     }

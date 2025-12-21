@@ -103,7 +103,7 @@ impl LoadMapButton {
             .flat_map(|rd| rd.filter_map(|e| e.ok()))
             .filter_map(|e| {
                 let path = e.path();
-                if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("yaml") {
+                if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("dwd") {
                     path.file_stem().and_then(|s| s.to_str()).map(|s| s.to_string())
                 } else { None }
             })
@@ -168,7 +168,7 @@ impl MapEntryButton {
         let entity = trigger.entity;
         let Ok(entry) = entries.get(entity) else { return; };
         println!("Map selected: {}", entry.name);
-        commands.trigger(crate::map_loader::LoadMapRequest(entry.name.clone()));
+        commands.trigger(lib_core::persistance::load::LoadGameSignal(format!("maps/{}.dwd", entry.name.clone())));
     }
 }
 

@@ -7,20 +7,20 @@ impl Plugin for MapLoadPlugin {
         app
             .init_resource::<DbEntityMap>()
             .init_resource::<GameLoadRegistry>()
-            .add_systems(OnEnter(MapLoadingStage2::LoadMapInfo), spawn_loading_tasks)
-            .add_systems(OnEnter(MapLoadingStage2::LoadResources), spawn_loading_tasks)
-            .add_systems(OnEnter(MapLoadingStage2::SpawnMapElements), spawn_loading_tasks)
-            .add_systems(OnEnter(MapLoadingStage2::Ready), |mut commands: Commands, mut next_game_state: ResMut<NextState<GameState>>| { 
+            .add_systems(OnEnter(MapLoadingStage::LoadMapInfo), spawn_loading_tasks)
+            .add_systems(OnEnter(MapLoadingStage::LoadResources), spawn_loading_tasks)
+            .add_systems(OnEnter(MapLoadingStage::SpawnMapElements), spawn_loading_tasks)
+            .add_systems(OnEnter(MapLoadingStage::Ready), |mut commands: Commands, mut next_game_state: ResMut<NextState<GameState>>| { 
                 commands.trigger(DynamicGameEvent::game_started());
                 next_game_state.set(GameState::Running); 
             })
             .add_systems(Update, (
-                progress_map_loading_state.run_if(in_state(GameState::Loading2)),
+                progress_map_loading_state.run_if(in_state(GameState::Loading)),
                 process_loading_tasks_system,
                 LoadGameSignal::emit.run_if(input_just_released(KeyCode::KeyA)),
             ))
             .add_observer(LoadGameSignal::on_trigger)
-            .register_db_loader::<PopulateDbEntityMapTask>(MapLoadingStage2::LoadMapInfo);
+            .register_db_loader::<PopulateDbEntityMapTask>(MapLoadingStage::LoadMapInfo);
     }
 }
 
@@ -42,7 +42,7 @@ impl LoadGameSignal {
         mut commands: Commands,
         mut next_game_state: ResMut<NextState<GameState>>,
         mut next_ui_state: ResMut<NextState<UiInteraction>>,
-        mut next_map_loading_stage: ResMut<NextState<MapLoadingStage2>>,
+        mut next_map_loading_stage: ResMut<NextState<MapLoadingStage>>,
         mut save_executor: ResMut<GameSaveExecutor>,
         map_bound_entities: Query<Entity, With<MapBound>>,
     ) {
@@ -54,8 +54,8 @@ impl LoadGameSignal {
             Ok(())
         }).expect("Failed to run migrations on load");
         
-        next_game_state.set(GameState::Loading2);
-        next_map_loading_stage.set(MapLoadingStage2::Init);
+        next_game_state.set(GameState::Loading);
+        next_map_loading_stage.set(MapLoadingStage::Init);
         next_ui_state.set(UiInteraction::Free);
 
         // Despawn all existing map elements
@@ -109,11 +109,11 @@ pub type LoaderFn = fn(&mut LoadContext) -> rusqlite::Result<LoadResult>;
 
 #[derive(Resource, Default)]
 pub struct GameLoadRegistry {
-    pub loaders: HashMap<MapLoadingStage2, Vec<LoaderFn>>,
+    pub loaders: HashMap<MapLoadingStage, Vec<LoaderFn>>,
 }
 
 impl GameLoadRegistry {
-    pub fn register<T: Loadable>(&mut self, phase: MapLoadingStage2) {
+    pub fn register<T: Loadable>(&mut self, phase: MapLoadingStage) {
         self.loaders.entry(phase).or_default().push(T::load);
     }
 }
@@ -194,8 +194,8 @@ pub fn process_loading_tasks_system(
 
 /// Check if there are any MapLoadingTasks (local) or LoadingTask (DB) left.
 fn progress_map_loading_state(
-    stage: Res<State<MapLoadingStage2>>,
-    mut next_stage: ResMut<NextState<MapLoadingStage2>>,
+    stage: Res<State<MapLoadingStage>>,
+    mut next_stage: ResMut<NextState<MapLoadingStage>>,
     loading_tasks: Query<(), With<DbLoadingTask>>,
 ) {
     if !loading_tasks.is_empty() { return; }
@@ -207,7 +207,7 @@ fn progress_map_loading_state(
 fn spawn_loading_tasks(
     mut commands: Commands,
     registry: Res<GameLoadRegistry>,
-    stage: ResMut<State<MapLoadingStage2>>,
+    stage: ResMut<State<MapLoadingStage>>,
 ) {
     println!("Spawning loading tasks for phase: {:?}", stage.get());
     let target_phase = stage.get();

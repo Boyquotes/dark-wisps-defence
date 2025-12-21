@@ -1,11 +1,13 @@
 use std::fs::File;
     
+use serde::{Deserialize, Serialize};
+
 use crate::prelude::*;
 
 pub struct DataLoaderPlugin;
 impl Plugin for DataLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(MapLoadingStage::ApplyMap), load_data_system);
+        app.add_systems(OnEnter(MapLoadingStage::LoadMapInfo), load_data_system);
     }
 }
 

@@ -4,8 +4,8 @@ pub struct StatsPlugin;
 impl Plugin for StatsPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(OnEnter(MapLoadingStage::ResetGridsAndResources), |mut commands: Commands| { commands.insert_resource(StatsWispsKilled::default()); })
-            .register_db_loader::<StatsLoader>(MapLoadingStage2::LoadResources)
+            .add_systems(OnEnter(MapLoadingStage::Init), |mut commands: Commands| { commands.insert_resource(StatsWispsKilled::default()); })
+            .register_db_loader::<StatsLoader>(MapLoadingStage::LoadResources)
             .register_db_saver(on_game_save_stats);
     }
 }

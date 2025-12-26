@@ -1,5 +1,3 @@
-use bevy::color::palettes::css::GRAY;
-
 use lib_grid::grids::obstacles::{GridStructureType, ObstacleGrid, ReservedCoords};
 
 use crate::prelude::*;
@@ -11,7 +9,7 @@ impl Plugin for WallPlugin {
         app
             .add_systems(Update, (
                 onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
-                color_rotation_system,
+                Wall::pulsate_brightness,
             ))
             .register_db_loader::<BuilderWall>(MapLoadingStage::SpawnMapElements)
             .register_db_saver(BuilderWall::on_game_save)
@@ -24,6 +22,25 @@ pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, he
 #[derive(Component)]
 #[require(MapBound, ObstacleGridObject = ObstacleGridObject::Wall, EmissionsGridSpreadAffector)]
 pub struct Wall;
+impl Wall {
+    fn pulsate_brightness(
+        time: Res<Time>,
+        mut walls: Query<&mut Sprite, With<Wall>>,
+        mut lightness_rising: Local<bool>,
+    ) {
+        for mut sprite in walls.iter_mut() {
+            if let Color::Hsla(Hsla{lightness, ..}) = &mut sprite.color {
+                let lightness_delta = time.delta_secs() / 10.;
+                *lightness += if *lightness_rising { lightness_delta } else { -lightness_delta };
+                if *lightness > 1.5 {
+                    *lightness_rising = false;
+                } else if *lightness < 1. {
+                    *lightness_rising = true;
+                }
+            }
+        }
+    }
+}
 
 #[derive(Component, SSS)]
 pub struct BuilderWall {
@@ -74,6 +91,7 @@ impl BuilderWall {
     fn on_add(
         trigger: On<Add, BuilderWall>,
         mut commands: Commands,
+        asset_server: Res<AssetServer>,
         builders: Query<&BuilderWall>,
     ) {
         let entity = trigger.entity;
@@ -83,7 +101,8 @@ impl BuilderWall {
             .remove::<BuilderWall>()
             .insert((
                 Sprite {
-                    color: GRAY.into(), // Color::hsla(0., 0.5, 1.3, 0.8); for hdr
+                    image: asset_server.load("map_objects/wall_4side.png"),
+                    color: Color::hsla(0., 0., 1.5, 0.9), //for hdr brightness pulsation
                     custom_size: Some(WALL_GRID_IMPRINT.world_size()),
                     ..default()
                 },
@@ -128,21 +147,6 @@ pub fn onclick_spawn_system(
         // Remove a wall
         if let GridStructureType::Wall(entity) = obstacle_grid[mouse_coords].structure {
             commands.entity(entity).despawn();
-        }
-    }
-}
-
-// TODO: decide whether to keep it
-pub fn color_rotation_system(
-    mut query: Query<&mut Sprite, With<Wall>>,
-    time: Res<Time>,
-) {
-    for mut sprite in query.iter_mut() {
-        if let Color::Hsla(Hsla{hue, ..}) = &mut sprite.color {
-            *hue += time.delta_secs() * 100.;
-            if *hue > 360. {
-                *hue = 0.;
-            }
         }
     }
 }

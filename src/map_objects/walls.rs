@@ -18,6 +18,7 @@ impl Plugin for WallPlugin {
 }
 
 pub const WALL_GRID_IMPRINT: GridImprint = GridImprint::Rectangle { width: 1, height: 1 };
+pub const WALL_BASE_IMAGE: &str = "map_objects/wall_4side.png";
 
 #[derive(Component)]
 #[require(MapBound, ObstacleGridObject = ObstacleGridObject::Wall, EmissionsGridSpreadAffector)]
@@ -27,16 +28,19 @@ impl Wall {
         time: Res<Time>,
         mut walls: Query<&mut Sprite, With<Wall>>,
         mut lightness_rising: Local<bool>,
+        mut shared_lightness: Local<f32>,
     ) {
+        let lightness_delta = time.delta_secs() / 10.;
+        *shared_lightness += if *lightness_rising { lightness_delta } else { -lightness_delta };
+        if *shared_lightness > 1.5 {
+            *lightness_rising = false;
+        } else if *shared_lightness < 1. {
+            *lightness_rising = true;
+            *shared_lightness = 1.;
+        }
         for mut sprite in walls.iter_mut() {
             if let Color::Hsla(Hsla{lightness, ..}) = &mut sprite.color {
-                let lightness_delta = time.delta_secs() / 10.;
-                *lightness += if *lightness_rising { lightness_delta } else { -lightness_delta };
-                if *lightness > 1.5 {
-                    *lightness_rising = false;
-                } else if *lightness < 1. {
-                    *lightness_rising = true;
-                }
+                *lightness = *shared_lightness;
             }
         }
     }
@@ -101,7 +105,7 @@ impl BuilderWall {
             .remove::<BuilderWall>()
             .insert((
                 Sprite {
-                    image: asset_server.load("map_objects/wall_4side.png"),
+                    image: asset_server.load(WALL_BASE_IMAGE),
                     color: Color::hsla(0., 0., 1.5, 0.9), //for hdr brightness pulsation
                     custom_size: Some(WALL_GRID_IMPRINT.world_size()),
                     ..default()

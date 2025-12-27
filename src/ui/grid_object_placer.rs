@@ -5,6 +5,8 @@ use crate::prelude::*;
 use crate::map_objects::dark_ore::DARK_ORE_GRID_IMPRINT;
 use crate::map_objects::quantum_field::QuantumFieldImprintSelector;
 use crate::map_objects::walls::WALL_GRID_IMPRINT;
+use crate::wisps::components::WispType;
+use crate::wisps::spawning::WISP_GRID_IMPRINT;
 
 pub struct GridObjectPlacerPlugin;
 impl Plugin for GridObjectPlacerPlugin {
@@ -49,6 +51,7 @@ pub enum GridObjectPlacer {
     Wall,
     DarkOre,
     QuantumField(QuantumFieldImprintSelector),
+    Wisp(WispType),
 }
 impl GridObjectPlacer {
     pub fn as_grid_imprint(&self, almanach: &Almanach) -> GridImprint {
@@ -57,6 +60,7 @@ impl GridObjectPlacer {
             GridObjectPlacer::Wall => WALL_GRID_IMPRINT,
             GridObjectPlacer::DarkOre => DARK_ORE_GRID_IMPRINT,
             GridObjectPlacer::QuantumField(imprint_selector) => imprint_selector.get(),
+            GridObjectPlacer::Wisp(_) => WISP_GRID_IMPRINT,
             GridObjectPlacer::None => unreachable!(),
         }
     }
@@ -106,6 +110,11 @@ impl GridObjectPlacer {
 impl From<BuildingType> for GridObjectPlacer {
     fn from(building_type: BuildingType) -> Self {
         GridObjectPlacer::Building(building_type)
+    }
+}
+impl From<WispType> for GridObjectPlacer {
+    fn from(wisp_type: WispType) -> Self {
+        GridObjectPlacer::Wisp(wisp_type)
     }
 }
 

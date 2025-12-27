@@ -28,6 +28,7 @@ impl Plugin for WispsPlugin {
                     systems::collide_wisps,
                     systems::remove_dead_wisps,
                 ).run_if(in_state(GameState::Running)),
+                spawning::onclick_spawn_system.run_if(in_state(UiInteraction::PlaceGridObject)),
             ))
             .add_observer(spawning::BuilderWisp::on_add)
             .add_observer(spawning::on_wisp_spawn_attach_material::<components::WispFireType, materials::WispFireMaterial>)

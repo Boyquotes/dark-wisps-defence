@@ -2,6 +2,7 @@ use bevy::color::palettes::css::{TURQUOISE, WHITE};
 use bevy::ui::FocusPolicy;
 
 use crate::buildings::tower_emitter::TOWER_EMITTER_BASE_IMAGE;
+use crate::map_objects::walls::WALL_BASE_IMAGE;
 use crate::prelude::*;
 use crate::buildings::energy_relay::ENERGY_RELAY_BASE_IMAGE;
 use crate::buildings::exploration_center::EXPLORATION_CENTER_BASE_IMAGE;
@@ -13,6 +14,7 @@ use crate::buildings::tower_rocket_launcher::TOWER_ROCKET_LAUNCHER_BASE_IMAGE;
 use crate::map_objects::dark_ore::DARK_ORE_BASE_IMAGES;
 use crate::map_objects::quantum_field::QuantumFieldImprintSelector;
 use crate::ui::grid_object_placer::{GridObjectPlacer, GridObjectPlacerRequest};
+use crate::wisps::components::WispType;
 
 const NOT_HOVERED_ALPHA: f32 = 0.2;
 const CONSTRUCT_MENU_BUTTON_WIDTH: f32 = 65.;
@@ -167,6 +169,8 @@ impl ConstructObjectButton{
                         top: Val::ZERO,
                         bottom: Val::ZERO,
                     },
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
                     ..default()
                 },
                 BackgroundColor(TURQUOISE.into()),
@@ -190,15 +194,17 @@ impl ConstructObjectButton{
                         BuildingType::MiningComplex => Some(MINING_COMPLEX_BASE_IMAGE),
                     },
                     GridObjectPlacer::DarkOre => Some(DARK_ORE_BASE_IMAGES[0]),
+                    GridObjectPlacer::Wall => Some(WALL_BASE_IMAGE),
                     _ => None,
                 };
                 if let Some(image_handle) = image_handle {
                     parent.spawn((
                         Node {
-                            width: Val::Px(48.0),
-                            height: Val::Px(48.0),
+                            width: Val::Px(46.0),
+                            height: Val::Px(46.0),
                             ..default()
                         },
+                        
                         ImageNode::new(asset_server.load(image_handle)),
                     ));
                 }
@@ -311,6 +317,13 @@ impl SideMenu {
                     // Construct wisps list picker
                     children![(
                         ConstructMenuListPicker,
+                        children![
+                            // Specific wisp to construct
+                            ConstructObjectButton::new(WispType::Fire.into()),
+                            ConstructObjectButton::new(WispType::Water.into()),
+                            ConstructObjectButton::new(WispType::Light.into()),
+                            ConstructObjectButton::new(WispType::Electric.into()),
+                        ]
                     )],
                 ),
             ]

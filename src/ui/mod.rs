@@ -2,6 +2,7 @@ mod construction_menu;
 mod objectives_panel;
 mod badges;
 mod main_menu;
+mod pause_indicator;
 
 pub mod display_info_panel;
 pub mod grid_display;
@@ -22,6 +23,7 @@ impl Plugin for UiPlugin {
                 objectives_panel::ObjectivesPanelPlugin,
                 construction_menu::ConstructionMenuPlugin,
                 main_menu::MainMenuPlugin,
+                pause_indicator::PauseIndicatorPlugin,
             ))
             .insert_resource(UiConfig::default())
             .add_systems(Update, (

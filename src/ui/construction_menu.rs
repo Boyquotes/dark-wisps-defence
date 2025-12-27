@@ -23,7 +23,10 @@ impl Plugin for ConstructionMenuPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, (
-                initialize_construction_menu_system,
+                SideMenu::setup,
+            ))
+            .add_systems(Update, (
+                AdminOnly::on_admin_mode_change.run_if(state_changed::<AdminMode>),
             ))
             .add_observer(ConstructObjectButton::on_add)
             .add_observer(ButtonConstructMenu::on_add)
@@ -33,16 +36,22 @@ impl Plugin for ConstructionMenuPlugin {
 
 #[derive(Component)]
 #[require(Button)]
-pub struct ButtonConstructMenu(pub &'static str);
+pub struct ButtonConstructMenu {
+    icon_path: &'static str,
+}
 impl ButtonConstructMenu {
-    pub fn on_add(
+    pub fn new(icon_path: &'static str) -> Self {
+        Self { icon_path }
+    }
+
+    fn on_add(
         trigger: On<Add, ButtonConstructMenu>,
         mut commands: Commands,
         asset_server: Res<AssetServer>,
         buttons: Query<&ButtonConstructMenu>,
     ) {
         let entity = trigger.entity;
-        let image = buttons.get(entity).unwrap().0;
+        let icon_path = buttons.get(entity).unwrap().icon_path;
 
         commands.entity(entity).insert((
             Node {
@@ -50,7 +59,7 @@ impl ButtonConstructMenu {
                 height: Val::Px(CONSTRUCT_MENU_BUTTON_HEIGHT),
                 ..default()
             },
-            ImageNode::new(asset_server.load(image)).with_color(WHITE.with_alpha(NOT_HOVERED_ALPHA).into()),
+            ImageNode::new(asset_server.load(icon_path)).with_color(WHITE.with_alpha(NOT_HOVERED_ALPHA).into()),
         ))
         .observe(Self::on_mouse_over)
         .observe(Self::on_mouse_out);
@@ -85,11 +94,26 @@ impl ButtonConstructMenu {
     }
 }
 
+#[derive(Component)]
+struct AdminOnly;
+impl AdminOnly {
+    fn on_admin_mode_change(
+        admin_mode: Res<State<AdminMode>>,
+        mut menu_buttons: Query<&mut Visibility, With<AdminOnly>>,
+    ) {
+        println!("dddd");
+        let new_visibility = if matches!(admin_mode.get(), AdminMode::Enabled) { Visibility::Inherited } else { Visibility::Hidden };
+        for mut visibility in menu_buttons.iter_mut() {
+            *visibility = new_visibility;
+        }
+    }
+}
+
 #[derive(Component, Default)]
 #[require(Button)]
 pub struct ConstructMenuListPicker;
 impl ConstructMenuListPicker {
-    pub fn on_add(
+    fn on_add(
         trigger: On<Add, ConstructMenuListPicker>,
         mut commands: Commands,
     ) {
@@ -124,7 +148,7 @@ impl ConstructObjectButton{
         Self { object_type }
     }
 
-    pub fn on_add(
+    fn on_add(
         trigger: On<Add, ConstructObjectButton>,
         mut commands: Commands,
         asset_server: Res<AssetServer>,
@@ -194,69 +218,102 @@ impl ConstructObjectButton{
     }
 }
 
-pub fn create_construct_menu(
-    commands: &mut Commands,
-) -> Entity {
-    commands.spawn((
-        Node { // Main Menu node
-            position_type: PositionType::Absolute,
-            top: Val::Percent(40.),
-            left: Val::Px(5.0),
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            ..default()
-        },
-        children![
-            // Construct towers button
-            (
-                ButtonConstructMenu("ui/construct_towers.png"),
-                // Construct towers list picker
-                children![(
-                    ConstructMenuListPicker,
-                    children![
-                        // Specific tower to construct
-                        ConstructObjectButton::new(BuildingType::Tower(TowerType::Blaster).into()),
-                        ConstructObjectButton::new(BuildingType::Tower(TowerType::Cannon).into()),
-                        ConstructObjectButton::new(BuildingType::Tower(TowerType::RocketLauncher).into()),
-                        ConstructObjectButton::new(BuildingType::Tower(TowerType::Emitter).into()),
-                    ]
-                )]
-            ),
-            // Construct buildings button
-            (
-                ButtonConstructMenu("ui/construct_buildings.png"),
-                // Construct buildings list picker
-                children![(
-                    ConstructMenuListPicker,
-                    children![
-                        // Specific building to construct
-                        ConstructObjectButton::new(BuildingType::EnergyRelay.into()),
-                        ConstructObjectButton::new(BuildingType::MiningComplex.into()),
-                        ConstructObjectButton::new(BuildingType::ExplorationCenter.into()),
-                    ]
-                )]
-            ),
-            // Construct objects(editor) button
-            (
-                ButtonConstructMenu("ui/construct_editor.png"),
-                // Construct objects(editor) list picker
-                children![(
-                    ConstructMenuListPicker,
-                    children![
-                        // Specific editor building to construct
-                        ConstructObjectButton::new(BuildingType::MainBase.into()),
-                        ConstructObjectButton::new(GridObjectPlacer::DarkOre),
-                        ConstructObjectButton::new(GridObjectPlacer::Wall),
-                        ConstructObjectButton::new(GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default())),
-                    ]
-                )]
-            ),
-        ]
-    )).id()
-}
-
-fn initialize_construction_menu_system(
-    mut commands: Commands,
-) {
-    create_construct_menu(&mut commands);
+#[derive(Component)]
+struct SideMenu;
+impl SideMenu {
+    pub fn setup(
+        mut commands: Commands,
+    ) {
+        commands.spawn((
+            SideMenu,
+            Node { // Root node
+                position_type: PositionType::Absolute,
+                top: Val::Percent(30.),
+                left: Val::Px(5.0),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            children![
+                // Construct towers button
+                (
+                    ButtonConstructMenu::new("ui/side_menu_towers.png"),
+                    // Construct towers list picker
+                    children![(
+                        ConstructMenuListPicker,
+                        children![
+                            // Specific tower to construct
+                            ConstructObjectButton::new(BuildingType::Tower(TowerType::Blaster).into()),
+                            ConstructObjectButton::new(BuildingType::Tower(TowerType::Cannon).into()),
+                            ConstructObjectButton::new(BuildingType::Tower(TowerType::RocketLauncher).into()),
+                            ConstructObjectButton::new(BuildingType::Tower(TowerType::Emitter).into()),
+                        ]
+                    )]
+                ),
+                // Construct buildings button
+                (
+                    ButtonConstructMenu::new("ui/side_menu_buildings.png"),
+                    // Construct buildings list picker
+                    children![(
+                        ConstructMenuListPicker,
+                        children![
+                            // Specific building to construct
+                            ConstructObjectButton::new(BuildingType::EnergyRelay.into()),
+                            ConstructObjectButton::new(BuildingType::MiningComplex.into()),
+                            ConstructObjectButton::new(BuildingType::ExplorationCenter.into()),
+                        ]
+                    )]
+                ),
+                // Construct research button
+                (
+                    ButtonConstructMenu::new("ui/side_menu_research.png"),
+                    // Construct research list picker
+                    children![(
+                        ConstructMenuListPicker,
+                    )],
+                ),
+                // Construct upgrades button
+                (
+                    ButtonConstructMenu::new("ui/side_menu_upgrades.png"),
+                    // Construct upgrades list picker
+                    children![(
+                        ConstructMenuListPicker,
+                    )],
+                ),
+                // Construct consumables button
+                (
+                    ButtonConstructMenu::new("ui/side_menu_consumables.png"),
+                    // Construct consumables list picker
+                    children![(
+                        ConstructMenuListPicker,
+                    )],
+                ),
+                // Construct objects(editor) button
+                (
+                    ButtonConstructMenu::new("ui/side_menu_admin_objects.png"),
+                    AdminOnly,
+                    // Construct objects(editor) list picker
+                    children![(
+                        ConstructMenuListPicker,
+                        children![
+                            // Specific editor building to construct
+                            ConstructObjectButton::new(BuildingType::MainBase.into()),
+                            ConstructObjectButton::new(GridObjectPlacer::DarkOre),
+                            ConstructObjectButton::new(GridObjectPlacer::Wall),
+                            ConstructObjectButton::new(GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default())),
+                        ]
+                    )]
+                ),
+                // Construct wisps button
+                (
+                    ButtonConstructMenu::new("ui/side_menu_admin_wisps.png"),
+                    AdminOnly,
+                    // Construct wisps list picker
+                    children![(
+                        ConstructMenuListPicker,
+                    )],
+                ),
+            ]
+        ));
+    }
 }

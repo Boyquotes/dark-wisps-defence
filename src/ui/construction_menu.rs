@@ -144,10 +144,21 @@ impl ConstructMenuListPicker {
 #[require(Button, FocusPolicy)]
 pub struct ConstructObjectButton {
     pub object_type: GridObjectPlacer,
+    pub background_color: Color,
 }
 impl ConstructObjectButton{
     pub fn new(object_type: GridObjectPlacer) -> Self {
-        Self { object_type }
+        Self { 
+            object_type,
+            background_color: TURQUOISE.into(),
+        }
+    }
+
+    pub fn new_admin(object_type: GridObjectPlacer) -> Self {
+        Self { 
+            object_type,
+            background_color: Color::srgb(0.8, 0.3, 0.1), // Custom reddish-orange
+        }
     }
 
     fn on_add(
@@ -157,6 +168,7 @@ impl ConstructObjectButton{
         builders: Query<&ConstructObjectButton>,
     ) {
         let entity = trigger.entity;
+        let button = builders.get(entity).unwrap();
 
         commands.entity(entity)
             .insert((
@@ -173,11 +185,11 @@ impl ConstructObjectButton{
                     justify_content: JustifyContent::Center,
                     ..default()
                 },
-                BackgroundColor(TURQUOISE.into()),
+                BackgroundColor(button.background_color),
             ))
             .observe(Self::on_click)
             .with_children(|parent| {
-                let object_type = &builders.get(entity).unwrap().object_type;
+                let object_type = &button.object_type;
                 let image_handle = match &object_type {
                     GridObjectPlacer::Building(building_type) => match building_type {
                         BuildingType::Tower(tower_type) => {
@@ -303,10 +315,10 @@ impl SideMenu {
                         ConstructMenuListPicker,
                         children![
                             // Specific editor building to construct
-                            ConstructObjectButton::new(BuildingType::MainBase.into()),
-                            ConstructObjectButton::new(GridObjectPlacer::DarkOre),
-                            ConstructObjectButton::new(GridObjectPlacer::Wall),
-                            ConstructObjectButton::new(GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default())),
+                            ConstructObjectButton::new_admin(BuildingType::MainBase.into()),
+                            ConstructObjectButton::new_admin(GridObjectPlacer::DarkOre),
+                            ConstructObjectButton::new_admin(GridObjectPlacer::Wall),
+                            ConstructObjectButton::new_admin(GridObjectPlacer::QuantumField(QuantumFieldImprintSelector::default())),
                         ]
                     )]
                 ),
@@ -319,10 +331,10 @@ impl SideMenu {
                         ConstructMenuListPicker,
                         children![
                             // Specific wisp to construct
-                            ConstructObjectButton::new(WispType::Fire.into()),
-                            ConstructObjectButton::new(WispType::Water.into()),
-                            ConstructObjectButton::new(WispType::Light.into()),
-                            ConstructObjectButton::new(WispType::Electric.into()),
+                            ConstructObjectButton::new_admin(WispType::Fire.into()),
+                            ConstructObjectButton::new_admin(WispType::Water.into()),
+                            ConstructObjectButton::new_admin(WispType::Light.into()),
+                            ConstructObjectButton::new_admin(WispType::Electric.into()),
                         ]
                     )],
                 ),

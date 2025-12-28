@@ -19,7 +19,7 @@ impl Plugin for DisplayInfoPanelPlugin {
             .add_systems(Update, (
                 hide_system.run_if(in_state(UiInteraction::DisplayInfoPanel)),
                 show_on_click_system.run_if(in_state(UiInteraction::Free).or(in_state(UiInteraction::DisplayInfoPanel))),
-                on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayInfoPanel).and(on_message::<BuildingDestroyedEvent>)),
+                on_building_destroyed_system.run_if(in_state(UiInteraction::DisplayInfoPanel).and(on_message::<BuildingDestroyedmessage>)),
             ))
             .add_systems(OnEnter(UiInteraction::DisplayInfoPanel), on_display_enter_system)
             .add_systems(OnExit(UiInteraction::DisplayInfoPanel), on_display_exit_system);
@@ -115,7 +115,7 @@ fn show_on_click_system(
 
 fn on_building_destroyed_system(
     mut ui_interaction_state: ResMut<NextState<UiInteraction>>,
-    mut events: MessageReader<BuildingDestroyedEvent>,
+    mut events: MessageReader<BuildingDestroyedmessage>,
     display_info_panel: Single<&DisplayInfoPanel>,
 ) {
     let current_display_entity = display_info_panel.into_inner().current_focus;

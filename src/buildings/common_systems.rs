@@ -30,7 +30,9 @@ impl Plugin for CommonSystemsPlugin {
                     rotational_aiming_system,
                     damage_control_system,
                 ).run_if(in_state(GameState::Running)),
-            ));
+            ))
+            .add_observer(on_building_destroy_request)
+            ;
     }
 }
 
@@ -135,15 +137,11 @@ fn tick_shooting_timers_system(
 
 fn damage_control_system(
     mut commands: Commands,
-    buildings: Query<(Entity, &Health, &GridImprint, &GridCoords), With<Building>>,
+    buildings: Query<(Entity, &Health), With<Building>>,
 ) {
-    for (entity, health, grid_imprint, grid_coords) in buildings.iter() {
+    for (entity, health) in buildings.iter() {
         if health.is_dead() {
-            commands.entity(entity).despawn();
-            grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
-                commands.spawn(BuilderExplosion(coords));
-            });
-            commands.queue(BuildingDestroyedEvent(entity));
+            commands.trigger(BuildingDestroyRequest(entity));
         }
     }
 }
@@ -178,4 +176,19 @@ fn rotational_aiming_system(
         let rotation_delta = rotation.speed * time.delta_secs();
         rotation.current_angle += angle_diff.clamp(-rotation_delta, rotation_delta);
     }
+}
+
+fn on_building_destroy_request(
+    trigger: On<BuildingDestroyRequest>,
+    mut commands: Commands,
+    buildings: Query<(&GridImprint, &GridCoords), With<Building>>,
+) {
+    let building_to_destroy = trigger.0;
+    let Ok((grid_imprint, grid_coords)) = buildings.get(building_to_destroy) else { return; };
+
+    commands.entity(building_to_destroy).despawn();
+    grid_imprint.covered_coords(*grid_coords).into_iter().for_each(|coords| {
+        commands.spawn(BuilderExplosion(coords));
+    });
+    commands.queue(BuildingDestroyedmessage(building_to_destroy));
 }

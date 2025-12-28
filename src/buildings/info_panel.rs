@@ -15,6 +15,7 @@ impl Plugin for InfoPanelPlugin {
             .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<BuildingInfoPanelEnabledTrigger, ()>) // Refresh upgrade text on panel enabled
             .add_observer(BuildingInfoPanelTowerUpgradeCountText::refresh_upgrade_count_on::<LevelUpUpgradeAppliedEvent, ()>) // Refresh upgrade text after upgrade applied
             .add_observer(BuildingInfoPanelDisableButton::on_add)
+            .add_observer(BuildingInfoPanelDestroyButton::on_add)
             ;
     }
 }
@@ -72,18 +73,22 @@ fn on_ui_map_object_focus_changed_trigger(
     mut commands: Commands,
     almanach: Res<Almanach>,
     building_name_text: Single<&mut Text, With<BuildingInfoPanelNameText>>,
-    building_panel: Single<&mut Node, (With<BuildingInfoPanel>, Without<BuildingInfoPanelDisableButton>)>,
+    building_panel_entity: Single<Entity, With<BuildingInfoPanel>>,
+    disable_button_entity: Single<Entity, With<BuildingInfoPanelDisableButton>>,
+    disable_button_icon: Single<&mut ImageNode, With<BuildingInfoPanelDisableButtonIcon>>,
+    destroy_button_entity: Single<Entity, With<BuildingInfoPanelDestroyButton>>,
     buildings: Query<&BuildingType>,
     disabled_by_player: Query<(), With<DisabledByPlayer>>,
-    disable_button_node: Single<&mut Node, (With<BuildingInfoPanelDisableButton>, Without<BuildingInfoPanel>)>,
-    disable_button_icon: Single<&mut ImageNode, With<BuildingInfoPanelDisableButtonIcon>>,
+    mut nodes: Query<&mut Node>,
 ) {
     let focused_entity = trigger.entity;
+    let Ok(mut building_panel) = nodes.get_mut(building_panel_entity.into_inner()) else { return; };
     let Ok(building_type) = buildings.get(focused_entity) else { 
-        building_panel.into_inner().display = Display::None;
+        building_panel.display = Display::None;
         return; 
     };
-    building_panel.into_inner().display = Display::Flex;
+    
+    building_panel.display = Display::Flex;
     commands.trigger(BuildingInfoPanelEnabledTrigger { entity: focused_entity });
 
     // Update the building name
@@ -91,15 +96,26 @@ fn on_ui_map_object_focus_changed_trigger(
 
     // Manage the Disable button
     let is_main_base = matches!(building_type, &BuildingType::MainBase);
-    disable_button_node.into_inner().display = if is_main_base { 
-        // MainBase cannot be disabled
-        Display::None 
-    } else { 
-        let mut icon = disable_button_icon.into_inner();
-        let is_disabled = disabled_by_player.contains(focused_entity);
-        icon.color.set_alpha(if is_disabled { 1.0 } else { 0.35 });
-        Display::Flex 
-    };
+    if let Ok(mut disable_button) = nodes.get_mut(disable_button_entity.into_inner()) {
+        disable_button.display = if is_main_base { 
+            // MainBase cannot be disabled
+            Display::None 
+        } else { 
+            let is_disabled = disabled_by_player.contains(focused_entity);
+            disable_button_icon.into_inner().color.set_alpha(if is_disabled { 1.0 } else { 0.35 });
+            Display::Flex 
+        };
+    }
+
+    // Manage the Destroy button
+    if let Ok(mut destroy_button) = nodes.get_mut(destroy_button_entity.into_inner()) {
+        destroy_button.display = if is_main_base { 
+            // MainBase cannot be destroyed
+            Display::None 
+        } else { 
+            Display::Flex 
+        };
+    }
 }
 
 fn initialize_building_panel_content_system(
@@ -151,9 +167,13 @@ fn initialize_building_panel_content_system(
                             Healthbar::default(),
                             BuildingInfoPanelHealthbar,
                         ),
-                        // Disable/Enable button (top-right)
+                        // Disable/Enable button
                         (
                             BuildingInfoPanelDisableButton,
+                        ),
+                        // Destroy button
+                        (
+                            BuildingInfoPanelDestroyButton,
                         ),
                     ],
                 ),
@@ -282,5 +302,52 @@ impl BuildingInfoPanelDisableButton {
 
         // Update icon alpha to reflect state after toggle
         icon.into_inner().color.set_alpha(if is_disabled { 0.35 } else { 1.0 });
+    }
+}
+
+// Destroy button
+#[derive(Component)]
+#[require(Button)]
+struct BuildingInfoPanelDestroyButton;
+#[derive(Component)]
+struct BuildingInfoPanelDestroyButtonIcon;
+impl BuildingInfoPanelDestroyButton {
+    fn on_add(
+        trigger: On<Add, BuildingInfoPanelDestroyButton>,
+        mut commands: Commands,
+        asset_server: Res<AssetServer>,
+    ) {
+        let entity = trigger.entity;
+        commands
+            .entity(entity)
+            .insert((
+                Node {
+                    width: Val::Px(32.),
+                    height: Val::Px(32.),
+                    margin: UiRect { left: Val::Px(2.), ..default() },
+                    align_self: AlignSelf::Center,
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+            ))
+            .observe(Self::on_click)
+            .with_children(|parent| {
+                parent.spawn((
+                    ImageNode::new(asset_server.load("ui/building_destroy.png")),
+                    BuildingInfoPanelDestroyButtonIcon,
+                ));
+            });
+    }
+
+    fn on_click(
+        _trigger: On<Pointer<Click>>,
+        mut commands: Commands,
+        display_info_panel: Single<&DisplayInfoPanel>,
+    ) {
+        let focused_entity = display_info_panel.into_inner().current_focus;
+        
+        // Emit building destroy request event
+        commands.trigger(BuildingDestroyRequest(focused_entity));
     }
 }
